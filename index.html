@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f5f7" />
+    <!--
+      CONTENT SECURITY POLICY — localhost only.
+      The app talks ONLY to a local Ollama on this machine (localhost:11434).
+      Every other outbound connection is blocked by the browser. Your letters
+      and answers never leave this computer.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      connect-src 'self' http://localhost:11434 http://127.0.0.1:11434 https://api.github.com;
+      img-src 'self' data:;
+      style-src 'self' 'unsafe-inline';
+      script-src 'self';
+      base-uri 'self';
+      form-action 'none';
+      frame-ancestors 'none';
+      object-src 'none';
+    " />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="icon-256.png" />
+    <title>CANA — Covenant Life</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
