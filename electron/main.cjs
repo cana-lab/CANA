@@ -51,11 +51,10 @@ function createWindow() {
     minHeight: 600,
     title: "CANA — Covenant Life",
     backgroundColor: "#f5f5f7",
-    // The app draws its own macOS-style title bar (traffic lights + title),
-    // so we hide the native bar but keep the real traffic-light buttons,
-    // inset to line up with the app's chrome.
-    titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 18, y: 17 },
+    // Use the standard macOS title bar. The app no longer draws its own
+    // chrome strip, so the real traffic-light buttons and full-screen behave
+    // natively without overlapping the app's content.
+    titleBarStyle: "default",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,

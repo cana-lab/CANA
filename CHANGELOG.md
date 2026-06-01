@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.3.2
+- Welcome screen: Introduction and "Set up the local AI" are now gray secondary buttons matching Quick Check-In (were text links).
+- Fixed buggy window controls: removed the app's own drawn title-bar strip (duplicate traffic-light dots) and switched the desktop window to the standard macOS title bar, so the real close/minimize/full-screen buttons behave natively without overlap.
+- "Check for updates" result message now auto-dismisses after 10 seconds (an available-update notice stays visible).
+- App width now adapts to the screen/window size (grows up to a wider cap with viewport-based side padding) instead of a fixed narrow column.
+
+
 ## 4.3.1
 - Added in-app version display (home screen) and a "Check for updates" button that queries the project's GitHub Releases and links to the download when a newer version exists. Version is read from package.json at build time (single source of truth). No auto-install (that needs Apple signing); the update repo is set via one line in src/update.js. See docs/UPDATES.md for the full GitHub repo + release setup guide.
 

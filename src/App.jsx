@@ -155,16 +155,11 @@ function Chrome({ title, right }) {
   return (
     <div style={{
       position: "sticky", top: 0, zIndex: 20, display: "flex", alignItems: "center",
-      justifyContent: "space-between", padding: "12px 20px",
+      justifyContent: "space-between", padding: "10px 20px",
       background: "rgba(245,245,247,0.8)", backdropFilter: "saturate(180%) blur(20px)",
       WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: "1px solid var(--hair2)",
     }} className="no-print">
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <span style={{ width: 12, height: 12, borderRadius: "50%", background: "#FF5F57" }} />
-          <span style={{ width: 12, height: 12, borderRadius: "50%", background: "#FEBC2E" }} />
-          <span style={{ width: 12, height: 12, borderRadius: "50%", background: "#28C840" }} />
-        </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink2)", letterSpacing: "-.01em", display: "flex", alignItems: "center", gap: 8 }}>
           <Logo size={20} /> {title}
         </span>
@@ -181,7 +176,7 @@ function StatusDot({ state }) {
 }
 
 const Wrap = ({ children, narrow }) => (
-  <div style={{ maxWidth: narrow ? 640 : 760, margin: "0 auto", padding: "0 28px" }}>{children}</div>
+  <div style={{ width: "100%", maxWidth: narrow ? 820 : 1100, margin: "0 auto", padding: "0 max(28px, 4vw)", boxSizing: "border-box" }}>{children}</div>
 );
 const eyebrow = { fontSize: 12, fontWeight: 600, color: "var(--accent)", textTransform: "uppercase", letterSpacing: ".08em", margin: "0 0 10px" };
 const h1 = { fontSize: 38, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.08, margin: "0 0 16px", color: "var(--ink)" };
@@ -395,6 +390,10 @@ export default function App() {
     setUpdate({ checking: true, result: null });
     const result = await checkForUpdate();
     setUpdate({ checking: false, result });
+    // Auto-dismiss the message after 10 seconds (but keep an available update visible).
+    if (result.state !== "update") {
+      setTimeout(() => setUpdate((u) => (u.result === result ? { checking: false, result: null } : u)), 10000);
+    }
   };
 
   const generate = async () => {
@@ -482,15 +481,9 @@ export default function App() {
             <Btn kind="secondary" onClick={() => startAssessment("checkin")} disabled={!names.A && !hasHistory}>Quick Check-In</Btn>
             {hasHistory ? <Btn kind="subtle" onClick={() => setScreen("dashboard")}>Dashboard · {sessions.length}</Btn> : null}
           </div>
-          <div className="rise-4" style={{ marginTop: 14, display: "flex", gap: 18, flexWrap: "wrap" }}>
-            <button onClick={() => { setScreen("intro"); window.scrollTo({ top: 0 }); }}
-              style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 14, fontWeight: 500, cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", gap: 6 }}>
-              Introduction — the background, methodology &amp; sources →
-            </button>
-            <button onClick={openSetup}
-              style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 14, fontWeight: 500, cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", gap: 6 }}>
-              Set up the local AI →
-            </button>
+          <div className="rise-4" style={{ marginTop: 12, display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <Btn kind="secondary" onClick={() => { setScreen("intro"); window.scrollTo({ top: 0 }); }}>Introduction</Btn>
+            <Btn kind="secondary" onClick={openSetup}>Set up the local AI</Btn>
           </div>
           {!names.A && !hasHistory ? <p style={{ fontSize: 12.5, color: "var(--ink3)", marginTop: 10 }}>The quick check-in unlocks after your first full assessment.</p> : null}
 

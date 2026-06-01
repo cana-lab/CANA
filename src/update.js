@@ -5,7 +5,7 @@
 //
 //  >>> EDIT THIS ONE LINE once your GitHub repo exists: <<<
 //      Set it to "owner/repo", e.g. "dasachs/cana".
-export const GITHUB_REPO = "Cana-lab/CANA"; // e.g. "dasachs/cana"
+export const GITHUB_REPO = "cana-lab/CANA"; // your GitHub owner/repo
 
 // The version baked in at build time (from package.json, via vite.config.js).
 export const APP_VERSION =
