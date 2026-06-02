@@ -479,6 +479,7 @@ export default function App() {
           <div className="rise-4" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 28, alignItems: "center" }}>
             <Btn onClick={() => { setMode("full"); setScreen("prepare"); window.scrollTo({ top: 0 }); }}>Begin Full Assessment</Btn>
             <Btn kind="secondary" onClick={() => startAssessment("checkin")} disabled={!names.A && !hasHistory}>Quick Check-In</Btn>
+            {results ? <Btn kind="subtle" onClick={() => { setScreen("results"); window.scrollTo({ top: 0 }); }}>View latest results</Btn> : null}
             {hasHistory ? <Btn kind="subtle" onClick={() => setScreen("dashboard")}>Dashboard · {sessions.length}</Btn> : null}
           </div>
           <div className="rise-4" style={{ marginTop: 12, display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -1335,7 +1336,7 @@ export default function App() {
     );
     return (
       <div>
-        <Chrome title="CANA — Dashboard" right={<Btn kind="ghost" onClick={() => setScreen("welcome")}>Home</Btn>} />
+        <Chrome title="CANA — Dashboard" right={<div style={{ display: "flex", gap: 8 }}>{results ? <Btn kind="ghost" onClick={() => { setScreen("results"); window.scrollTo({ top: 0 }); }}>Results</Btn> : null}<Btn kind="ghost" onClick={() => setScreen("welcome")}>Home</Btn></div>} />
         <Wrap>
           <div style={{ padding: "44px 0 90px" }}>
             <p style={eyebrow}>Trend Dashboard</p>

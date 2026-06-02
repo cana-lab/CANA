@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.3.3
+- You can now return to your results after visiting the dashboard. The dashboard header has a "Results" button (when results exist), and the home screen has a "View latest results" button, so the generated plan is reachable again instead of being a dead end.
+
+
 ## 4.3.2
 - Welcome screen: Introduction and "Set up the local AI" are now gray secondary buttons matching Quick Check-In (were text links).
 - Fixed buggy window controls: removed the app's own drawn title-bar strip (duplicate traffic-light dots) and switched the desktop window to the standard macOS title bar, so the real close/minimize/full-screen buttons behave natively without overlap.
