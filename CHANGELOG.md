@@ -1,5 +1,27 @@
 # Changelog
 
+## 4.6.0
+- The local AI (Ollama) now also personalizes the 1/5/10-year goals — grounded in the couple's real scores and shared dreams — in addition to the vision and mission. If the AI is unavailable or returns anything malformed, the proven deterministic goals are kept unchanged.
+- The report no longer silently falls back: when the AI was not used it shows a clear banner explaining exactly why (check-in mode, AI turned off, or Ollama not running) with "Set up the local AI" and "Regenerate with AI" actions. Generation now checks Ollama liveness directly at run time rather than relying on a possibly-stale status.
+- Added "Email report" at the bottom of the report: opens your mail app with the full plan prefilled to your account email. A local app can't send mail itself, so you review and send it — nothing is transmitted by the app. If a mail client shortens a long report, "Save as PDF" and attach is suggested.
+- Scores, gaps, pattern flags, and tensions remain fully deterministic and reproducible — the AI writes prose only, never the numbers.
+
+
+## 4.5.0
+- Added a local multi-profile login so multiple couples can share one device, each with their own private space. Create an account (both names, email, password) or sign in; login is required each launch. All data (draft, sessions, archived reports, results) is namespaced per profile, and a "Sign out" control returns to the login screen.
+- Passwords are stored only as a salted SHA-256 hash (never plaintext). HONEST SCOPE, stated in-app: this is on-device privacy separation, not server-grade authentication — it keeps couples' data separate and gates access, but is not a secure vault and is not marketed as such.
+
+
+## 4.4.0
+- Every completed assessment is now permanently archived as a full, reviewable report — not just trend metrics. Each saved session stores the complete report (vision, mission, goals, tensions, per-chapter detail) plus the partners' names.
+- New "Past Reports" list on the dashboard: every past assessment by date, each with "Open report" to reopen the full results window exactly as generated. Reports are never auto-deleted (only a full reset clears them).
+- Reviewing a past report opens it read-only (vision/mission locked, weight adjustment hidden) with a "Done reviewing" exit, so history can't be accidentally altered.
+
+
+## 4.3.4
+- The generated results report now persists to disk (covenant_results_v1), so it survives quitting/reopening the app and upgrading versions. After a restart, "View latest results" (home screen) and "Results" (dashboard) reappear and open the saved report. Starting a fresh assessment or resetting clears the saved report. Also: macOS build is now arm64-only (fixes the hdiutil detach failure when building two architectures in one run).
+
+
 ## 4.3.3
 - You can now return to your results after visiting the dashboard. The dashboard header has a "Results" button (when results exist), and the home screen has a "View latest results" button, so the generated plan is reachable again instead of being a dead end.
 

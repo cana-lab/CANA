@@ -7,15 +7,21 @@ import {
 } from "./engine.js";
 import {
   getLLMConfig, setLLMConfig, testConnection, listModels,
-  extractLetter, compareLetters, individualVisionMission, jointVisionMission,
+  extractLetter, compareLetters, individualVisionMission, jointVisionMission, personalizeGoals,
   ollamaRunning, installedModels, pullModel,
 } from "./llm.js";
 import { TREE_PATH } from "./logo.js";
 import { INTRO_SECTIONS, PREPARE, SCORE_INFO, MODEL_CHOICES, SETUP } from "./content.js";
 import { APP_VERSION, checkForUpdate } from "./update.js";
+import { createProfile, signIn, listProfiles } from "./auth.js";
 
-const LS_KEY = "covenant_life_plan_v3";
-const LS_SESSIONS = "covenant_sessions_v1";
+// Base storage key names. Data is namespaced per profile (see keyFor) so
+// multiple couples on one device keep separate data.
+const LS_KEY_BASE = "covenant_life_plan_v3";
+const LS_SESSIONS_BASE = "covenant_sessions_v1";
+const LS_RESULTS_BASE = "covenant_results_v1";
+// Returns the storage key for a base name scoped to a profile id.
+const keyFor = (base, pid) => (pid ? `${base}__${pid}` : base);
 
 /* ── Brand mark ───────────────────────────────────────────────────────── */
 /* The CANA app icon — the traced oak with two readers, on a parchment
@@ -224,7 +230,9 @@ function LineChart({ series, color, yMax = 10 }) {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState("welcome");
+  const [screen, setScreen] = useState("login");
+  const [profile, setProfile] = useState(null); // active couple profile (null = logged out)
+  const pid = profile ? profile.id : null;
   const [mode, setMode] = useState("full");
   const [names, setNames] = useState({ A: "", B: "" });
   const [person, setPerson] = useState("A");
@@ -250,6 +258,12 @@ export default function App() {
   const [toast, setToast] = useState("");          // transient "saved" confirmation
   const [showScoreInfo, setShowScoreInfo] = useState(false); // results: "what these numbers are"
   const [openDomainInfo, setOpenDomainInfo] = useState(null); // results: which domain's per-chapter detail is open
+  const [archiveReport, setArchiveReport] = useState(null); // a past session's report being reviewed (null = live results)
+  // Login/profile state
+  const [authMode, setAuthMode] = useState("signin"); // "signin" | "signup"
+  const [authForm, setAuthForm] = useState({ nameA: "", nameB: "", email: "", password: "" });
+  const [authError, setAuthError] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
   // First-launch setup wizard state
   const [setupState, setSetupState] = useState({ node: null, ollama: null, ollamaUp: null, models: [] });
   const [setupChecking, setSetupChecking] = useState(false);
@@ -262,22 +276,30 @@ export default function App() {
   const activeDomains = mode === "full" ? DOMAINS
     : DOMAINS.map((d) => ({ ...d, questions: d.questions.filter((q) => q.core) }));
 
+  useEffect(() => { probeOllama(); }, []);
+
+  // Load this profile's data when a couple logs in. Clears when logged out.
   useEffect(() => {
+    if (!pid) return;
     try {
-      const raw = localStorage.getItem(LS_KEY);
+      const raw = localStorage.getItem(keyFor(LS_KEY_BASE, pid));
       if (raw) { const d = JSON.parse(raw);
         if (d.names) setNames(d.names); if (d.answers) setAnswers(d.answers);
         if (d.done) setDone(d.done); if (d.mode) setMode(d.mode);
         if (d.letters) setLetters(d.letters); if (d.dreamMarks) setDreamMarks(d.dreamMarks);
+      } else {
+        // Seed names from the profile for a fresh couple.
+        setNames({ A: profile.nameA, B: profile.nameB });
       }
-      const sraw = localStorage.getItem(LS_SESSIONS); if (sraw) setSessions(JSON.parse(sraw));
+      const sraw = localStorage.getItem(keyFor(LS_SESSIONS_BASE, pid)); setSessions(sraw ? JSON.parse(sraw) : []);
+      const rraw = localStorage.getItem(keyFor(LS_RESULTS_BASE, pid)); setResults(rraw ? JSON.parse(rraw) : null);
     } catch (e) {}
-    probeOllama();
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
-    try { localStorage.setItem(LS_KEY, JSON.stringify({ names, answers, done, mode, letters, dreamMarks })); } catch (e) {}
-  }, [names, answers, done, mode, letters, dreamMarks]);
+    if (!pid) return;
+    try { localStorage.setItem(keyFor(LS_KEY_BASE, pid), JSON.stringify({ names, answers, done, mode, letters, dreamMarks })); } catch (e) {}
+  }, [names, answers, done, mode, letters, dreamMarks, pid]);
 
   useEffect(() => {
     if (!toast) return;
@@ -300,7 +322,19 @@ export default function App() {
   const allDone = domain.questions.every((q) => ans[q.id] !== undefined);
   const hasHistory = sessions.length > 0;
 
-  const persistSessions = (next) => { setSessions(next); try { localStorage.setItem(LS_SESSIONS, JSON.stringify(next)); } catch (e) {} };
+  const persistSessions = (next) => { setSessions(next); try { localStorage.setItem(keyFor(LS_SESSIONS_BASE, pid), JSON.stringify(next)); } catch (e) {} };
+  // Persist the generated report to disk so it survives quitting/reopening and
+  // app upgrades — accepts either a plan object or an updater function.
+  const saveResults = (planOrFn) => {
+    setResults((prev) => {
+      const next = typeof planOrFn === "function" ? planOrFn(prev) : planOrFn;
+      try {
+        if (next) localStorage.setItem(keyFor(LS_RESULTS_BASE, pid), JSON.stringify(next));
+        else localStorage.removeItem(keyFor(LS_RESULTS_BASE, pid));
+      } catch (e) {}
+      return next;
+    });
+  };
   const handleAnswer = useCallback((qid, v) => setAnswers((p) => ({ ...p, [person]: { ...p[person], [qid]: v } })), [person]);
   const finishDomain = useCallback(() => {
     setDone((p) => ({ ...p, [person]: Array.from(new Set([...p[person], domain.id])) }));
@@ -308,13 +342,13 @@ export default function App() {
     setShowAbout(false); setOpenInfo(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [dIdx, domain.id, person, N]);
-  const resetDraft = () => { setAnswers({ A: {}, B: {} }); setDone({ A: [], B: [] }); setResults(null); setEditStmts(null); };
+  const resetDraft = () => { setAnswers({ A: {}, B: {} }); setDone({ A: [], B: [] }); saveResults(null); setEditStmts(null); };
   const startAssessment = (m) => {
     // If a draft is in progress, don't silently discard it.
     const draftInProgress = (done.A.length > 0 || done.B.length > 0 ||
       Object.keys(answers.A).length > 0 || Object.keys(answers.B).length > 0) && !results;
     if (draftInProgress && !confirm("Start a new assessment? This will erase the assessment currently in progress on this device. (To keep it, choose Cancel, then use Continue.)")) return;
-    setMode(m); resetDraft();
+    setMode(m); resetDraft(); setArchiveReport(null);
     if (m === "full") { setLetters({ A: "", B: "" }); setDreamMarks({ A: {}, B: {} }); }
     setPerson("A"); setDIdx(0); setScreen("setup"); window.scrollTo({ top: 0 }); };
 
@@ -322,7 +356,7 @@ export default function App() {
   // screen. Persistence already happens on every change via the effect below;
   // this writes synchronously too so the confirmation is honest, then exits.
   const saveAndExit = () => {
-    try { localStorage.setItem(LS_KEY, JSON.stringify({ names, answers, done, mode, letters, dreamMarks })); } catch (e) {}
+    try { localStorage.setItem(keyFor(LS_KEY_BASE, pid), JSON.stringify({ names, answers, done, mode, letters, dreamMarks })); } catch (e) {}
     setShowAbout(false); setOpenInfo(null);
     setScreen("welcome");
     setToast("Progress saved on this device");
@@ -386,6 +420,78 @@ export default function App() {
 
   const cancelPull = () => { try { pullAbort.current && pullAbort.current.abort(); } catch (e) {} setPull({ active: false, percent: 0, status: "", done: false, error: "" }); };
 
+  // ── Login / profile handlers ────────────────────────────────────────────
+  const enterApp = (prof) => {
+    setProfile(prof);
+    setAuthForm({ nameA: "", nameB: "", email: "", password: "" });
+    setAuthError("");
+    setScreen("welcome");
+    window.scrollTo({ top: 0 });
+  };
+  const handleSignIn = async () => {
+    setAuthBusy(true); setAuthError("");
+    const res = await signIn({ email: authForm.email, password: authForm.password });
+    setAuthBusy(false);
+    if (!res.ok) { setAuthError(res.error); return; }
+    enterApp(res.profile);
+  };
+  const handleSignUp = async () => {
+    setAuthBusy(true); setAuthError("");
+    const res = await createProfile(authForm);
+    setAuthBusy(false);
+    if (!res.ok) { setAuthError(res.error); return; }
+    enterApp(res.profile);
+  };
+  const logout = () => {
+    // Clear in-memory data so the next couple starts clean (their data reloads
+    // from storage when they log in).
+    setProfile(null);
+    setNames({ A: "", B: "" }); setAnswers({ A: {}, B: {} }); setDone({ A: [], B: [] });
+    setSessions([]); setResults(null); setArchiveReport(null); setEditStmts(null);
+    setAuthMode("signin"); setAuthForm({ nameA: "", nameB: "", email: "", password: "" }); setAuthError("");
+    setScreen("login");
+    window.scrollTo({ top: 0 });
+  };
+
+  // Build a plain-text version of a report and open the user's mail app with it
+  // prefilled (mailto:). A local app can't send mail itself; this hands off to
+  // the system mail client, which works offline with no setup.
+  const emailReport = (R, toEmail) => {
+    const L = (s) => (s == null ? "" : String(s));
+    const lines = [];
+    lines.push(`CANA — Covenant Life`);
+    lines.push(`A Biblical Life Plan for ${L(R.nameA)} & ${L(R.nameB)}`);
+    lines.push("");
+    lines.push(`JOINT VISION`); lines.push(L(R.vision)); lines.push("");
+    lines.push(`JOINT MISSION`); lines.push(L(R.mission)); lines.push("");
+    if (R.indivA || R.indivB) {
+      lines.push(`INDIVIDUAL VISIONS`);
+      if (R.indivA) { lines.push(`${L(R.nameA)} — Vision: ${L(R.indivA.vision)}`); lines.push(`${L(R.nameA)} — Mission: ${L(R.indivA.mission)}`); }
+      if (R.indivB) { lines.push(`${L(R.nameB)} — Vision: ${L(R.indivB.vision)}`); lines.push(`${L(R.nameB)} — Mission: ${L(R.indivB.mission)}`); }
+      lines.push("");
+    }
+    lines.push(`DOMAIN HEALTH (0–10 per partner, Δ = gap)`);
+    (R.domainScores || []).forEach((d) => lines.push(`- ${d.label}: ${L(R.nameA)} ${d.avgNormA.toFixed(1)}, ${L(R.nameB)} ${d.avgNormB.toFixed(1)} (Δ${Math.abs(d.avgNormA - d.avgNormB).toFixed(1)})`));
+    lines.push(`Overall: ${L(R.overallScore && R.overallScore.toFixed ? R.overallScore.toFixed(1) : R.overallScore)}/10`);
+    lines.push("");
+    const goalBlock = (title, gs) => { if (!gs || !gs.length) return; lines.push(title); gs.forEach((g) => lines.push(`- [${L(g.domain)}] ${L(g.goal)}`)); lines.push(""); };
+    goalBlock("GOALS — 1 YEAR", R.goals1yr);
+    goalBlock("GOALS — 5 YEAR", R.goals5yr);
+    goalBlock("GOALS — 10 YEAR", R.goals10yr);
+    if (R.tensions && R.tensions.length) {
+      lines.push(`TENSIONS TO DISCUSS`);
+      R.tensions.forEach((t) => lines.push(`- ${L(t.title)} — ${L(t.explanation)}`));
+      lines.push("");
+    }
+    lines.push(`— Generated by CANA. These are conversation-starters, not clinical measurements.`);
+    const body = lines.join("\n");
+    const subject = `CANA — Covenant Life plan for ${L(R.nameA)} & ${L(R.nameB)}`;
+    // mailto bodies must be conservatively short; most clients cap ~1800 chars.
+    const url = `mailto:${encodeURIComponent(toEmail || "")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    if (isDesktop && window.cana && window.cana.openExternal) window.cana.openExternal(url);
+    else window.location.href = url;
+  };
+
   const runUpdateCheck = async () => {
     setUpdate({ checking: true, result: null });
     const result = await checkForUpdate();
@@ -404,9 +510,19 @@ export default function App() {
     let comparison = mode === "full" ? compareDreamMarks(dreamMarks.A, dreamMarks.B, nameA, nameB) : null;
     let indivA = null, indivB = null, jointVM = null, llmUsed = false;
     const cfg = getLLMConfig();
+    // Check Ollama liveness directly at generation time (don't rely on the
+    // possibly-stale llmState from a prior probe).
+    const ollamaLive = (cfg.enabled && mode === "full") ? await ollamaRunning() : false;
     const domSummary = (w) => analytics.domainScores.map((d) => `${d.label}: ${(w === "A" ? d.avgNormA : d.avgNormB).toFixed(1)}`).join(", ");
     const overallSummary = analytics.domainScores.map((d) => `${d.label} ${d.avgNorm.toFixed(1)} (gap ${d.domainGap.toFixed(1)})`).join("; ");
-    if (cfg.enabled && mode === "full" && llmState === "ok") {
+    let goalsLLM = null;
+    // Record WHY the AI did or didn't run, so the report can say so plainly
+    // instead of silently falling back.
+    let llmSkipReason = "";
+    if (mode !== "full") llmSkipReason = "Quick check-ins always use the built-in text (AI writes only for full assessments).";
+    else if (!cfg.enabled) llmSkipReason = "The local AI is turned off in settings, so the built-in text was used.";
+    else if (!ollamaLive) llmSkipReason = "Ollama wasn't detected as running, so the built-in text was used. Start Ollama and regenerate to use the AI.";
+    if (cfg.enabled && mode === "full" && ollamaLive) {
       try {
         setGenMsg("Reading the letters…");
         const exA = letters.A ? await extractLetter(letters.A, nameA) : null;
@@ -415,14 +531,32 @@ export default function App() {
         setGenMsg(`Writing ${nameA}'s vision…`); indivA = await individualVisionMission(nameA, domSummary("A"), exA);
         setGenMsg(`Writing ${nameB}'s vision…`); indivB = await individualVisionMission(nameB, domSummary("B"), exB);
         setGenMsg("Compiling your joint vision…"); jointVM = await jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary);
+        setGenMsg("Personalizing your goals…"); goalsLLM = await personalizeGoals(nameA, nameB, overallSummary, comparison, { goals1yr: localPlan.goals1yr, goals5yr: localPlan.goals5yr, goals10yr: localPlan.goals10yr });
         llmUsed = !!(indivA || indivB || jointVM);
-      } catch (e) {}
+        if (!llmUsed) llmSkipReason = "The AI was reachable but returned nothing usable, so the built-in text was used.";
+      } catch (e) { llmSkipReason = "The AI call failed mid-way, so the built-in text was used."; }
     }
-    const plan = { ...localPlan, vision: jointVM?.vision || localPlan.vision, mission: jointVM?.mission || localPlan.mission, indivA, indivB, comparison, llmUsed };
-    setResults(plan);
+    const plan = {
+      ...localPlan,
+      vision: jointVM?.vision || localPlan.vision,
+      mission: jointVM?.mission || localPlan.mission,
+      goals1yr: goalsLLM?.goals1yr || localPlan.goals1yr,
+      goals5yr: goalsLLM?.goals5yr || localPlan.goals5yr,
+      goals10yr: goalsLLM?.goals10yr || localPlan.goals10yr,
+      indivA, indivB, comparison, llmUsed,
+      goalsPersonalized: !!goalsLLM,
+      llmSkipReason: llmUsed ? "" : llmSkipReason,
+    };
+    saveResults(plan);
     setEditStmts({ vision: plan.vision, mission: plan.mission });
     const snap = buildSnapshot(analytics, mode, new Date().toISOString());
     if (comparison) snap.letterAlignment = comparison.letterAlignment;
+    // Permanently archive the full, reviewable report with this session, so it
+    // can always be reopened later — not just the trend metrics. The report is
+    // self-contained (names + the rendered plan) so it renders exactly as now.
+    snap.id = `s_${Date.now()}`;
+    snap.names = { A: names.A || "Partner A", B: names.B || "Partner B" };
+    snap.report = plan;
     persistSessions([...sessions, snap]);
     setGenerating(false); setGenMsg(""); setScreen("results"); window.scrollTo({ top: 0 });
   };
@@ -434,7 +568,7 @@ export default function App() {
     if (!results) return;
     const analytics = computeAnalytics(answers.A, answers.B, names.A || "Partner A", names.B || "Partner B", newWeights || undefined);
     const localPlan = generateLocalPlan(analytics);
-    setResults((prev) => ({
+    saveResults((prev) => ({
       ...prev,
       overallScore: analytics.overallScore,
       domainScores: analytics.domainScores,
@@ -447,7 +581,7 @@ export default function App() {
 
   const eraseEverything = () => {
     if (!confirm("Erase ALL data — answers and history — from this device?")) return;
-    localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_SESSIONS);
+    localStorage.removeItem(keyFor(LS_KEY_BASE, pid)); localStorage.removeItem(keyFor(LS_SESSIONS_BASE, pid)); localStorage.removeItem(keyFor(LS_RESULTS_BASE, pid));
     setNames({ A: "", B: "" }); resetDraft(); setSessions([]); setScreen("welcome");
   };
 
@@ -458,6 +592,65 @@ export default function App() {
       <StatusDot state={llmState} /> {llmState === "ok" ? `Ollama · ${(llmCfg.model || "").split(":")[0]}` : llmState === "bad" ? "Ollama offline" : "Checking…"}
     </button>
   );
+
+  /* ── LOGIN / PROFILE GATE ── */
+  if (!profile || screen === "login") {
+    const existing = listProfiles();
+    const set = (k) => (e) => setAuthForm((f) => ({ ...f, [k]: e.target.value }));
+    const inputStyle = { width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid var(--hair)", background: "var(--panel-solid)", fontSize: 15, color: "var(--ink)", fontFamily: "var(--font)", boxSizing: "border-box", marginBottom: 12 };
+    const labelStyle = { fontSize: 12.5, fontWeight: 600, color: "var(--ink2)", margin: "0 0 5px" };
+    const onKey = (e) => { if (e.key === "Enter") { authMode === "signin" ? handleSignIn() : handleSignUp(); } };
+    return (
+      <div>
+        <Chrome title="CANA" right={null} />
+        <Wrap narrow>
+          <div style={{ padding: "56px 0 90px", maxWidth: 440, margin: "0 auto" }} className="rise">
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 28 }}>
+              <Logo size={64} />
+              <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-.02em", color: "var(--ink)", marginTop: 14 }}>CANA</div>
+              <div style={{ fontSize: 14, color: "var(--ink3)", marginTop: 2 }}>Covenant Life</div>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginBottom: 22, background: "var(--bg2)", borderRadius: 10, padding: 4 }}>
+              <button onClick={() => { setAuthMode("signin"); setAuthError(""); }} style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600, background: authMode === "signin" ? "var(--panel-solid)" : "transparent", color: authMode === "signin" ? "var(--ink)" : "var(--ink3)", boxShadow: authMode === "signin" ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>Sign in</button>
+              <button onClick={() => { setAuthMode("signup"); setAuthError(""); }} style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600, background: authMode === "signup" ? "var(--panel-solid)" : "transparent", color: authMode === "signup" ? "var(--ink)" : "var(--ink3)", boxShadow: authMode === "signup" ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>Create account</button>
+            </div>
+
+            <Card style={{ padding: 24 }}>
+              {authMode === "signup" ? (
+                <>
+                  <p style={labelStyle}>Partner A — first name</p>
+                  <input style={inputStyle} value={authForm.nameA} onChange={set("nameA")} placeholder="e.g. David" />
+                  <p style={labelStyle}>Partner B — first name</p>
+                  <input style={inputStyle} value={authForm.nameB} onChange={set("nameB")} placeholder="e.g. Abby" />
+                </>
+              ) : null}
+              <p style={labelStyle}>Email</p>
+              <input style={inputStyle} type="email" autoComplete="username" value={authForm.email} onChange={set("email")} onKeyDown={onKey} placeholder="you@example.com" />
+              <p style={labelStyle}>Password</p>
+              <input style={inputStyle} type="password" autoComplete={authMode === "signup" ? "new-password" : "current-password"} value={authForm.password} onChange={set("password")} onKeyDown={onKey} placeholder={authMode === "signup" ? "At least 6 characters" : "Your password"} />
+
+              {authError ? <p style={{ fontSize: 13, color: "var(--red)", margin: "2px 0 12px", lineHeight: 1.4 }}>{authError}</p> : null}
+
+              <Btn onClick={authMode === "signin" ? handleSignIn : handleSignUp} disabled={authBusy} style={{ width: "100%", justifyContent: "center", marginTop: 4 }}>
+                {authBusy ? "Please wait…" : authMode === "signin" ? "Sign in" : "Create account & continue"}
+              </Btn>
+
+              {authMode === "signin" && existing.length ? (
+                <p style={{ fontSize: 12.5, color: "var(--ink3)", margin: "14px 0 0", textAlign: "center" }}>
+                  {existing.length} account{existing.length > 1 ? "s" : ""} on this device.
+                </p>
+              ) : null}
+            </Card>
+
+            <p style={{ fontSize: 11.5, color: "var(--ink3)", lineHeight: 1.6, marginTop: 18, textAlign: "center" }}>
+              Accounts are stored only on this device to keep couples' data separate. This is local privacy separation, not a secure server login — your password is saved as a one-way hash, never in plain text, but anyone with full access to this Mac could reach the underlying data. Don't reuse an important password here.
+            </p>
+          </div>
+        </Wrap>
+      </div>
+    );
+  }
 
   /* ── WELCOME ── */
   if (screen === "welcome") return (
@@ -539,6 +732,12 @@ export default function App() {
             <button onClick={runUpdateCheck} disabled={update.checking}
               style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 12.5, fontWeight: 500, cursor: "pointer", padding: 0 }}>
               {update.checking ? "Checking…" : "Check for updates"}
+            </button>
+            <span style={{ fontSize: 12.5, color: "var(--ink3)" }}>·</span>
+            <span style={{ fontSize: 12.5, color: "var(--ink3)" }}>Signed in as {profile.email}</span>
+            <button onClick={logout}
+              style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 12.5, fontWeight: 500, cursor: "pointer", padding: 0 }}>
+              Sign out
             </button>
           </div>
           {update.result ? (
@@ -1079,15 +1278,19 @@ export default function App() {
   }
 
   /* ── RESULTS ── */
-  if (screen === "results" && results) {
-    const goals = goalsTab === "1yr" ? results.goals1yr : goalsTab === "5yr" ? results.goals5yr : results.goals10yr;
+  if (screen === "results" && (results || archiveReport)) {
+    // When reviewing a past session, render its archived report; otherwise the
+    // live results. `R` is what the whole screen reads from.
+    const R = archiveReport || results;
+    const goals = goalsTab === "1yr" ? R.goals1yr : goalsTab === "5yr" ? R.goals5yr : R.goals10yr;
     const flagColor = (t) => t === "CRITICAL" || t === "URGENT" ? "var(--red)" : t === "STRENGTH" ? "var(--green)" : t === "TENSION" ? "var(--amber)" : "var(--accent)";
+    const reviewing = !!archiveReport;
 
     // Build a strictly descriptive (non-interpreting) explanation for one
     // domain's result, including, when the gap is notable, exactly which
     // questions the divergence comes from and who scored higher on each.
     const domainDetail = (d) => {
-      const A = results.nameA, B = results.nameB;
+      const A = R.nameA, B = R.nameB;
       const lines = [];
       lines.push(`${A} scored ${d.avgNormA.toFixed(1)} and ${B} scored ${d.avgNormB.toFixed(1)} out of 10 in this chapter (each is that partner's own average of their answers here, where higher always means a healthier self-report).`);
       const gap = d.domainGap;
@@ -1116,34 +1319,45 @@ export default function App() {
 
     return (
       <div>
-        <Chrome title="CANA — Your Plan" right={<div style={{ display: "flex", gap: 8 }}>{hasHistory ? <Btn kind="ghost" onClick={() => setScreen("dashboard")}>Dashboard</Btn> : null}<Btn kind="ghost" onClick={() => setScreen("welcome")}>Home</Btn></div>} />
+        <Chrome title={reviewing ? `CANA — Report · ${new Date(archiveReport.ts || Date.now()).toLocaleDateString()}` : "CANA — Your Plan"} right={<div style={{ display: "flex", gap: 8 }}>{reviewing ? <Btn kind="ghost" onClick={() => { setArchiveReport(null); setScreen("dashboard"); window.scrollTo({ top: 0 }); }}>Done reviewing</Btn> : <>{hasHistory ? <Btn kind="ghost" onClick={() => setScreen("dashboard")}>Dashboard</Btn> : null}<Btn kind="ghost" onClick={() => setScreen("welcome")}>Home</Btn></>}</div>} />
         <Wrap>
           <div style={{ padding: "44px 0 90px" }}>
-            <p style={{ fontSize: 12, color: results.llmUsed ? "var(--gold)" : "var(--ink3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 18 }}>{results.llmUsed ? "✦ Written by your local AI · editable" : "Generated locally · editable"}</p>
+            <p style={{ fontSize: 12, color: R.llmUsed ? "var(--gold)" : "var(--ink3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 18 }}>{R.llmUsed ? (R.goalsPersonalized ? "✦ Vision, mission & goals written by your local AI · editable" : "✦ Vision & mission written by your local AI · editable") : "Generated locally · editable"}</p>
+
+            {!reviewing && !R.llmUsed && R.llmSkipReason ? (
+              <Card className="rise no-print" style={{ marginBottom: 20, padding: 16, background: "var(--bg2)", borderLeft: "3px solid var(--amber)" }}>
+                <p style={{ fontSize: 13.5, color: "var(--ink)", fontWeight: 600, margin: "0 0 4px" }}>This report used the built-in text, not the local AI.</p>
+                <p style={{ fontSize: 13, color: "var(--ink2)", lineHeight: 1.5, margin: "0 0 10px" }}>{R.llmSkipReason}</p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Btn kind="secondary" style={{ padding: "6px 14px", fontSize: 13 }} onClick={openSetup}>Set up the local AI</Btn>
+                  <Btn kind="subtle" style={{ padding: "6px 14px", fontSize: 13 }} onClick={async () => { await probeOllama(); generate(); }}>Regenerate with AI</Btn>
+                </div>
+              </Card>
+            ) : null}
 
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <p style={{ ...eyebrow, margin: 0 }}>Joint Vision</p>
-              <span style={{ fontSize: 11, color: "var(--ink3)" }} className="no-print">✎ tap to edit</span>
+              <span style={{ fontSize: 11, color: "var(--ink3)" }} className="no-print">{reviewing ? "saved report" : "✎ tap to edit"}</span>
             </div>
             <Card className="rise" style={{ marginBottom: 16, padding: 28 }}>
-              <textarea value={editStmts?.vision ?? results.vision} onChange={(e) => setEditStmts((p) => ({ ...p, vision: e.target.value }))}
+              <textarea value={reviewing ? R.vision : (editStmts?.vision ?? R.vision)} readOnly={reviewing} onChange={(e) => setEditStmts((p) => ({ ...p, vision: e.target.value }))}
                 rows={2}
                 style={{ width: "100%", border: "none", outline: "none", resize: "vertical", minHeight: 64, background: "transparent", fontSize: 21, lineHeight: 1.5, fontWeight: 600, letterSpacing: "-.02em", color: "var(--ink)", fontFamily: "var(--font)" }} />
             </Card>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <p style={{ ...eyebrow, margin: 0 }}>Joint Mission</p>
-              <span style={{ fontSize: 11, color: "var(--ink3)" }} className="no-print">✎ tap to edit</span>
+              <span style={{ fontSize: 11, color: "var(--ink3)" }} className="no-print">{reviewing ? "saved report" : "✎ tap to edit"}</span>
             </div>
             <Card className="rise-2" style={{ marginBottom: 32, padding: 28 }}>
-              <textarea value={editStmts?.mission ?? results.mission} onChange={(e) => setEditStmts((p) => ({ ...p, mission: e.target.value }))}
+              <textarea value={reviewing ? R.mission : (editStmts?.mission ?? R.mission)} readOnly={reviewing} onChange={(e) => setEditStmts((p) => ({ ...p, mission: e.target.value }))}
                 rows={3}
                 style={{ width: "100%", border: "none", outline: "none", resize: "vertical", minHeight: 64, background: "transparent", fontSize: 18, lineHeight: 1.55, color: "var(--ink2)", fontFamily: "var(--font)" }} />
             </Card>
 
-            {(results.indivA || results.indivB) ? (
+            {(R.indivA || R.indivB) ? (
               <><p style={eyebrow}>Individual Visions</p>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 14, marginBottom: 32 }}>
-                  {["A", "B"].map((p) => { const iv = p === "A" ? results.indivA : results.indivB; const nm = p === "A" ? results.nameA : results.nameB; if (!iv) return null;
+                  {["A", "B"].map((p) => { const iv = p === "A" ? R.indivA : R.indivB; const nm = p === "A" ? R.nameA : R.nameB; if (!iv) return null;
                     return <Card key={p}><p style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)", margin: "0 0 12px" }}>{nm}</p>
                       <p style={{ fontSize: 11, color: "var(--ink3)", fontWeight: 600, textTransform: "uppercase", margin: "0 0 4px" }}>Vision</p>
                       <p style={{ fontSize: 15, fontStyle: "italic", color: "var(--ink)", lineHeight: 1.55, margin: "0 0 12px" }}>{iv.vision}</p>
@@ -1152,17 +1366,17 @@ export default function App() {
                 </div></>
             ) : null}
 
-            {results.comparison ? (
+            {R.comparison ? (
               <><p style={eyebrow}>Future Perfect — Where Your Letters Meet</p>
-                <p style={body}>Letter alignment: <strong style={{ color: "var(--ink)" }}>{results.comparison.letterAlignment}/10</strong>. Differences can be complementary, not just conflicts.</p>
+                <p style={body}>Letter alignment: <strong style={{ color: "var(--ink)" }}>{R.comparison.letterAlignment}/10</strong>. Differences can be complementary, not just conflicts.</p>
                 <p style={{ fontSize: 12, color: "var(--green)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", margin: "16px 0 8px" }}>Top Shared Dreams</p>
-                {results.comparison.commonalities.length ? results.comparison.commonalities.map((c, i) => (
+                {R.comparison.commonalities.length ? R.comparison.commonalities.map((c, i) => (
                   <Card key={i} style={{ padding: "14px 18px", marginBottom: 10, borderLeft: "3px solid var(--green)" }}>
                     <p style={{ fontSize: 15, fontWeight: 600, margin: c.detail ? "0 0 4px" : 0 }}>{c.theme}</p>
                     {c.detail ? <p style={{ fontSize: 13.5, color: "var(--ink2)", margin: 0 }}>{c.detail}</p> : null}</Card>
                 )) : <p style={{ ...body, color: "var(--ink3)" }}>No strongly shared dreams surfaced — worth discussing.</p>}
                 <p style={{ fontSize: 12, color: "var(--amber)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", margin: "18px 0 8px" }}>Top Differences</p>
-                {results.comparison.differences.length ? results.comparison.differences.map((d, i) => (
+                {R.comparison.differences.length ? R.comparison.differences.map((d, i) => (
                   <Card key={i} style={{ padding: "14px 18px", marginBottom: 10, borderLeft: `3px solid ${d.tension === "high" ? "var(--red)" : d.tension === "medium" ? "var(--amber)" : "var(--accent)"}` }}>
                     <p style={{ fontSize: 15, fontWeight: 600, margin: "0 0 4px" }}>{d.theme} <span style={{ fontSize: 11, color: "var(--ink3)", fontWeight: 500, textTransform: "uppercase" }}>· {d.tension}</span></p>
                     <p style={{ fontSize: 13.5, color: "var(--ink2)", margin: 0 }}>{d.a} · {d.b}</p></Card>
@@ -1189,10 +1403,10 @@ export default function App() {
             ) : null}
             <Card style={{ marginBottom: 32 }}>
               <div style={{ display: "flex", gap: 18, marginBottom: 14, fontSize: 12.5 }}>
-                <span style={{ color: "var(--accent)" }}>● {results.nameA}</span><span style={{ color: "var(--gold)" }}>● {results.nameB}</span>
+                <span style={{ color: "var(--accent)" }}>● {R.nameA}</span><span style={{ color: "var(--gold)" }}>● {R.nameB}</span>
                 <span style={{ color: "var(--ink3)", marginLeft: "auto" }}>gap = distance between you</span>
               </div>
-              {results.domainScores.map((d) => {
+              {R.domainScores.map((d) => {
                 const gap = Math.abs(d.avgNormA - d.avgNormB);
                 const gapCol = gap >= 3 ? "var(--red)" : gap >= 2 ? "var(--amber)" : "var(--ink3)";
                 const open = openDomainInfo === d.id;
@@ -1231,6 +1445,7 @@ export default function App() {
               );})}
             </Card>
 
+            {!reviewing ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <p style={{ ...eyebrow, margin: 0 }}>Model Weights</p>
               <button onClick={() => setShowWeights((v) => !v)} className="no-print"
@@ -1238,7 +1453,8 @@ export default function App() {
                 {showWeights ? "Hide" : "Adjust weights"}
               </button>
             </div>
-            {showWeights ? (
+            ) : null}
+            {showWeights && !reviewing ? (
               <Card style={{ marginBottom: 32 }} className="no-print">
                 <p style={{ fontSize: 13, color: "var(--ink2)", margin: "0 0 16px", lineHeight: 1.5 }}>
                   Each domain's contribution to the overall score and tension ranking. Defaults are research-weighted (Faith and Marriage highest). Adjust and re-score to see how emphasis changes the picture — this is deterministic and instant.
@@ -1305,10 +1521,14 @@ export default function App() {
               <p style={{ fontSize: 15, fontStyle: "italic", color: "var(--ink)", margin: "0 0 4px" }}>"{SCRIPTURES.synthesis.text}"</p>
               <p style={{ fontSize: 12, color: "var(--gold)", fontWeight: 600, margin: 0 }}>{SCRIPTURES.synthesis.ref}</p>
             </Card>
-            <div style={{ display: "flex", gap: 12, marginTop: 28 }} className="no-print">
-              <Btn kind="secondary" onClick={() => setScreen("welcome")}>Home</Btn>
+            <div style={{ display: "flex", gap: 12, marginTop: 28, flexWrap: "wrap" }} className="no-print">
+              <Btn kind="secondary" onClick={() => setScreen(reviewing ? "dashboard" : "welcome")}>{reviewing ? "Back" : "Home"}</Btn>
               <Btn onClick={() => window.print()}>Save as PDF</Btn>
+              <Btn kind="secondary" onClick={() => emailReport(R, profile ? profile.email : "")}>Email report</Btn>
             </div>
+            <p style={{ fontSize: 12, color: "var(--ink3)", marginTop: 10, lineHeight: 1.5 }} className="no-print">
+              "Email report" opens your mail app with the report prefilled{profile ? ` to ${profile.email}` : ""} — you review and send it yourself, so nothing is transmitted by the app. If your mail app shortens a long report, use "Save as PDF" and attach it instead.
+            </p>
           </div>
         </Wrap>
       </div>
@@ -1346,6 +1566,28 @@ export default function App() {
               <Metric label="Value Alignment" value={HD.alignmentNow} color={alignCol} sub={HD.alignmentDelta === 0 ? "Unchanged." : `${HD.alignmentDelta > 0 ? "+" : ""}${HD.alignmentDelta} — ${HD.alignmentDelta > 0 ? "converging" : "diverging"}.`} />
               <Metric label="Overall Health" value={trends.latest.overall} color={HD.overallDelta >= 0 ? "var(--green)" : "var(--red)"} sub={HD.overallDelta === 0 ? "Steady." : `${HD.overallDelta > 0 ? "+" : ""}${HD.overallDelta} since baseline.`} />
             </div>
+            {/* Permanent archive: every saved assessment, fully reviewable. */}
+            {sessions.some((s) => s.report) ? (
+              <div style={{ marginBottom: 30 }} className="rise">
+                <p style={eyebrow}>Past Reports</p>
+                <Card style={{ padding: 8 }}>
+                  {[...sessions].filter((s) => s.report).sort((a, b) => new Date(b.ts) - new Date(a.ts)).map((s, i, arr) => (
+                    <div key={s.id || i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", borderBottom: i < arr.length - 1 ? "1px solid var(--hair2)" : "none" }}>
+                      <div>
+                        <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--ink)" }}>
+                          {new Date(s.ts).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+                          <span style={{ fontSize: 12, color: "var(--ink3)", fontWeight: 400 }}> · {s.kind === "full" ? "Full assessment" : "Check-in"}</span>
+                        </div>
+                        <div style={{ fontSize: 12.5, color: "var(--ink3)", marginTop: 2 }}>
+                          {s.names ? `${s.names.A} & ${s.names.B}` : ""} · Overall {s.overall}/10
+                        </div>
+                      </div>
+                      <Btn kind="secondary" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => { setArchiveReport({ ...s.report, ts: s.ts }); setScreen("results"); window.scrollTo({ top: 0 }); }}>Open report</Btn>
+                    </div>
+                  ))}
+                </Card>
+              </div>
+            ) : null}
             {trends.trendFlags.length ? (<>{trends.trendFlags.map((f, i) => (
               <div key={i} style={{ borderLeft: `3px solid ${f.type === "URGENT" ? "var(--red)" : f.type === "STRENGTH" ? "var(--green)" : "var(--amber)"}`, paddingLeft: 16, marginBottom: 16 }}>
                 <p style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 600, margin: "0 0 4px" }}>{f.label}</p>

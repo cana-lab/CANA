@@ -198,6 +198,45 @@ Return JSON: {"vision":"...","mission":"..."}`;
 
 function arr(x) { return Array.isArray(x) ? x.filter(Boolean) : []; }
 
+// ── 5. Personalize the goals from the couple's real data ────────────────────
+// Takes the deterministic goals (per horizon) and rewrites them grounded in the
+// couple's actual scores, tensions, and shared dreams. Returns the same shape
+// { goals1yr, goals5yr, goals10yr } where each item is { domain, goal }, or
+// null on any failure (caller keeps the deterministic goals).
+export async function personalizeGoals(nameA, nameB, overallSummary, comparison, baseGoals) {
+  try {
+    const sys = "You are a Christian pastoral coach writing concrete, actionable couple goals grounded in real data. You keep each goal to ONE specific sentence. Respond ONLY with valid JSON.";
+    const horizonText = (g) => g.map((x) => `- [${x.domain}] ${x.goal}`).join("\n");
+    const user = `Rewrite these draft goals for ${nameA} and ${nameB} so each is specific, warm, and actionable — grounded in their real situation. Keep the SAME domains and the SAME number of goals per horizon. Improve the wording; do not invent new domains.
+
+COUPLE DOMAIN SUMMARY (0-10, higher=healthier; gaps shown): ${overallSummary}
+SHARED DREAMS: ${comparison ? JSON.stringify(comparison.commonalities) : "(n/a)"}
+DIVERGENT DREAMS: ${comparison ? JSON.stringify(comparison.differences) : "(n/a)"}
+
+DRAFT 1-YEAR GOALS:
+${horizonText(baseGoals.goals1yr)}
+
+DRAFT 5-YEAR GOALS:
+${horizonText(baseGoals.goals5yr)}
+
+DRAFT 10-YEAR GOALS:
+${horizonText(baseGoals.goals10yr)}
+
+Rules:
+- Each goal: ONE concrete sentence, Christ-centered, specific to THIS couple, no generic filler.
+- Preserve each goal's domain label exactly.
+- Return JSON: {"goals1yr":[{"domain":"...","goal":"..."}],"goals5yr":[...],"goals10yr":[...]}`;
+    const out = await chat([{ role: "system", content: sys }, { role: "user", content: user }], { json: true });
+    const parsed = parseJSON(out);
+    if (!parsed) return null;
+    // Validate shape: each horizon must be a non-empty array with domain+goal.
+    const ok = ["goals1yr", "goals5yr", "goals10yr"].every(
+      (k) => Array.isArray(parsed[k]) && parsed[k].length && parsed[k].every((g) => g && g.domain && g.goal)
+    );
+    return ok ? { goals1yr: parsed.goals1yr, goals5yr: parsed.goals5yr, goals10yr: parsed.goals10yr } : null;
+  } catch (e) { return null; }
+}
+
 // ============================================================================
 // FIRST-LAUNCH SETUP HELPERS
 // ----------------------------------------------------------------------------
