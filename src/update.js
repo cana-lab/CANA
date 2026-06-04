@@ -7,6 +7,12 @@
 //      Set it to "owner/repo", e.g. "dasachs/cana".
 export const GITHUB_REPO = "cana-lab/CANA"; // your GitHub owner/repo
 
+// Optional hosted location of the update guide page (the web build deployed to
+// GitHub Pages). When set, the desktop app opens THIS https URL in the browser
+// — more reliable than a local file:// page for triggering the download. Leave
+// as the Pages default; it only matters for the packaged desktop app.
+export const GUIDE_BASE = "https://cana-lab.github.io/CANA/update-guide.html";
+
 // The version baked in at build time (from package.json, via vite.config.js).
 export const APP_VERSION =
   typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "0.0.0";
@@ -25,7 +31,7 @@ export function compareVersions(a, b) {
 
 // Check GitHub for the latest release. Returns one of:
 //   { state: "uptodate", current }
-//   { state: "update", current, latest, url }
+//   { state: "update", current, latest, url, dmgUrl, dmgName, notes }
 //   { state: "unconfigured" }                      (repo not set yet)
 //   { state: "error", message }                    (offline, rate-limited…)
 export async function checkForUpdate() {
@@ -45,7 +51,18 @@ export async function checkForUpdate() {
     if (!latest) return { state: "error", message: "Could not read the latest version." };
     const cmp = compareVersions(latest, APP_VERSION);
     if (cmp > 0) {
-      return { state: "update", current: APP_VERSION, latest, url: data.html_url || `https://github.com/${GITHUB_REPO}/releases/latest` };
+      // Find the .dmg asset so we can offer a direct, one-click download.
+      const assets = Array.isArray(data.assets) ? data.assets : [];
+      const dmg = assets.find((a) => /\.dmg$/i.test(a.name || ""));
+      return {
+        state: "update",
+        current: APP_VERSION,
+        latest,
+        url: data.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
+        dmgUrl: dmg ? dmg.browser_download_url : null,
+        dmgName: dmg ? dmg.name : null,
+        notes: data.body || "",
+      };
     }
     return { state: "uptodate", current: APP_VERSION };
   } catch (e) {

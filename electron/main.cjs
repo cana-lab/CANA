@@ -36,9 +36,10 @@ ipcMain.handle("cana:which", async (_e, name) => {
 });
 
 ipcMain.handle("cana:open-external", async (_e, url) => {
-  // Allow web links and mailto: links (the report's "Email report" button uses
-  // a mailto: URL to hand off to the system mail client).
-  if (typeof url === "string" && /^(https?|mailto):/.test(url)) {
+  // Allow web links, mailto: links (the report's "Email report" button), and
+  // file: URLs (the local update guide page, opened in the default browser so
+  // it stays open while the app is replaced).
+  if (typeof url === "string" && /^(https?|mailto|file):/.test(url)) {
     await shell.openExternal(url);
     return true;
   }

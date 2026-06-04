@@ -12,7 +12,7 @@ import {
 } from "./llm.js";
 import { TREE_PATH } from "./logo.js";
 import { INTRO_SECTIONS, PREPARE, SCORE_INFO, MODEL_CHOICES, SETUP } from "./content.js";
-import { APP_VERSION, checkForUpdate } from "./update.js";
+import { APP_VERSION, checkForUpdate, GUIDE_BASE } from "./update.js";
 import { createProfile, signIn, listProfiles } from "./auth.js";
 import { METRIC_INFO, scaleText, SCORE_BANDS, bandFor } from "./metrics.js";
 import { QUESTION_HELP } from "./questionHelp.js";
@@ -637,6 +637,28 @@ export default function App() {
     else window.open(url, "_blank", "noopener");
   };
 
+  // Opens the standalone update guide in the user's BROWSER (separate from this
+  // app), so it stays open while CANA is quit and replaced. The guide page
+  // auto-starts the .dmg download and walks through quit → replace → reopen.
+  const openUpdateGuide = (result) => {
+    try {
+      // Desktop app: prefer the hosted https guide (reliable cross-origin
+      // download, stays open in the browser through the swap). Browser build:
+      // use the guide shipped alongside this page (same origin).
+      const baseHref = (isDesktop && GUIDE_BASE) ? GUIDE_BASE : new URL("update-guide.html", window.location.href).toString();
+      const base = new URL(baseHref);
+      if (result.dmgUrl) base.searchParams.set("dmg", result.dmgUrl);
+      if (result.dmgName) base.searchParams.set("name", result.dmgName);
+      if (result.latest) base.searchParams.set("v", result.latest);
+      if (result.url) base.searchParams.set("rel", result.url);
+      const guideUrl = base.toString();
+      if (isDesktop && window.cana && window.cana.openExternal) window.cana.openExternal(guideUrl);
+      else window.open(guideUrl, "_blank", "noopener");
+    } catch (e) {
+      openDownload(result.url);
+    }
+  };
+
   const startPull = async () => {
     setPull({ active: true, percent: 0, status: "starting…", done: false, error: "" });
     const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -1079,7 +1101,8 @@ export default function App() {
               {update.result.state === "update" ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 13.5, color: "var(--ink)" }}>CANA {update.result.latest} is available (you have {update.result.current}).</span>
-                  <Btn kind="secondary" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => openDownload(update.result.url)}>Download →</Btn>
+                  <Btn kind="secondary" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => openUpdateGuide(update.result)}>Download &amp; install →</Btn>
+                  <button onClick={() => openDownload(update.result.url)} style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 12.5, fontWeight: 500, cursor: "pointer", padding: 0 }}>View on GitHub</button>
                 </div>
               ) : update.result.state === "uptodate" ? (
                 <span style={{ fontSize: 13.5, color: "var(--ink2)" }}>You're up to date — CANA {update.result.current} is the latest.</span>

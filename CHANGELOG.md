@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.18.0
+- Added "Update repo from zip.command" — a double-click helper that safely syncs a freshly-unzipped new version into your GitHub repo folder. It mirrors the repo to the new version exactly (adds new files, updates changed ones, and removes files that were deleted between versions — the thing a Finder drag-and-replace can miss), while never touching .git, node_modules, dist, release, or your user data (which lives in the browser/app, not the repo). It picks the source folder via a dialog, asks for confirmation, stages the changes, and shows you exactly what changed before you commit — it never commits or pushes on its own.
+
+
+## 4.17.0
+- Reworked the update flow into a guided, browser-based installer:
+  - "Check for updates" now finds the new version AND its .dmg download link directly.
+  - "Download & install" opens a step-by-step guide page in your browser that AUTO-STARTS the download (no extra click), then walks you through: wait for download → open the .dmg → quit CANA → drag into Applications (Replace) → reopen. Each step is check-off-able.
+  - Because the guide runs in your browser — a separate process from the app — it stays open the entire time CANA is quit and replaced. No more closing the app and losing your place.
+- Honest limits (shown in the guide): updating never touches your saved data; the "drag to Applications" and the first-launch "unidentified developer" prompt are macOS security steps that remain until the app is code-signed/notarized. The guide is hosted at the GitHub Pages URL for the packaged app and ships alongside the web build too.
+
+
 ## 4.16.0
 - Guaranteed navigation on every screen. Audited all pages an end user can reach and ensured each has a clear way out — a Home button always, plus Back where there is a parent screen. Closing and reopening the app is never required to get home.
 - Specifically fixed the assessment "review" screen (the per-partner progress page), which previously had no Back or Home button and could strand the user. It now has Home (and the per-partner cards already provide the way forward).

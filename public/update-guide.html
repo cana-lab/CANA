@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CANA — Update</title>
+<style>
+  :root {
+    --accent:#0a84ff; --green:#34c759; --amber:#ff9f0a; --ink:#1d1d1f;
+    --ink2:#3a3a3c; --ink3:#8e8e93; --hair:#d2d2d7; --bg:#f5f5f7; --panel:#fff;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:620px; margin:0 auto; padding:48px 24px 80px; }
+  .logo { width:54px; height:54px; }
+  h1 { font-size:26px; letter-spacing:-.02em; margin:16px 0 4px; }
+  .sub { color:var(--ink3); font-size:14px; margin:0 0 28px; }
+  .card { background:var(--panel); border:1px solid var(--hair); border-radius:16px;
+    padding:22px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  .dl-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .btn { border:none; border-radius:10px; padding:12px 20px; font-size:15px; font-weight:600;
+    color:#fff; background:var(--accent); cursor:pointer; text-decoration:none; display:inline-block; }
+  .btn.secondary { background:transparent; color:var(--accent); border:1px solid var(--hair); }
+  .status { font-size:13px; color:var(--ink3); }
+  .status.ok { color:var(--green); font-weight:600; }
+  ol.steps { list-style:none; counter-reset:step; margin:0; padding:0; }
+  ol.steps li { counter-increment:step; display:flex; gap:14px; padding:16px 0;
+    border-bottom:1px solid #ececec; align-items:flex-start; }
+  ol.steps li:last-child { border-bottom:none; }
+  .num { flex-shrink:0; width:28px; height:28px; border-radius:50%; background:var(--bg);
+    border:1px solid var(--hair); display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:700; color:var(--ink2); }
+  li.done .num { background:var(--green); border-color:var(--green); color:#fff; }
+  .step-body { flex:1; }
+  .step-title { font-size:15.5px; font-weight:600; margin:0 0 3px; }
+  .step-desc { font-size:13.5px; color:var(--ink2); line-height:1.55; margin:0; }
+  .check { margin-top:8px; font-size:13px; color:var(--accent); cursor:pointer;
+    background:none; border:none; padding:0; font-weight:600; }
+  kbd { background:rgba(0,0,0,.06); border-radius:5px; padding:2px 7px; font-size:12.5px; }
+  .note { font-size:12.5px; color:var(--ink3); line-height:1.55; margin-top:18px; }
+  .warn { background:rgba(255,159,10,.1); border-left:3px solid var(--amber);
+    padding:12px 16px; border-radius:8px; font-size:13px; color:var(--ink2); margin-bottom:16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <svg class="logo" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="none" stroke="#0a84ff" stroke-width="3"/><path d="M50 24 L50 76 M36 40 Q50 30 64 40 M34 56 Q50 46 66 56" fill="none" stroke="#0a84ff" stroke-width="3" stroke-linecap="round"/></svg>
+  <h1>Update CANA <span id="ver"></span></h1>
+  <p class="sub">Keep this browser tab open — it stays with you while CANA closes and the new version takes its place.</p>
+
+  <div class="card">
+    <div class="dl-row">
+      <a id="dlbtn" class="btn" href="#" download>Download the update</a>
+      <span id="status" class="status">Preparing your download…</span>
+    </div>
+    <p class="note" id="nodl" style="display:none">Couldn't find a direct download link. <a id="relpage" href="#" target="_blank" rel="noopener">Open the releases page</a> and download the <code>.dmg</code> manually.</p>
+  </div>
+
+  <div class="warn">Your saved data is <strong>not</strong> touched by updating — it stays on your Mac. You won't lose anything.</div>
+
+  <div class="card">
+    <ol class="steps" id="steps">
+      <li id="s1"><span class="num">1</span><div class="step-body">
+        <p class="step-title">Wait for the download to finish</p>
+        <p class="step-desc">Look for <code id="fname">the .dmg file</code> in your Downloads. It's a one-time ~100–150&nbsp;MB download.</p>
+        <button class="check" data-step="s1">Mark done ✓</button>
+      </div></li>
+      <li id="s2"><span class="num">2</span><div class="step-body">
+        <p class="step-title">Open the downloaded .dmg</p>
+        <p class="step-desc">Double-click it. A window opens showing the CANA app and an Applications shortcut.</p>
+        <button class="check" data-step="s2">Mark done ✓</button>
+      </div></li>
+      <li id="s3"><span class="num">3</span><div class="step-body">
+        <p class="step-title">Quit the current CANA</p>
+        <p class="step-desc">Switch to CANA and press <kbd>⌘ Q</kbd> (or CANA → Quit). This tab stays open — it's in your browser, not the app, so it can't be closed by quitting CANA.</p>
+        <button class="check" data-step="s3">Mark done ✓</button>
+      </div></li>
+      <li id="s4"><span class="num">4</span><div class="step-body">
+        <p class="step-title">Drag CANA into Applications</p>
+        <p class="step-desc">In the .dmg window, drag the <strong>CANA</strong> icon onto the <strong>Applications</strong> folder. When macOS asks, choose <strong>Replace</strong> to overwrite the old version.</p>
+        <button class="check" data-step="s4">Mark done ✓</button>
+      </div></li>
+      <li id="s5"><span class="num">5</span><div class="step-body">
+        <p class="step-title">Open the new CANA</p>
+        <p class="step-desc">Launch CANA from Applications. The first time, macOS may say it's from an unidentified developer — right-click the app, choose <strong>Open</strong>, then <strong>Open</strong> again. Your data and the new version will be there.</p>
+        <button class="check" data-step="s5">Mark done ✓</button>
+      </div></li>
+    </ol>
+  </div>
+
+  <p class="note">Tip: you can eject the .dmg afterward (drag it to the Trash / eject in Finder). The "unidentified developer" step only happens because the app isn't yet code-signed; it's normal and safe for an app you built yourself.</p>
+</div>
+
+<script>
+  (function () {
+    var qs = new URLSearchParams(location.search);
+    var dmg = qs.get("dmg");        // direct .dmg download URL
+    var ver = qs.get("v") || "";    // target version
+    var rel = qs.get("rel") || "";  // releases page fallback
+    var fname = qs.get("name") || "";
+
+    if (ver) document.getElementById("ver").textContent = ver;
+    if (fname) document.getElementById("fname").textContent = fname;
+
+    var dlbtn = document.getElementById("dlbtn");
+    var status = document.getElementById("status");
+
+    function startDownload() {
+      if (!dmg) {
+        dlbtn.style.display = "none";
+        status.style.display = "none";
+        var nodl = document.getElementById("nodl");
+        nodl.style.display = "block";
+        var rp = document.getElementById("relpage");
+        rp.href = rel || "#";
+        return;
+      }
+      dlbtn.href = dmg;
+      if (fname) dlbtn.setAttribute("download", fname);
+      // Auto-start: programmatically click the download link once, so the user
+      // doesn't have to press anything. The button remains for manual retry.
+      try {
+        dlbtn.click();
+        status.textContent = "Download started — check your Downloads folder.";
+        status.className = "status ok";
+      } catch (e) {
+        status.textContent = "Tap “Download the update” to begin.";
+      }
+    }
+
+    // Small delay so the page paints before the download prompt appears.
+    setTimeout(startDownload, 600);
+
+    // Manual click also works (and re-triggers if the auto attempt was blocked).
+    dlbtn.addEventListener("click", function () {
+      status.textContent = "Download started — check your Downloads folder.";
+      status.className = "status ok";
+    });
+
+    // Step check-off (purely local visual progress).
+    document.querySelectorAll(".check").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var li = document.getElementById(b.getAttribute("data-step"));
+        if (li) { li.classList.toggle("done"); b.textContent = li.classList.contains("done") ? "Done ✓" : "Mark done ✓"; }
+      });
+    });
+  })();
+</script>
+</body>
+</html>
