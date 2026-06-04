@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.18.1
+- Fixed the GitHub Pages base path: the web build now uses /CANA/ (matching the case-sensitive repo name) instead of /cana/. With the old value, the deployed Pages site and the in-app update-guide URL would have 404'd. The update guide URL (cana-lab.github.io/CANA/update-guide.html) now matches the deployed path exactly. (Electron build unaffected.)
+
+
 ## 4.18.0
 - Added "Update repo from zip.command" — a double-click helper that safely syncs a freshly-unzipped new version into your GitHub repo folder. It mirrors the repo to the new version exactly (adds new files, updates changed ones, and removes files that were deleted between versions — the thing a Finder drag-and-replace can miss), while never touching .git, node_modules, dist, release, or your user data (which lives in the browser/app, not the repo). It picks the source folder via a dialog, asks for confirmation, stages the changes, and shows you exactly what changed before you commit — it never commits or pushes on its own.
 

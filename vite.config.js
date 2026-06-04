@@ -9,12 +9,12 @@ const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url)))
 // `base` differs by target:
 //   - Electron desktop app: assets load over file://, so base must be "./" (relative).
 //     Set by the Electron build script via BUILD_TARGET=electron.
-//   - GitHub Pages project site https://USER.github.io/cana/  → "/cana/"
-//   - Running locally with `npm run dev`                       → "/cana/" is fine
+//   - GitHub Pages project site https://cana-lab.github.io/CANA/  → "/CANA/"
+//   - Running locally with `npm run dev`                       → "/CANA/" is fine
 const isElectron = process.env.BUILD_TARGET === "electron";
 
 export default defineConfig({
-  base: isElectron ? "./" : "/cana/",
+  base: isElectron ? "./" : "/CANA/",
   build: { modulePreload: { polyfill: false } },
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [react()],
