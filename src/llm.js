@@ -170,10 +170,11 @@ Return JSON: {"vision":"...","mission":"..."}`;
 
 // ── 4. Joint vision + mission, compiled from both ───────────────────────────
 // Returns {vision,mission} or null.
-export async function jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary) {
+export async function jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary, evalSynthesis) {
   try {
-    const sys = "You are a Christian pastoral writer compiling a COUPLE's shared vision and mission from both partners' individual visions and their compared future-letters. Respond ONLY with valid JSON.";
-    const user = `Compile a JOINT vision and mission for ${nameA} and ${nameB}.
+    const sys = "You are a Christian pastoral writer compiling a COUPLE's shared vision and mission. You ground every line in the couple's actual assessment data — their strengths, their weak areas, and where they most diverge — so the result reads as unmistakably theirs. Respond ONLY with valid JSON.";
+    const ev = evalSynthesis || {};
+    const user = `Compile a JOINT vision and mission for ${nameA} and ${nameB}, synthesizing BOTH their letters AND their assessment evaluation.
 
 ${nameA}'s individual vision: ${indivA?.vision || "(n/a)"}
 ${nameA}'s individual mission: ${indivA?.mission || "(n/a)"}
@@ -183,12 +184,20 @@ ${nameB}'s individual mission: ${indivB?.mission || "(n/a)"}
 Shared dreams (from their letters): ${comparison ? JSON.stringify(comparison.commonalities) : "(n/a)"}
 Divergent dreams: ${comparison ? JSON.stringify(comparison.differences) : "(n/a)"}
 
-Couple domain summary: ${overallSummary}
+ASSESSMENT EVALUATION (use this — it is the core of the synthesis):
+- Overall health: ${ev.overall || "(n/a)"}/10
+- Greatest strengths: ${ev.strongest ? ev.strongest.join("; ") : "(n/a)"}
+- Areas most needing growth: ${ev.weakest ? ev.weakest.join("; ") : "(n/a)"}
+- Widest gaps between the two of them: ${ev.widestGaps ? ev.widestGaps.join("; ") : "(n/a)"}
+- Biggest tensions to navigate: ${ev.topTensions && ev.topTensions.length ? ev.topTensions.join("; ") : "(none surfaced)"}
+- Warning flags: ${ev.flags && ev.flags.length ? ev.flags.join("; ") : "(none)"}
+
+Per-domain summary: ${overallSummary}
 
 Rules:
-- Joint Vision: ONE sentence capturing who they are called to become TOGETHER, built on their genuine shared dreams, while honoring (not erasing) their differences.
-- Joint Mission: ONE or TWO sentences on how they will pursue it together.
-- Christ-centered, covenantal, specific to THEIR data. No generic language.
+- Joint Vision: ONE sentence on who they are called to become TOGETHER. It must draw on their genuine shared dreams AND lean on their real strengths (named above), while honoring their differences.
+- Joint Mission: TWO or THREE sentences on how they will pursue it — and it MUST explicitly address their areas most needing growth and their biggest tension, turning the evaluation into concrete shared intent. Name the actual areas; do not be generic.
+- Christ-centered, covenantal, warm, hopeful, specific to THEIR data. No filler.
 
 Return JSON: {"vision":"...","mission":"..."}`;
     const out = await chat([{ role: "system", content: sys }, { role: "user", content: user }], { json: true });
@@ -237,8 +246,48 @@ Rules:
   } catch (e) { return null; }
 }
 
-// ============================================================================
-// FIRST-LAUNCH SETUP HELPERS
+// ── 6. "Start the Conversation" — deeper questions + framing summary ────────
+// Produces a guided conversation aimed at moving the couple toward greater
+// alignment ("upward drift"): an honest summary of strengths and growth areas,
+// what the overall picture means, and targeted open questions for their biggest
+// divergences. Returns { summary:{positive,growth,overall}, questions:[{area,
+// prompt, why}] } or null on failure (caller uses a deterministic fallback).
+export async function conversationGuide(nameA, nameB, overallSummary, topGaps, comparison) {
+  try {
+    const sys = "You are a wise, warm Christian marriage mentor preparing a couple to talk through their differences constructively. You are honest about hard things but always point toward hope and growth. Respond ONLY with valid JSON.";
+    const gapsText = (topGaps || []).map((g) => `- ${g.domain} / "${g.question}": ${nameA} ${g.scoreA}, ${nameB} ${g.scoreB} (gap ${g.gap})`).join("\n") || "(no large gaps)";
+    const user = `Prepare a "Start the Conversation" guide for ${nameA} and ${nameB}.
+
+DOMAIN PICTURE (0-10, higher=healthier; gap = how far apart they scored): ${overallSummary}
+BIGGEST DIVERGENCES:
+${gapsText}
+SHARED DREAMS: ${comparison ? JSON.stringify(comparison.commonalities) : "(n/a)"}
+
+Produce JSON with this exact shape:
+{
+  "summary": {
+    "positive": "2-3 sentences naming their genuine strengths, specific to the data.",
+    "growth": "2-3 sentences honestly naming where they are most out of step or weakest, without shaming.",
+    "overall": "2-3 sentences on what the overall picture means and where they stand in the bigger journey of a marriage."
+  },
+  "questions": [
+    { "area": "domain or theme", "prompt": "an open, non-accusatory question they can discuss together", "why": "one sentence on what this surfaces and how it helps them move toward alignment" }
+  ]
+}
+Rules:
+- 5 to 7 questions, prioritizing their biggest divergences.
+- Questions must be open-ended, gentle, and specific to THIS couple — never yes/no, never blaming.
+- Christ-centered and hopeful in tone; aim at growth and unity.`;
+    const out = await chat([{ role: "system", content: sys }, { role: "user", content: user }], { json: true });
+    const p = parseJSON(out);
+    if (!p || !p.summary || !Array.isArray(p.questions) || !p.questions.length) return null;
+    if (!p.summary.positive || !p.summary.growth || !p.summary.overall) return null;
+    const questions = p.questions.filter((q) => q && q.prompt).map((q) => ({ area: q.area || "", prompt: q.prompt, why: q.why || "" }));
+    if (!questions.length) return null;
+    return { summary: p.summary, questions };
+  } catch (e) { return null; }
+}
+
 // ----------------------------------------------------------------------------
 // Used by the in-app setup wizard. All Ollama calls go to the local server.
 // macOS will not let the app install Ollama silently; these helpers DETECT

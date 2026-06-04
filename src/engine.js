@@ -101,8 +101,8 @@ const T = RESPONSE_TYPES;
 // instrument. See ASSUMPTIONS.md. They are transparent and adjustable.
 
 export const DOMAIN_WEIGHTS = {
-  faith: 1.30, marriage: 1.25, children: 1.10, vocation: 1.00,
-  place: 1.05, money: 1.10, body: 0.90, creative: 0.85, community: 0.95,
+  faith: 1.30, marriage: 1.25, intimacy: 1.20, children: 1.10, vocation: 1.00,
+  place: 1.05, money: 1.10, body: 0.90, creative: 0.85, community: 0.95, inlaws: 1.00,
 };
 
 // ─── SCRIPTURES ─────────────────────────────────────────────────────────────
@@ -117,6 +117,8 @@ export const SCRIPTURES = {
   body:      { ref: "1 Corinthians 6:19",  text: "Do you not know that your body is a temple of the Holy Spirit within you?" },
   creative:  { ref: "Exodus 35:31",        text: "He has filled him with the Spirit of God, with skill, with intelligence, with knowledge, and with all craftsmanship." },
   community: { ref: "Hebrews 10:24",       text: "And let us consider how to stir up one another to love and good works." },
+  intimacy:  { ref: "1 Corinthians 7:3-4", text: "The husband should give to his wife her conjugal rights, and likewise the wife to her husband. For the wife does not have authority over her own body, but the husband does. Likewise the husband does not have authority over his own body, but the wife does." },
+  inlaws:    { ref: "Genesis 2:24",        text: "Therefore a man shall leave his father and his mother and hold fast to his wife, and they shall become one flesh." },
   synthesis: { ref: "Proverbs 29:18",      text: "Where there is no prophetic vision the people cast off restraint, but blessed is he who keeps the law." },
 };
 
@@ -125,7 +127,7 @@ export const SCRIPTURES = {
 // items (high raw value = unhealthy condition); these are inverted before any
 // aggregation so that every domain average means "health/strength".
 
-export const DOMAINS = [
+const DOMAINS_RAW = [
   {
     id: "faith", label: "Faith & Calling", icon: "✦", scripture: SCRIPTURES.faith,
     intro: "These questions examine your relationship with God, your sense of calling, and how faith consciously shapes your daily decisions and long-term direction.",
@@ -409,7 +411,72 @@ export const DOMAINS = [
         info: "Felt importance of deepening community investment and legacy over the next five years." },
     ],
   },
+  {
+    id: "intimacy", label: "Intimacy & Sexual Union", icon: "♥", scripture: SCRIPTURES.intimacy,
+    intro: "These questions examine the physical and emotional intimacy of your marriage — closeness, desire, communication about sex, and how cherished and connected you feel. They are asked gently and answered privately; nothing here is shared between partners except, with your consent, the overall sense of where you align.",
+    about: {
+      weight: "High weight (1.20)",
+      biblical: "Scripture treats sexual union as a good and integral part of marriage, not a concession. Genesis 2:24–25 describes the couple becoming \"one flesh\" and being \"naked and not ashamed.\" Paul frames the marital sexual relationship as a mutual gift and a mutual responsibility, with each spouse entrusting their body to the other (1 Corinthians 7:3–5). The Song of Songs devotes an entire book to the delight of married love. Intimacy is thus understood as covenantal self-giving — a bodily expression of the whole-life union.",
+      books: "Timothy & Kathy Keller, in *The Meaning of Marriage*, frame sex as a covenant renewal — a whole-self act of self-giving that belongs inside the safety of lifelong commitment, not a mere appetite. Paul David Tripp's emphasis on confession and tenderness applies directly to the vulnerability intimacy requires.",
+      science: "Longitudinal research finds sexual satisfaction and relationship satisfaction are tightly and bidirectionally linked — and notably, within-person increases in sexual satisfaction predict later increases in overall relationship satisfaction, more strongly than the reverse (Park et al., 2023; Schoenfeld et al., 2017; Cao et al., 2019). A meta-analysis finds that the quality of a couple's sexual communication is robustly associated with both sexual and relationship satisfaction (Mallory et al., 2022). This is why intimacy carries a high weight and why a large gap between partners is treated as a tension worth naming, not ignoring.",
+    },
+    questions: [
+      { id: "in1", text: "I am satisfied with the physical intimacy in our marriage.",                               type: T.SATISFACTION, core: true,
+        info: "Overall satisfaction with physical intimacy. Longitudinal studies find sexual satisfaction predicts later relationship satisfaction, which is why this is the domain's core question." },
+      { id: "in2", text: "I feel emotionally close and connected to my spouse during intimacy.",                      type: T.AGREEMENT,
+        info: "Emotional connection during intimacy — intimacy as whole-person union (Genesis 2:24-25, 'one flesh'), not merely physical." },
+      { id: "in3", text: "We can talk openly and kindly about our sexual relationship.",                            type: T.AGREEMENT,
+        info: "Quality of sexual communication. A meta-analysis (Mallory et al., 2022) finds sexual communication robustly tied to both sexual and relationship satisfaction." },
+      { id: "in4", text: "I feel desired and cherished by my spouse.",                                               type: T.AGREEMENT,
+        info: "Feeling desired and cherished — the affirming, self-giving dimension of marital love (Song of Songs)." },
+      { id: "in5", text: "Our level of sexual desire and frequency feels mutually comfortable.",                    type: T.AGREEMENT,
+        info: "Mutual comfort with desire and frequency. Paul frames the sexual relationship as a mutual gift and responsibility (1 Corinthians 7:3-5); mismatch is a common, nameable tension." },
+      { id: "in6", text: "Unresolved hurt or resentment gets in the way of our intimacy.",                          type: T.FREQUENCY, rev: true,
+        info: "Whether unresolved hurt blocks intimacy. Reverse-scored: a high answer indicates a problem, so it lowers the score. Confession and forgiveness are the biblical remedy." },
+      { id: "in7", text: "I am at peace with how we handle intimacy, including seasons of difficulty or change.",     type: T.PEACE,
+        info: "Peace about how the couple navigates intimacy across changing seasons (illness, pregnancy, age, stress) — resilience rather than a snapshot." },
+      { id: "in8", text: "How urgent is it to give attention to your intimacy in the next 1–2 years?",               type: T.URGENCY,
+        info: "Felt urgency of tending intimacy in the near term — surfaces priority for goal-ranking." },
+    ],
+  },
+  {
+    id: "inlaws", label: "In-Laws & Extended Family", icon: "⌂", scripture: SCRIPTURES.inlaws,
+    intro: "These questions examine your relationships with parents, in-laws, and extended family — the boundaries around your marriage, how united you are as a couple, and whether wider family is a source of support or strain.",
+    about: {
+      weight: "Baseline weight (1.00)",
+      biblical: "Genesis 2:24 sets the founding principle: a man \"leaves\" his father and mother and \"holds fast\" to his wife. \"Leave and cleave\" establishes the married couple as a new primary unit — honoring parents (Exodus 20:12) while no longer being ruled by them. The order matters: the one-flesh union takes priority, and healthy boundaries protect it rather than dishonoring the wider family.",
+      books: "Paul David Tripp's *What Did You Expect?* speaks directly to the unspoken expectations — often inherited from our families of origin — that quietly strain a marriage. The Kellers' theme of leaving self-centeredness behind extends to leaving the family-of-origin's claims behind in forming a new union.",
+      science: "In the Early Years of Marriage project, a 16-year longitudinal study of 355 couples, spousal disagreement about closeness to in-laws early in marriage predicted later divorce — even after accounting for the actual closeness of those relationships (Fiori, Rauer, Birditt, Brown & Orbuch, 2021). The clinical literature similarly frames in-law difficulty largely as a boundary-regulation problem within the couple (Silverstein). Because what matters most is the couple's agreement and boundaries, CANA pays particular attention to the gap between partners here.",
+    },
+    questions: [
+      { id: "il1", text: "My spouse and I are united as a team in how we relate to our extended families.",         type: T.AGREEMENT, core: true,
+        info: "Whether the couple acts as a united team toward extended family — the 'leave and cleave' principle (Genesis 2:24). The domain's core question." },
+      { id: "il2", text: "We agree on how close we want to be with our parents and in-laws.",                       type: T.AGREEMENT,
+        info: "Agreement on desired closeness with parents/in-laws. Spousal disagreement about in-law closeness early in marriage predicted later divorce in a 16-year study (Fiori et al., 2021) — which is why partner agreement is weighted heavily here." },
+      { id: "il3", text: "Our marriage comes first, ahead of either family of origin's expectations.",               type: T.AGREEMENT,
+        info: "Whether the one-flesh union takes priority over family-of-origin claims (Genesis 2:24). Healthy boundaries protect the marriage while still honoring parents (Exodus 20:12)." },
+      { id: "il4", text: "Time and commitments with extended family feel balanced, not a source of pressure.",       type: T.AGREEMENT,
+        info: "Balance of extended-family time and obligations — boundary regulation, the dynamic the clinical literature identifies as central to in-law strain." },
+      { id: "il5", text: "Extended family is a genuine source of support and blessing to us.",                      type: T.AGREEMENT,
+        info: "Whether extended family functions as support rather than stress — in-laws can be either, depending largely on the couple's boundaries." },
+      { id: "il6", text: "Conflict or tension with family members weighs on our marriage.",                         type: T.FREQUENCY, rev: true,
+        info: "Whether family conflict burdens the marriage. Reverse-scored: a high answer indicates strain, so it lowers the score." },
+      { id: "il7", text: "We can set and hold loving boundaries with family when we need to.",                      type: T.AGREEMENT,
+        info: "Capacity to set loving boundaries — the practical skill that 'leave and cleave' requires, distinct from cutting family off." },
+      { id: "il8", text: "How important is it to address extended-family dynamics in the next 1–2 years?",          type: T.IMPORTANCE,
+        info: "Felt importance of addressing extended-family dynamics in the near term — surfaces priority for goal-ranking." },
+    ],
+  },
 ];
+
+// Display/assessment order. Intimacy sits right after Marriage (thematically
+// adjacent, and answered while attention is freshest), and In-Laws follows the
+// family-of-origin themes after Children. Scoring is order-independent.
+const DOMAIN_ORDER = ["faith", "marriage", "intimacy", "children", "inlaws", "vocation", "place", "money", "body", "creative", "community"];
+export const DOMAINS = DOMAIN_ORDER
+  .map((id) => DOMAINS_RAW.find((d) => d.id === id))
+  .filter(Boolean)
+  .concat(DOMAINS_RAW.filter((d) => !DOMAIN_ORDER.includes(d.id))); // safety: any unlisted domain still included
 
 // ─── SCORING PRIMITIVES ─────────────────────────────────────────────────────
 
@@ -555,6 +622,17 @@ function detectFlags(domainScores, answersA, answersB, nameA, nameB) {
     flags.push({ type: "TENSION", label: "Parenting Vision Divergence",
       text: `A ${ds.children.domainGap.toFixed(1)}-point gap in the Children domain suggests different pictures of parenting. Parenting disagreement is a primary driver of marital dissatisfaction in active parenting years (Cowan & Cowan, 1992).` });
 
+  if (ds.intimacy && ds.intimacy.avgNorm < 5)
+    flags.push({ type: "TENSION", label: "Intimacy Under Strain",
+      text: `Intimacy scores below 5.0. Sexual and relationship satisfaction are tightly, bidirectionally linked, and declining intimacy tends to pull overall satisfaction down with it over time (Park et al., 2023; Schoenfeld et al., 2017). Worth gentle, honest attention rather than avoidance.` });
+  if (ds.intimacy && ds.intimacy.domainGap >= 3)
+    flags.push({ type: "TENSION", label: "Intimacy Mismatch",
+      text: `A ${ds.intimacy.domainGap.toFixed(1)}-point gap in Intimacy means the two of you experience this area quite differently. The most protective step is open, kind communication about it — sexual communication quality is robustly tied to satisfaction (Mallory et al., 2022).` });
+
+  if (ds.inlaws && ds.inlaws.domainGap >= 2.5)
+    flags.push({ type: "TENSION", label: "Extended-Family Disagreement",
+      text: `A ${ds.inlaws.domainGap.toFixed(1)}-point gap on extended family is worth naming: spousal disagreement about closeness to in-laws early in marriage predicted higher divorce risk over 16 years, even after accounting for the actual relationships (Fiori et al., 2021). Getting aligned as a couple is the high-leverage move.` });
+
   const strengths = domainScores.filter((d) => d.quad === "SHARED_STRENGTH" && d.avgNorm >= 7);
   if (strengths.length)
     flags.push({ type: "STRENGTH", label: "Shared Foundations",
@@ -655,6 +733,22 @@ const GOAL_TEMPLATES = {
             "5yr": "Be a hub of community and mentorship, multiplying what you've built.",
             "10yr": "Leave a legacy of faithful presence and generosity that outlasts you." },
   },
+  intimacy: {
+    low:  { "1yr": "Reconnect intentionally — protect unhurried time together and begin honest, kind conversations about your intimacy.",
+            "5yr": "Build a resilient, mutually satisfying intimacy that weathers the seasons of family life.",
+            "10yr": "Enjoy a marriage marked by deep closeness, trust, and tenderness that has only grown." },
+    high: { "1yr": "Keep tending what is strong — guard time together and stay openly communicative as life gets busy.",
+            "5yr": "Let your strong intimacy anchor the marriage through demanding years of parenting and work.",
+            "10yr": "Model and sustain a thriving, faithful intimacy across the decades." },
+  },
+  inlaws: {
+    low:  { "1yr": "Get on the same page as a couple about boundaries and closeness with extended family.",
+            "5yr": "Establish a united, peaceful pattern with both families that protects your marriage.",
+            "10yr": "Enjoy healthy, honoring relationships with extended family without strain on your union." },
+    high: { "1yr": "Maintain your united front and keep communicating openly about family dynamics.",
+            "5yr": "Be a couple whose strong boundaries let you bless extended family generously.",
+            "10yr": "Pass on a model of honoring parents while keeping the marriage first." },
+  },
 };
 
 function pickGoal(domainId, band, timeframe) {
@@ -737,6 +831,45 @@ export const CORE_QUESTIONS = DOMAINS.map((d) => {
 
 // Build a session snapshot from a completed analytics object.
 // `kind` is "full" or "checkin". `ts` is an ISO timestamp.
+// Deterministic "Start the Conversation" guide — used when the local AI is off
+// or unavailable. Builds an honest summary and targeted open questions from the
+// computed analytics, with no external dependency.
+export function buildConversationGuide(analytics) {
+  const { domainScores, tensions, overallScore, nameA, nameB } = analytics;
+  const sorted = [...domainScores].sort((a, b) => b.avgNorm - a.avgNorm);
+  const strong = sorted.slice(0, 2).map((d) => d.label);
+  const weak = sorted.slice(-2).map((d) => d.label);
+  const widestGaps = [...domainScores].sort((a, b) => b.domainGap - a.domainGap).slice(0, 2);
+
+  const positive = `Your clearest strengths are ${strong[0]} and ${strong[1]}. These are areas where you both scored well and are largely in step — a real foundation to build on and to draw confidence from as you talk through harder things.`;
+  const growth = `The areas asking for the most attention are ${weak[0]} and ${weak[1]}, and your widest difference in perspective is in ${widestGaps[0] ? widestGaps[0].label : "—"}. Naming these plainly is not a verdict on your marriage; it is simply where honest conversation will do the most good right now.`;
+  const band = overallScore >= 7 ? "a genuinely strong place, with the task being to protect and deepen what you have" :
+               overallScore >= 5.5 ? "a mixed but hopeful place — real strengths alongside clear, workable growth areas" :
+               "an honest, tender place where naming the work ahead together is itself a meaningful step";
+  const overall = `Overall you are in ${band}. Every marriage is on a journey; the point of this is not a grade but direction — small, deliberate steps toward each other, trusting God in the process.`;
+
+  // Questions from the widest-gap individual items, then weakest domains.
+  const questions = [];
+  (tensions || []).slice(0, 4).forEach((q) => {
+    const higher = q.normA > q.normB ? nameA : q.normB > q.normA ? nameB : null;
+    questions.push({
+      area: q.domainLabel || "",
+      prompt: higher
+        ? `On "${q.text}", ${higher} sees this more positively. Can each of you describe what you're seeing that the other might not be?`
+        : `You scored "${q.text}" differently. What experiences are shaping how each of you sees it?`,
+      why: "Surfaces the lived reasons behind a gap so it can be understood rather than argued.",
+    });
+  });
+  weak.forEach((label) => {
+    questions.push({
+      area: label,
+      prompt: `When you think about ${label.toLowerCase()}, what would "one step healthier, a year from now" actually look like for us?`,
+      why: "Turns a weaker area into a small, shared, concrete next step.",
+    });
+  });
+  return { summary: { positive, growth, overall }, questions: questions.slice(0, 7) };
+}
+
 export function buildSnapshot(analytics, kind, ts) {
   return {
     ts: ts || new Date().toISOString(),

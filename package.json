@@ -1,7 +1,7 @@
 {
   "name": "cana",
   "private": true,
-  "version": "4.6.0",
+  "version": "4.16.0",
   "type": "module",
   "description": "A private, local-first biblical life-planning tool for couples. Runs in a desktop browser and talks directly to a local Ollama LLM. No data leaves your machine.",
   "license": "MIT",

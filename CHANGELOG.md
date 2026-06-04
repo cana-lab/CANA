@@ -1,5 +1,89 @@
 # Changelog
 
+## 4.16.0
+- Guaranteed navigation on every screen. Audited all pages an end user can reach and ensured each has a clear way out — a Home button always, plus Back where there is a parent screen. Closing and reopening the app is never required to get home.
+- Specifically fixed the assessment "review" screen (the per-partner progress page), which previously had no Back or Home button and could strand the user. It now has Home (and the per-partner cards already provide the way forward).
+- Added Home buttons to the assessment, letter, prepare, setup, settings, intro, and setup wizard screens for consistency.
+
+
+## 4.15.0
+- Brought the dashboard visuals onto the home screen. Once you have at least one completed assessment, the home screen now shows a rich "Your journey" preview card in the space below the chapters: the Overall-health ring gauge, the eleven-domain radar ("shape of your life together"), and Overall / Alignment / Drift tiles with sparklines and trend chips — all tapping through to the full dashboard.
+- Replaced the thin fixed bottom strip with this larger, more inviting inline preview.
+
+
+## 4.14.0
+- Redesigned the dashboard with a modern health-app feel:
+  - A circular "Overall health" ring gauge as the hero, color-coded by band (Flourishing → Needs care).
+  - A radar/"shape of your life together" chart showing all eleven domains at a glance.
+  - Stat tiles (Drift, Alignment, Overall) now carry inline sparklines and coloured ↑/↓ delta chips, so each shows its trend rather than just stating a number.
+  - Domain Movement bars are now coloured by health band with smooth fill animation.
+- Added one-click model download in Settings → Local AI. If Ollama is installed and running, CANA can pull the recommended model for you (with a live progress bar and cancel) — no Terminal required. Scoring still works fully without any of this.
+
+
+## 4.13.0
+- UX/UI and questionnaire-psychology improvements:
+  - Removed the scale-type name (e.g. "AGREEMENT") shown above each question — the word labels under each option already convey the scale, and removing it reduces priming and visual noise.
+  - Removed the inline "(reverse-scored)" tag from questions. Reverse-scoring is an internal mechanic; showing it invited answer-gaming. (Still explained in each question's info panel.)
+  - Questions are now shown in smaller batches (up to 4 per screen) within each chapter, with "Part X of Y" markers. This reduces fatigue and stops earlier answers from visually anchoring later ones, for more honest, independent responses.
+  - The progress indicator now reads "Chapter X of 11" alongside the count, framing progress as achievable chunks rather than a small fraction.
+  - Moved the Intimacy & Sexual Union chapter to directly follow Marriage & Covenant (it is far more central to marital health than its previous late position, and is now answered while attention is freshest). In-Laws follows Children.
+  - Added optional sentence-starter prompts to the Future Perfect letter, so a blank page is less intimidating — tap a starter to drop it in and finish the thought.
+- Scoring, weights, and all results are unchanged; these are presentation and flow changes only.
+
+
+## 4.12.0
+- Added two new assessment chapters, each with biblical grounding and peer-reviewed research, plus plain-language help for every new question:
+  - Intimacy & Sexual Union (1 Corinthians 7, Genesis 2:24-25, Song of Songs; Park et al. 2023, Schoenfeld et al. 2017, Mallory et al. 2022 meta-analysis). High weight (1.20); large partner gaps and low scores are flagged gently.
+  - In-Laws & Extended Family (Genesis 2:24 "leave and cleave", Exodus 20:12; Fiori/Orbuch et al. 2021, 16-year Early Years of Marriage study). Baseline weight (1.00); spousal disagreement is flagged as the high-leverage issue.
+  - Both chapters now contribute to scoring, gaps, flags, goals, and trends. The Introduction now describes eleven chapters and lists the new references.
+- The Future Perfect letter can now be completed independently by each partner. Each partner does their own questions AND their own letter as one unit, in any order; your plan generates once both are done (previously the letters had to be written back-to-back after both questionnaires).
+- Fixed: the "Back to home" button on the report-recovery screen no longer effectively logs you out. Your sign-in now persists for the browser session, so returning home (or an automatic recovery reload) keeps you logged in; a fresh launch still asks for sign-in.
+
+
+## 4.11.1
+- Fixed the blank, unexitable page reached via dashboard -> Open Report. The cause was an older saved report that lacks the full results data; opening it crashed the screen and took its exit button down with it. Opening such a report now shows a clear, recoverable message ("This report can't be opened") with working "Back to home" and "View past assessments" buttons. Newer reports are unaffected.
+- Hardened the report screen so missing optional sections (letter comparison, goals) can never crash it.
+- Added an app-wide safety net (error boundary): if any screen ever hits an unexpected error, you now get a "Return home" recovery page with your saved data intact, instead of a blank page.
+
+
+## 4.11.0
+- Added an automatic in-app safety backup. Whenever an assessment is completed, CANA quietly saves a safety copy of your reports and history (keeping the last 3). If a bug or accidental reset ever loses your data, you can bring it back with one click.
+- Added "Restore from backup" in the check-for-updates area on the home screen, with a status line showing when the last backup was saved and how many reports it holds.
+- Honest scope shown in the UI: this safety copy lives on this device only. It protects against in-app loss (bugs, resets), but NOT against clearing your browser data or moving to another computer — for that, "Save as PDF" on a report remains the durable backup.
+
+
+## 4.10.1
+- Fixed a serious bug where pressing "Quick Check-In" immediately erased your existing completed report. Starting any assessment now clears only the in-progress draft and never touches a previously completed report or the saved archive.
+- A completed full assessment now never disappears: every completed assessment (full or check-in) stays in "Past Reports" on the dashboard, and a check-in only produces a new report once it is fully completed — starting one no longer changes the home screen or removes the last report.
+- Fixed the blank, unexitable page reached via dashboard → open report in certain states. There is now always navigation: if a view has nothing to show, it offers "Back to home" and "View past assessments" instead of a dead end.
+- A full data erase now correctly clears the saved report as well (since draft-reset no longer does).
+
+
+## 4.10.0
+- Every assessment question now has a plain-language explanation behind its info (ⓘ) button that answers, simply, "what is this question actually asking?" — written in everyday language, with the more academic rationale kept as secondary context. (All 91 questions covered.)
+- The joint Vision and Mission now synthesize the actual evaluation, not just the letters: the local AI receives the couple's overall health, greatest strengths, areas most needing growth, widest gaps, and biggest tensions, and is instructed to weave them in — so the mission explicitly addresses real growth areas and tensions rather than staying generic. The deterministic fallback already reflects strongest/weakest areas.
+- Continued the Introduction clarity pass: further smoothing for natural, coherent, easy-to-read language (e.g. framing partner differences as "where you see things most differently" rather than "disagree").
+
+
+## 4.9.0
+- Rewrote the entire Introduction for clarity and natural flow — every sentence reworked to be easier to read while keeping the same substance.
+- Fact-checked every empirical claim in the Introduction against the published literature (Gottman's 5:1 ratio, the Four Horsemen and contempt as strongest predictor, repair as the key protective skill, and the Mahoney/Pargament sanctification research). All were verified as accurately stated; wording was adjusted to attribute the 5:1 ratio to Gottman's research generally and to scope it to conflict.
+- Corrected an overstatement: the Introduction no longer says the domain weights, gap thresholds, and pattern flags are "anchored to published research." They are now described honestly as our own considered judgments, informed by the literature rather than taken directly from it (the research supports which areas matter, not the specific numbers chosen).
+- Audited every assessment question's rating scale and reverse-scoring against its wording; all were found to fit correctly (no changes needed).
+
+
+## 4.8.0
+- Added an info (ⓘ) button to every headline metric in the dashboard (Overall Health, Value Alignment, Mission Drift), and to the new bottom strip. Each explains: what the metric means, exactly how it is computed (the real methodology), and an interpretive scale for what different values tend to indicate. The explanations are honest that these are self-rated reflections, not clinical measurements, and are NOT compared against other couples (no fabricated population norms).
+- Added a persistent quick-overview strip at the bottom of the window showing Overall, Alignment, and Drift at a glance, with an "Open dashboard" shortcut. Shown once you have at least one saved assessment.
+- New shared metric-explanation module (metrics.js) with interpretive score bands (Flourishing / Healthy / Mixed / Strained / Needs care) and gap bands (Aligned → Major difference) used consistently across the app.
+
+
+## 4.7.0
+- New "Start the conversation" button at the end of the report. It generates a guided discussion: a summary of strengths, honest growth areas, and what the overall picture means, followed by 5-7 targeted open questions aimed at the couple's biggest divergences and at moving toward greater alignment. Uses the local AI when available, with a full deterministic fallback when it isn't. The guide is printable as its own PDF.
+- Fixed the "Email report" button: mailto links were being blocked by the desktop app's external-link handler, so nothing opened. The mail app now opens with the report prefilled.
+- PDF export now keeps each chapter/section together on a page instead of splitting it across a page break (per-domain rows and conversation cards stay intact); headings are no longer stranded at the foot of a page.
+
+
 ## 4.6.0
 - The local AI (Ollama) now also personalizes the 1/5/10-year goals — grounded in the couple's real scores and shared dreams — in addition to the vision and mission. If the AI is unavailable or returns anything malformed, the proven deterministic goals are kept unchanged.
 - The report no longer silently falls back: when the AI was not used it shows a clear banner explaining exactly why (check-in mode, AI turned off, or Ollama not running) with "Set up the local AI" and "Regenerate with AI" actions. Generation now checks Ollama liveness directly at run time rather than relying on a possibly-stale status.

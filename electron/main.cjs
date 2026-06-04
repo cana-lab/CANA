@@ -36,7 +36,9 @@ ipcMain.handle("cana:which", async (_e, name) => {
 });
 
 ipcMain.handle("cana:open-external", async (_e, url) => {
-  if (typeof url === "string" && /^https?:\/\//.test(url)) {
+  // Allow web links and mailto: links (the report's "Email report" button uses
+  // a mailto: URL to hand off to the system mail client).
+  if (typeof url === "string" && /^(https?|mailto):/.test(url)) {
     await shell.openExternal(url);
     return true;
   }
