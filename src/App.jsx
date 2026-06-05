@@ -87,6 +87,23 @@ function Card({ children, style, className }) {
   }}>{children}</div>;
 }
 
+// Determinate progress bar (0-100). Used during AI generation/refresh so the
+// user sees real step-by-step progress, not just a spinner.
+function ProgressBar({ value = 0, label }) {
+  const pct = Math.max(0, Math.min(100, value));
+  return (
+    <div style={{ width: "100%", maxWidth: 320, margin: "0 auto" }}>
+      <div style={{ height: 8, background: "var(--hair)", borderRadius: 999, overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: "var(--accent)", borderRadius: 999, transition: "width .4s ease" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+        <span style={{ fontSize: 13, color: "var(--ink2)" }}>{label}</span>
+        <span style={{ fontSize: 13, color: "var(--ink3)", fontVariantNumeric: "tabular-nums" }}>{Math.round(pct)}%</span>
+      </div>
+    </div>
+  );
+}
+
 function Segmented({ options, value, onChange }) {
   return (
     <div style={{ display: "inline-flex", background: "rgba(120,120,128,0.12)", borderRadius: 10, padding: 2, gap: 2 }}>
@@ -436,6 +453,7 @@ export default function App() {
   const [llmModels, setLlmModels] = useState([]);
   const [llmSample, setLlmSample] = useState("");
   const [genMsg, setGenMsg] = useState("");
+  const [genProg, setGenProg] = useState(0); // 0-100, real step progress during AI generation
   const [generating, setGenerating] = useState(false);
   const [editStmts, setEditStmts] = useState(null);
   const [openInfo, setOpenInfo] = useState(null);   // which question's info is expanded
@@ -730,7 +748,16 @@ export default function App() {
   // "Start the Conversation": generate deeper questions + a framing summary.
   // Uses the local AI when available; always falls back to the deterministic
   // guide so it works offline. Operates on the given report R.
-  const startConversation = async (R) => {
+  // The generated guide is SAVED into the report so it's stable on reopen —
+  // it isn't regenerated every time (use the Refresh button to redo it).
+  const startConversation = async (R, { force = false } = {}) => {
+    // If this report already has a saved guide and we're not forcing a refresh,
+    // just show it — no regeneration, so it stays consistent.
+    if (!force && R.convoGuide) {
+      setConvo({ open: true, loading: false, guide: R.convoGuide, usedAI: !!R.convoUsedAI, nameA: R.nameA, nameB: R.nameB });
+      window.scrollTo({ top: 0 });
+      return;
+    }
     setConvo({ open: true, loading: true, guide: null, usedAI: false, nameA: R.nameA, nameB: R.nameB });
     // Deterministic guide is always available from the report's analytics-shaped data.
     const fallback = buildConversationGuide({
@@ -747,13 +774,42 @@ export default function App() {
       if (ai) { guide = ai; usedAI = true; }
     }
     setConvo({ open: true, loading: false, guide, usedAI, nameA: R.nameA, nameB: R.nameB });
+    // Save the guide into the live report + its archived session, so reopening
+    // shows the same guide instead of regenerating. Only for the live report
+    // (archived past reports are read-only here).
+    if (!archiveReport && results) {
+      const withGuide = { ...results, convoGuide: guide, convoUsedAI: usedAI };
+      saveResults(withGuide);
+      setSessions((prev) => {
+        if (!prev.length) return prev;
+        const copy = [...prev];
+        copy[copy.length - 1] = { ...copy[copy.length - 1], report: withGuide };
+        persistSessions(copy, withGuide);
+        return copy;
+      });
+    }
     window.scrollTo({ top: 0 });
   };
 
+  // Print helper: macOS uses the document title as the default PDF filename, so
+  // we set a precise label (e.g. "Report Summary 05062026 David Abby") for the
+  // duration of the print, then restore it. Sanitized to filename-safe text.
+  const printWithTitle = (label) => {
+    const safe = String(label || "CANA").replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ").trim();
+    const prev = document.title;
+    document.title = safe;
+    // Restore after the print dialog returns (and as a fallback timer).
+    const restore = () => { document.title = prev; window.removeEventListener("afterprint", restore); };
+    window.addEventListener("afterprint", restore);
+    try { window.print(); } catch (e) {}
+    setTimeout(restore, 4000);
+  };
+  // Build the date stamp DDMMYYYY used in PDF labels.
+  const dateStamp = (ts) => { const d = ts ? new Date(ts) : new Date(); const p = (n) => String(n).padStart(2, "0"); return `${p(d.getDate())}${p(d.getMonth() + 1)}${d.getFullYear()}`; };
+
   // Email flow. A mailto: link CANNOT carry a file attachment (protocol
-  // limitation), so we can't truly attach the PDF programmatically. Instead we
-  // trigger the PDF save, then open a short email draft that asks the user to
-  // attach the PDF they just saved — rather than dumping the whole plan as text.
+  // limitation), so we trigger the PDF save, then open a short email draft that
+  // asks the user to attach the PDF they just saved.
   const emailReport = (R, toEmail) => {
     const L = (s) => (s == null ? "" : String(s));
     const subject = `CANA — Covenant Life plan for ${L(R.nameA)} & ${L(R.nameB)}`;
@@ -766,8 +822,8 @@ export default function App() {
       ``,
       `— Generated by CANA. These are conversation-starters, not clinical measurements.`,
     ].join("\n");
-    // 1) Save the PDF via the print dialog.
-    try { window.print(); } catch (e) {}
+    // 1) Save the PDF via the print dialog (precise filename).
+    printWithTitle(`Report Summary ${dateStamp()} ${L(R.nameA)} ${L(R.nameB)}`);
     // 2) Open a short, clean email draft.
     const url = `mailto:${encodeURIComponent(toEmail || "")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     if (isDesktop && window.cana && window.cana.openExternal) window.cana.openExternal(url);
@@ -785,7 +841,7 @@ export default function App() {
   };
 
   const generate = async () => {
-    setGenerating(true); setGenMsg("Scoring on this device…");
+    setGenerating(true); setGenProg(5); setGenMsg("Scoring on this device…");
     const analytics = computeAnalytics(answers.A, answers.B, names.A || "Partner A", names.B || "Partner B", weights || undefined);
     const localPlan = generateLocalPlan(analytics);
     const nameA = analytics.nameA, nameB = analytics.nameB;
@@ -817,14 +873,14 @@ export default function App() {
     else if (!ollamaLive) llmSkipReason = "Ollama wasn't detected as running, so the built-in text was used. Start Ollama and regenerate to use the AI.";
     if (cfg.enabled && mode === "full" && ollamaLive) {
       try {
-        setGenMsg("Reading the letters…");
+        setGenMsg("Reading the letters…"); setGenProg(20);
         const exA = letters.A ? await extractLetter(letters.A, nameA) : null;
         const exB = letters.B ? await extractLetter(letters.B, nameB) : null;
-        if (exA && exB) { setGenMsg("Comparing your visions…"); comparison = mergeComparisons(comparison, await compareLetters(exA, exB, nameA, nameB)); }
-        setGenMsg(`Writing ${nameA}'s vision…`); indivA = await individualVisionMission(nameA, domSummary("A"), exA);
-        setGenMsg(`Writing ${nameB}'s vision…`); indivB = await individualVisionMission(nameB, domSummary("B"), exB);
-        setGenMsg("Compiling your joint vision…"); jointVM = await jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary, evalSynthesis);
-        setGenMsg("Personalizing your goals…"); goalsLLM = await personalizeGoals(nameA, nameB, overallSummary, comparison, { goals1yr: localPlan.goals1yr, goals5yr: localPlan.goals5yr, goals10yr: localPlan.goals10yr });
+        if (exA && exB) { setGenMsg("Comparing your visions…"); setGenProg(35); comparison = mergeComparisons(comparison, await compareLetters(exA, exB, nameA, nameB)); }
+        setGenMsg(`Writing ${nameA}'s vision…`); setGenProg(50); indivA = await individualVisionMission(nameA, domSummary("A"), exA);
+        setGenMsg(`Writing ${nameB}'s vision…`); setGenProg(65); indivB = await individualVisionMission(nameB, domSummary("B"), exB);
+        setGenMsg("Compiling your joint vision…"); setGenProg(80); jointVM = await jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary, evalSynthesis);
+        setGenMsg("Personalizing your goals…"); setGenProg(92); goalsLLM = await personalizeGoals(nameA, nameB, overallSummary, comparison, { goals1yr: localPlan.goals1yr, goals5yr: localPlan.goals5yr, goals10yr: localPlan.goals10yr });
         llmUsed = !!(indivA || indivB || jointVM);
         if (!llmUsed) llmSkipReason = "The AI was reachable but returned nothing usable, so the built-in text was used.";
       } catch (e) { llmSkipReason = "The AI call failed mid-way, so the built-in text was used."; }
@@ -851,7 +907,7 @@ export default function App() {
     snap.names = { A: names.A || "Partner A", B: names.B || "Partner B" };
     snap.report = plan;
     persistSessions([...sessions, snap], plan);
-    setGenerating(false); setGenMsg(""); setScreen("results"); window.scrollTo({ top: 0 });
+    setGenerating(false); setGenMsg(""); setGenProg(0); setScreen("results"); window.scrollTo({ top: 0 });
   };
 
   // Re-score the existing answers with the current (possibly adjusted) weights.
@@ -883,9 +939,9 @@ export default function App() {
     if (!results || regenerating) return;
     const cfg = getLLMConfig();
     setRegenerating(true);
-    setGenMsg("Checking the local AI…");
+    setGenMsg("Checking the local AI…"); setGenProg(5);
     const live = cfg.enabled ? await ollamaRunning() : false;
-    if (!live) { setRegenerating(false); setGenMsg(""); window.alert(cfg.enabled ? "Ollama isn't running. Start it (and make sure a model is installed), then try again." : "The local AI is turned off in Settings. Turn it on and start Ollama, then try again."); return; }
+    if (!live) { setRegenerating(false); setGenMsg(""); setGenProg(0); window.alert(cfg.enabled ? "Ollama isn't running. Start it (and make sure a model is installed), then try again." : "The local AI is turned off in Settings. Turn it on and start Ollama, then try again."); return; }
     try {
       const analytics = computeAnalytics(answers.A, answers.B, names.A || "Partner A", names.B || "Partner B", weights || undefined);
       const localPlan = generateLocalPlan(analytics);
@@ -902,16 +958,16 @@ export default function App() {
         flags: (localPlan.flags || []).map((f) => f.title || f.label || "").filter(Boolean),
       };
       let comparison = compareDreamMarks(dreamMarks.A, dreamMarks.B, nameA, nameB);
-      setGenMsg("Reading the letters…");
+      setGenMsg("Reading the letters…"); setGenProg(20);
       const exA = letters.A ? await extractLetter(letters.A, nameA) : null;
       const exB = letters.B ? await extractLetter(letters.B, nameB) : null;
-      if (exA && exB) { setGenMsg("Comparing your visions…"); comparison = mergeComparisons(comparison, await compareLetters(exA, exB, nameA, nameB)); }
-      setGenMsg(`Writing ${nameA}'s vision…`); const indivA = await individualVisionMission(nameA, domSummary("A"), exA);
-      setGenMsg(`Writing ${nameB}'s vision…`); const indivB = await individualVisionMission(nameB, domSummary("B"), exB);
-      setGenMsg("Compiling your joint vision…"); const jointVM = await jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary, evalSynthesis);
-      setGenMsg("Personalizing your goals…"); const goalsLLM = await personalizeGoals(nameA, nameB, overallSummary, comparison, { goals1yr: localPlan.goals1yr, goals5yr: localPlan.goals5yr, goals10yr: localPlan.goals10yr });
+      if (exA && exB) { setGenMsg("Comparing your visions…"); setGenProg(35); comparison = mergeComparisons(comparison, await compareLetters(exA, exB, nameA, nameB)); }
+      setGenMsg(`Writing ${nameA}'s vision…`); setGenProg(50); const indivA = await individualVisionMission(nameA, domSummary("A"), exA);
+      setGenMsg(`Writing ${nameB}'s vision…`); setGenProg(65); const indivB = await individualVisionMission(nameB, domSummary("B"), exB);
+      setGenMsg("Compiling your joint vision…"); setGenProg(80); const jointVM = await jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary, evalSynthesis);
+      setGenMsg("Personalizing your goals…"); setGenProg(92); const goalsLLM = await personalizeGoals(nameA, nameB, overallSummary, comparison, { goals1yr: localPlan.goals1yr, goals5yr: localPlan.goals5yr, goals10yr: localPlan.goals10yr });
       const llmUsed = !!(indivA || indivB || jointVM);
-      if (!llmUsed) { setRegenerating(false); setGenMsg(""); window.alert("The AI was reachable but returned nothing usable this time. Your report is unchanged."); return; }
+      if (!llmUsed) { setRegenerating(false); setGenMsg(""); setGenProg(0); window.alert("The AI was reachable but returned nothing usable this time. Your report is unchanged."); return; }
       const refreshed = {
         ...results,
         vision: jointVM?.vision || localPlan.vision,
@@ -935,7 +991,7 @@ export default function App() {
     } catch (e) {
       window.alert("The AI refresh failed mid-way. Your existing report is unchanged.");
     } finally {
-      setRegenerating(false); setGenMsg("");
+      setRegenerating(false); setGenMsg(""); setGenProg(0);
     }
   };
 
@@ -1723,7 +1779,7 @@ export default function App() {
           </div>
           {bothTracks && (
             generating ? (
-              <Card style={{ textAlign: "center", padding: 40 }}><div style={{ width: 30, height: 30, border: "3px solid var(--hair)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin .9s linear infinite", margin: "0 auto 14px" }} /><p style={{ fontSize: 14, color: "var(--ink2)" }}>{genMsg}</p></Card>
+              <Card style={{ textAlign: "center", padding: 40 }}><div style={{ width: 30, height: 30, border: "3px solid var(--hair)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin .9s linear infinite", margin: "0 auto 18px" }} /><ProgressBar value={genProg} label={genMsg} /></Card>
             ) : (
               <Card><p style={body}>Scoring runs on this device; a snapshot is saved to your trend history.</p><Btn onClick={generate}>Generate &amp; Save</Btn></Card>
             )
@@ -1805,7 +1861,7 @@ export default function App() {
               const otherTrackDone = otherQ && otherDone;
               const bothDone = meDone && otherTrackDone;
               if (generating) {
-                return <Card style={{ textAlign: "center", padding: 36 }}><div style={{ width: 30, height: 30, border: "3px solid var(--hair)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin .9s linear infinite", margin: "0 auto 14px" }} /><p style={{ fontSize: 14, color: "var(--ink2)" }}>{genMsg}</p></Card>;
+                return <Card style={{ textAlign: "center", padding: 36 }}><div style={{ width: 30, height: 30, border: "3px solid var(--hair)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin .9s linear infinite", margin: "0 auto 18px" }} /><ProgressBar value={genProg} label={genMsg} /></Card>;
               }
               return (
                 <>
@@ -1839,19 +1895,69 @@ export default function App() {
   /* ── START THE CONVERSATION ── */
   if (convo.open) {
     const g = convo.guide;
+    const convoLabel = `Start the Conversation ${dateStamp()} ${convo.nameA || ""} ${convo.nameB || ""}`;
+    const canRefresh = !archiveReport && !!results; // only the live report can be refreshed
+    // Dedicated 3-page print layout for the conversation guide:
+    //  Page 1: title + "Where you stand"
+    //  Page 2: "Questions to explore together" (shrink to fit one page)
+    //  Page 3: final comments
+    const ConvoPrint = () => {
+      if (!g) return null;
+      const H = ({ children }) => <h2 style={{ fontSize: 17, fontWeight: 700, color: "#1d1d1f", margin: "0 0 14px", borderBottom: "2px solid #e5e5ea", paddingBottom: 8, letterSpacing: "-.01em" }}>{children}</h2>;
+      const Lbl = ({ c, children }) => <p style={{ fontSize: 11, fontWeight: 700, color: c, textTransform: "uppercase", letterSpacing: ".05em", margin: "14px 0 4px" }}>{children}</p>;
+      return (
+        <div className="print-only">
+          {/* PAGE 1 */}
+          <section className="pdf-page">
+            <p style={{ fontSize: 12, color: "#8e8e93", letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, margin: "0 0 4px" }}>CANA — Covenant Life</p>
+            <p style={{ fontSize: 13, color: "#8e8e93", margin: "0 0 18px" }}>Start the Conversation · a guide for {convo.nameA} &amp; {convo.nameB}</p>
+            <H>Where you stand</H>
+            <Lbl c="#2e7d4f">Highest-scoring</Lbl>
+            <p style={{ fontSize: 13.5, color: "#1d1d1f", lineHeight: 1.55, margin: 0 }}>{g.summary.positive}</p>
+            <Lbl c="#b06a2c">Lowest-scoring &amp; widest gaps</Lbl>
+            <p style={{ fontSize: 13.5, color: "#1d1d1f", lineHeight: 1.55, margin: 0 }}>{g.summary.growth}</p>
+            <Lbl c="#3a5a44">About this guide</Lbl>
+            <p style={{ fontSize: 13.5, color: "#1d1d1f", lineHeight: 1.55, margin: 0 }}>{g.summary.overall}</p>
+          </section>
+          {/* PAGE 2 — shrink to fit */}
+          <section className="pdf-page" style={{ fontSize: 11 }}>
+            <H>Questions to explore together</H>
+            {g.questions.map((q, i) => (
+              <div key={i} style={{ marginBottom: 9, breakInside: "avoid" }}>
+                {q.area ? <p style={{ fontSize: 9.5, fontWeight: 700, color: "#3a5a44", textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 2px" }}>{q.area}</p> : null}
+                <p style={{ fontSize: 12.5, fontWeight: 600, color: "#1d1d1f", lineHeight: 1.4, margin: "0 0 2px" }}>{i + 1}. {q.prompt}</p>
+                {q.why ? <p style={{ fontSize: 10.5, color: "#8e8e93", fontStyle: "italic", lineHeight: 1.4, margin: 0 }}>{q.why}</p> : null}
+              </div>
+            ))}
+          </section>
+          {/* PAGE 3 — final comments */}
+          <section className="pdf-page">
+            <H>Final comments</H>
+            <p style={{ fontSize: 13.5, color: "#1d1d1f", lineHeight: 1.6, margin: "0 0 14px" }}>Take these slowly — one or two per sitting. The goal isn't to resolve everything at once, but to move a little closer to each other and to God in the process.</p>
+            <p style={{ fontSize: 11.5, color: "#8e8e93", lineHeight: 1.55, margin: 0, paddingTop: 12, borderTop: "1px solid #ececec" }}>These prompts are based on your own self-rated scores and are starting points for conversation, not conclusions or clinical assessments. Generated by CANA — Covenant Life.</p>
+          </section>
+        </div>
+      );
+    };
     return (
       <div>
+        <ConvoPrint />
         <Chrome title="CANA — Start the Conversation" right={
           <div style={{ display: "flex", gap: 8 }} className="no-print">
-            {g ? <Btn kind="ghost" onClick={() => window.print()}>Save as PDF</Btn> : null}
+            {g ? <Btn kind="ghost" onClick={() => printWithTitle(convoLabel)}>Save as PDF</Btn> : null}
             <Btn kind="ghost" onClick={() => { setConvo({ open: false, loading: false, guide: null, usedAI: false }); setScreen("results"); window.scrollTo({ top: 0 }); }}>Back to report</Btn>
           </div>
         } />
         <Wrap>
-          <div style={{ padding: "44px 0 90px" }}>
-            <p style={{ fontSize: 12, color: convo.usedAI ? "var(--gold)" : "var(--ink3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 14 }}>
-              {convo.usedAI ? "✦ Prepared by your local AI" : "Prepared locally"}
-            </p>
+          <div style={{ padding: "44px 0 90px" }} className="no-print">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+              <p style={{ fontSize: 12, color: convo.usedAI ? "var(--gold)" : "var(--ink3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".08em", margin: 0 }}>
+                {convo.usedAI ? "✦ Prepared by your local AI" : "Prepared locally"}
+              </p>
+              {canRefresh && !convo.loading ? (
+                <Btn kind="subtle" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => startConversation(results, { force: true })}>↻ Refresh AI output</Btn>
+              ) : null}
+            </div>
             <h1 style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-.02em", color: "var(--ink)", margin: "0 0 6px" }}>Start the Conversation</h1>
             <p style={{ fontSize: 15.5, color: "var(--ink2)", lineHeight: 1.6, margin: "0 0 28px", maxWidth: 640 }}>
               A guide for {convo.nameA} & {convo.nameB} to talk through what matters most — honestly, and toward each other.
@@ -1859,38 +1965,37 @@ export default function App() {
 
             {convo.loading ? (
               <Card style={{ padding: 40, textAlign: "center" }}>
+                <div style={{ width: 30, height: 30, border: "3px solid var(--hair)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin .9s linear infinite", margin: "0 auto 14px" }} />
                 <p style={{ fontSize: 15, color: "var(--ink2)", margin: 0 }}>Preparing your conversation guide…</p>
               </Card>
             ) : g ? (
               <>
-                {/* Framing summary */}
-                <Card className="rise pdf-keep" style={{ marginBottom: 18, padding: 26 }}>
+                <Card className="rise" style={{ marginBottom: 18, padding: 26 }}>
                   <p style={{ ...eyebrow, margin: "0 0 14px" }}>Where you stand</p>
                   <div style={{ marginBottom: 14 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--green)", margin: "0 0 4px" }}>Strengths</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--green)", margin: "0 0 4px" }}>Highest-scoring</p>
                     <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.6, margin: 0 }}>{g.summary.positive}</p>
                   </div>
                   <div style={{ marginBottom: 14 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--amber)", margin: "0 0 4px" }}>Growth areas</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--amber)", margin: "0 0 4px" }}>Lowest-scoring & widest gaps</p>
                     <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.6, margin: 0 }}>{g.summary.growth}</p>
                   </div>
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", margin: "0 0 4px" }}>The bigger picture</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", margin: "0 0 4px" }}>About this guide</p>
                     <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.6, margin: 0 }}>{g.summary.overall}</p>
                   </div>
                 </Card>
 
-                {/* Questions */}
                 <p style={{ ...eyebrow, margin: "28px 0 12px" }}>Questions to explore together</p>
                 {g.questions.map((q, i) => (
-                  <Card key={i} className="pdf-keep" style={{ marginBottom: 12, padding: 20 }}>
+                  <Card key={i} style={{ marginBottom: 12, padding: 20 }}>
                     {q.area ? <p style={{ fontSize: 11.5, fontWeight: 600, color: "var(--accent)", textTransform: "uppercase", letterSpacing: ".06em", margin: "0 0 6px" }}>{q.area}</p> : null}
                     <p style={{ fontSize: 16, fontWeight: 600, color: "var(--ink)", lineHeight: 1.5, margin: "0 0 6px" }}>{i + 1}. {q.prompt}</p>
                     {q.why ? <p style={{ fontSize: 13, color: "var(--ink3)", lineHeight: 1.5, margin: 0, fontStyle: "italic" }}>{q.why}</p> : null}
                   </Card>
                 ))}
 
-                <Card style={{ marginTop: 24, background: "var(--bg2)", boxShadow: "none", textAlign: "center" }} className="pdf-keep">
+                <Card style={{ marginTop: 24, background: "var(--bg2)", boxShadow: "none", textAlign: "center" }}>
                   <p style={{ fontSize: 14, color: "var(--ink2)", lineHeight: 1.6, margin: 0 }}>
                     Take these slowly — one or two per sitting. The goal isn't to resolve everything tonight, but to move a little closer to each other and to God in the process.
                   </p>
@@ -1898,7 +2003,7 @@ export default function App() {
 
                 <div style={{ display: "flex", gap: 12, marginTop: 28, flexWrap: "wrap" }} className="no-print">
                   <Btn kind="secondary" onClick={() => { setConvo({ open: false, loading: false, guide: null, usedAI: false }); setScreen("results"); window.scrollTo({ top: 0 }); }}>Back to report</Btn>
-                  <Btn onClick={() => window.print()}>Save as PDF</Btn>
+                  <Btn onClick={() => printWithTitle(convoLabel)}>Save as PDF</Btn>
                 </div>
               </>
             ) : (
@@ -2117,8 +2222,9 @@ export default function App() {
               ) : null}
             </div>
             {!reviewing && regenerating ? (
-              <Card className="rise" style={{ marginBottom: 20, padding: 14, background: "var(--bg2)", borderLeft: "3px solid var(--accent)" }}>
-                <p style={{ fontSize: 13, color: "var(--ink2)", margin: 0 }}>{genMsg || "Re-running the local AI…"} The scores and gaps stay the same — only the AI-written text is refreshed.</p>
+              <Card className="rise" style={{ marginBottom: 20, padding: 18, background: "var(--bg2)", borderLeft: "3px solid var(--accent)" }}>
+                <ProgressBar value={genProg} label={genMsg || "Re-running the local AI…"} />
+                <p style={{ fontSize: 12.5, color: "var(--ink3)", margin: "12px 0 0", textAlign: "center" }}>The scores and gaps stay the same — only the AI-written text is refreshed.</p>
               </Card>
             ) : null}
 
@@ -2324,7 +2430,7 @@ export default function App() {
             </Card>
             <div style={{ display: "flex", gap: 12, marginTop: 28, flexWrap: "wrap" }} className="no-print">
               <Btn kind="secondary" onClick={() => setScreen(reviewing ? "dashboard" : "welcome")}>{reviewing ? "Back" : "Home"}</Btn>
-              <Btn onClick={() => window.print()}>Save as PDF</Btn>
+              <Btn onClick={() => printWithTitle(`Report Summary ${dateStamp(reviewing ? archiveReport.ts : undefined)} ${R.nameA || ""} ${R.nameB || ""}`)}>Save as PDF</Btn>
               <Btn kind="secondary" onClick={() => emailReport(R, profile ? profile.email : "")}>Email report</Btn>
               <Btn onClick={() => startConversation(R)}>Start the conversation →</Btn>
             </div>
@@ -2470,7 +2576,7 @@ export default function App() {
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }} className="no-print">
               <Btn onClick={() => startAssessment("checkin")}>New Check-In</Btn>
               <Btn kind="secondary" onClick={() => startAssessment("full")}>New Full Assessment</Btn>
-              <Btn kind="subtle" onClick={() => window.print()}>Print</Btn>
+              <Btn kind="subtle" onClick={() => printWithTitle(`CANA History ${dateStamp()} ${names.A || ""} ${names.B || ""}`)}>Print</Btn>
               <Btn kind="subtle" onClick={eraseEverything}>Erase Data</Btn>
             </div>
           </div>

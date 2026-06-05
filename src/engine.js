@@ -840,34 +840,36 @@ export const CORE_QUESTIONS = DOMAINS.map((d) => {
 export function buildConversationGuide(analytics) {
   const { domainScores, tensions, overallScore, nameA, nameB } = analytics;
   const sorted = [...domainScores].sort((a, b) => b.avgNorm - a.avgNorm);
-  const strong = sorted.slice(0, 2).map((d) => d.label);
-  const weak = sorted.slice(-2).map((d) => d.label);
+  const strong = sorted.slice(0, 2);
+  const weak = sorted.slice(-2);
   const widestGaps = [...domainScores].sort((a, b) => b.domainGap - a.domainGap).slice(0, 2);
+  const fmt = (d) => `${d.label} (${d.avgNorm.toFixed(1)})`;
 
-  const positive = `Your clearest strengths are ${strong[0]} and ${strong[1]}. These are areas where you both scored well and are largely in step — a real foundation to build on and to draw confidence from as you talk through harder things.`;
-  const growth = `The areas asking for the most attention are ${weak[0]} and ${weak[1]}, and your widest difference in perspective is in ${widestGaps[0] ? widestGaps[0].label : "—"}. Naming these plainly is not a verdict on your marriage; it is simply where honest conversation will do the most good right now.`;
-  const band = overallScore >= 7 ? "a genuinely strong place, with the task being to protect and deepen what you have" :
-               overallScore >= 5.5 ? "a mixed but hopeful place — real strengths alongside clear, workable growth areas" :
-               "an honest, tender place where naming the work ahead together is itself a meaningful step";
-  const overall = `Overall you are in ${band}. Every marriage is on a journey; the point of this is not a grade but direction — small, deliberate steps toward each other, trusting God in the process.`;
+  // Report ONLY what the numbers say. No characterization of the marriage, no
+  // metaphors, no claims about strengths/foundations the data can't support.
+  const positive = `Your highest-scoring areas were ${fmt(strong[0])} and ${fmt(strong[1])}.`;
+  const growth = `Your lowest-scoring areas were ${fmt(weak[0])} and ${fmt(weak[1])}` +
+    (widestGaps[0] ? `, and your widest difference in scores was in ${widestGaps[0].label} (gap ${widestGaps[0].domainGap.toFixed(1)})` : "") + `.`;
+  const overall = `Overall score: ${overallScore.toFixed(1)} out of 10. The questions below focus on the areas where your scores differed most — they are starting points for conversation, not conclusions.`;
 
   // Questions from the widest-gap individual items, then weakest domains.
   const questions = [];
   (tensions || []).slice(0, 4).forEach((q) => {
+    const qText = q.text || q.title || "this area";
     const higher = q.normA > q.normB ? nameA : q.normB > q.normA ? nameB : null;
     questions.push({
       area: q.domainLabel || "",
       prompt: higher
-        ? `On "${q.text}", ${higher} sees this more positively. Can each of you describe what you're seeing that the other might not be?`
-        : `You scored "${q.text}" differently. What experiences are shaping how each of you sees it?`,
-      why: "Surfaces the lived reasons behind a gap so it can be understood rather than argued.",
+        ? `On "${qText}", ${higher} scored this higher. Can each of you describe what you're seeing that the other might not be?`
+        : `You scored "${qText}" differently. What experiences are shaping how each of you sees it?`,
+      why: "Relates to one of your widest individual score gaps.",
     });
   });
-  weak.forEach((label) => {
+  weak.forEach((d) => {
     questions.push({
-      area: label,
-      prompt: `When you think about ${label.toLowerCase()}, what would "one step healthier, a year from now" actually look like for us?`,
-      why: "Turns a weaker area into a small, shared, concrete next step.",
+      area: d.label,
+      prompt: `When you think about ${d.label.toLowerCase()}, what would "one step healthier, a year from now" actually look like for you two?`,
+      why: `Relates to ${d.label}, one of your two lowest-scoring areas (${d.avgNorm.toFixed(1)}).`,
     });
   });
   return { summary: { positive, growth, overall }, questions: questions.slice(0, 7) };

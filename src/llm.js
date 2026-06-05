@@ -294,30 +294,33 @@ Rules:
 // prompt, why}] } or null on failure (caller uses a deterministic fallback).
 export async function conversationGuide(nameA, nameB, overallSummary, topGaps, comparison) {
   try {
-    const sys = "You are a wise, warm Christian marriage mentor preparing a couple to talk through their differences constructively. You are honest about hard things but always point toward hope and growth. Respond ONLY with valid JSON.";
+    const sys = "You write a discussion guide for a couple based ONLY on their self-rated scores. You are STRICT and LITERAL. You describe what the NUMBERS show and nothing else. You NEVER diagnose the marriage, NEVER use dramatic metaphors, and NEVER invent a narrative. Respond ONLY with valid JSON.";
     const gapsText = (topGaps || []).map((g) => `- ${g.domain} / "${g.question}": ${nameA} ${g.scoreA}, ${nameB} ${g.scoreB} (gap ${g.gap})`).join("\n") || "(no large gaps)";
-    const user = `Prepare a "Start the Conversation" guide for ${nameA} and ${nameB}.
+    const user = `Prepare a "Start the Conversation" guide for ${nameA} and ${nameB}, using ONLY the data below.
 
-DOMAIN PICTURE (0-10, higher=healthier; gap = how far apart they scored): ${overallSummary}
-BIGGEST DIVERGENCES:
+DOMAIN SCORES (0-10, higher=healthier; gap = how far apart they scored): ${overallSummary}
+BIGGEST SCORE DIVERGENCES:
 ${gapsText}
-SHARED DREAMS: ${comparison ? JSON.stringify(comparison.commonalities) : "(n/a)"}
+SHARED DREAMS THEY BOTH WROTE: ${comparison ? JSON.stringify(comparison.commonalities) : "(none recorded)"}
 
 Produce JSON with this exact shape:
 {
   "summary": {
-    "positive": "2-3 sentences naming their genuine strengths, specific to the data.",
-    "growth": "2-3 sentences honestly naming where they are most out of step or weakest, without shaming.",
-    "overall": "2-3 sentences on what the overall picture means and where they stand in the bigger journey of a marriage."
+    "positive": "1-2 sentences naming ONLY the domains with the highest scores, quoting the numbers. Example form: 'Your highest-scoring areas were Children & Family (7.8) and Faith (7.1).' Do not characterize the marriage.",
+    "growth": "1-2 sentences naming ONLY the lowest-scoring domains and the largest gaps, quoting the numbers. Example form: 'Your lowest scores were in Vocation & Work (3.9), and your widest difference was in Faith & Calling (gap 1.5).' Do not interpret why.",
+    "overall": "1 neutral sentence that ONLY restates what the guide is for. Example: 'The questions below focus on the areas where your scores differed most.' Do NOT assess the state or trajectory of the marriage."
   },
   "questions": [
-    { "area": "domain or theme", "prompt": "an open, non-accusatory question they can discuss together", "why": "one sentence on what this surfaces and how it helps them move toward alignment" }
+    { "area": "domain name from the data", "prompt": "an open, non-accusatory question about that specific area", "why": "one factual sentence: which scores/gap this question relates to" }
   ]
 }
-Rules:
-- 5 to 7 questions, prioritizing their biggest divergences.
-- Questions must be open-ended, gentle, and specific to THIS couple — never yes/no, never blaming.
-- Christ-centered and hopeful in tone; aim at growth and unity.`;
+STRICT RULES — these override tone:
+- Use ONLY the domains, numbers, and gaps given above. If a number isn't above, don't state it.
+- NEVER use phrases like "at a crossroads", "strong foundation", "must navigate", "deeper understanding", or any assessment of how the marriage is doing.
+- NEVER claim how they "experience" anything or attribute feelings/causes. You only have numbers, not reasons.
+- Do not say a score is "high" or "low" in absolute terms beyond ranking within THIS couple's own data.
+- 5 to 7 questions, prioritizing the biggest divergences. Questions open-ended, gentle, specific to the named area, never yes/no, never blaming.
+- If you are unsure whether something is supported by the data, leave it out. Fewer claims is better.`;
     const out = await chat([{ role: "system", content: sys }, { role: "user", content: user }], { json: true });
     const p = parseJSON(out);
     if (!p || !p.summary || !Array.isArray(p.questions) || !p.questions.length) return null;

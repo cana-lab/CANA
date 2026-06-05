@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CANA — How to Download, Install &amp; Use</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Newsreader:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#211d18; --ink2:#4a443c; --ink3:#8b8275;
+    --paper:#f6f2ea; --card:#fffdf9; --line:#e4ddd0;
+    --accent:#3a5a44; --accent-soft:#e8efe8;
+    --gold:#9a7b3f; --warn:#b06a2c; --warn-soft:#f6ecdf;
+    --r:18px; --shadow:0 1px 3px rgba(40,33,24,.06),0 12px 32px rgba(40,33,24,.06);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Newsreader",Georgia,serif; font-size:18px; line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(circle at 12% 8%,rgba(58,90,68,.05),transparent 40%),radial-gradient(circle at 88% 92%,rgba(154,123,63,.05),transparent 42%);
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 24px;}
+
+  /* Header */
+  header{text-align:center;padding:72px 24px 48px;}
+  .mark{width:60px;height:60px;margin:0 auto 22px;display:block;}
+  .kicker{font-family:"Fraunces",serif;font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:0 0 14px;font-weight:600;}
+  h1{font-family:"Fraunces",serif;font-weight:500;font-size:clamp(34px,6vw,52px);line-height:1.08;letter-spacing:-.015em;margin:0 0 18px;}
+  .lede{font-size:20px;color:var(--ink2);max-width:560px;margin:0 auto;font-style:italic;}
+
+  /* Section scaffolding */
+  .part{margin:0 0 12px;padding:48px 0 8px;border-top:1px solid var(--line);}
+  .part:first-of-type{border-top:none;}
+  .part-num{font-family:"Fraunces",serif;font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 6px;}
+  .part h2{font-family:"Fraunces",serif;font-weight:500;font-size:clamp(26px,4vw,34px);letter-spacing:-.01em;margin:0 0 10px;line-height:1.15;}
+  .part .intro{color:var(--ink2);margin:0 0 30px;}
+
+  /* Steps */
+  .step{display:flex;gap:20px;margin:0 0 30px;align-items:flex-start;}
+  .dot{flex-shrink:0;width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;font-family:"Fraunces",serif;font-weight:600;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);}
+  .step-body{flex:1;min-width:0;}
+  .step-title{font-family:"Fraunces",serif;font-weight:600;font-size:20px;margin:6px 0 8px;letter-spacing:-.01em;}
+  .step-body p{margin:0 0 12px;color:var(--ink2);}
+  .step-body strong{color:var(--ink);font-weight:600;}
+
+  /* Screenshot placeholder slot */
+  .shot{margin:14px 0 4px;border:2px dashed #cdbfa0;border-radius:14px;background:repeating-linear-gradient(45deg,#fbf7ef,#fbf7ef 12px,#f6f0e4 12px,#f6f0e4 24px);padding:26px 22px;text-align:center;}
+  .shot .cam{font-size:26px;display:block;margin-bottom:8px;opacity:.7;}
+  .shot .label{font-family:"Fraunces",serif;font-size:13px;letter-spacing:.04em;color:var(--gold);font-weight:600;text-transform:uppercase;margin:0 0 4px;}
+  .shot .desc{font-size:15px;color:var(--ink2);font-style:italic;margin:0;}
+  .shot img{max-width:100%;border-radius:10px;display:block;}
+
+  /* Callouts */
+  .note{display:flex;gap:14px;align-items:flex-start;background:var(--accent-soft);border-radius:14px;padding:18px 20px;margin:22px 0;border-left:4px solid var(--accent);}
+  .note.warn{background:var(--warn-soft);border-left-color:var(--warn);}
+  .note .ic{font-size:20px;flex-shrink:0;line-height:1.4;}
+  .note p{margin:0;font-size:16px;color:var(--ink2);line-height:1.6;}
+  .note strong{color:var(--ink);}
+
+  /* Inline kbd / code */
+  kbd{font-family:ui-monospace,Menlo,monospace;background:#efe7d8;border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:14px;color:var(--ink);}
+  .pill{display:inline-block;background:var(--accent);color:#fff;border-radius:999px;padding:3px 12px;font-family:"Fraunces",serif;font-size:14px;font-weight:500;}
+
+  /* Privacy band */
+  .privacy{background:var(--ink);color:#f6f2ea;border-radius:var(--r);padding:34px 32px;margin:40px 0;}
+  .privacy h3{font-family:"Fraunces",serif;font-weight:500;font-size:24px;margin:0 0 14px;color:#fff;}
+  .privacy p{color:#cfc7b8;margin:0 0 10px;font-size:16px;}
+  .privacy .row{display:flex;gap:12px;align-items:flex-start;margin:12px 0;}
+  .privacy .row span:first-child{color:#9fb8a6;font-size:18px;flex-shrink:0;}
+
+  /* TOC */
+  nav.toc{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:26px 30px;margin:0 0 20px;box-shadow:var(--shadow);}
+  nav.toc p{font-family:"Fraunces",serif;text-transform:uppercase;letter-spacing:.14em;font-size:12px;color:var(--gold);margin:0 0 14px;font-weight:600;}
+  nav.toc ol{margin:0;padding:0 0 0 4px;list-style:none;counter-reset:t;}
+  nav.toc li{counter-increment:t;margin:0 0 9px;font-size:17px;}
+  nav.toc li::before{content:counter(t,decimal-leading-zero);color:var(--accent);font-family:"Fraunces",serif;font-weight:600;margin-right:12px;font-size:14px;}
+  nav.toc a{color:var(--ink);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .2s;}
+  nav.toc a:hover{border-bottom-color:var(--accent);}
+
+  footer{text-align:center;padding:50px 24px 70px;color:var(--ink3);font-size:14px;border-top:1px solid var(--line);margin-top:40px;}
+  footer .mono{font-family:ui-monospace,monospace;font-size:12.5px;}
+  a.link{color:var(--accent);font-weight:500;}
+
+  @media (max-width:560px){
+    body{font-size:17px;}
+    .step{gap:14px;} .dot{width:34px;height:34px;font-size:16px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
+    <circle cx="50" cy="50" r="46" fill="none" stroke="#3a5a44" stroke-width="2.5"/>
+    <path d="M50 22 L50 78 M34 40 Q50 28 66 40 M32 58 Q50 46 68 58" fill="none" stroke="#3a5a44" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>
+  <p class="kicker">CANA · Covenant Life</p>
+  <h1>Getting started with CANA</h1>
+  <p class="lede">A calm, private way for the two of you to talk about the life you're building. This guide walks you through every step — no technical experience needed.</p>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <p>What's inside</p>
+    <ol>
+      <li><a href="#what">What CANA is (and isn't)</a></li>
+      <li><a href="#download">Downloading the app</a></li>
+      <li><a href="#install">Installing it on your Mac</a></li>
+      <li><a href="#first">Opening it the first time</a></li>
+      <li><a href="#use">Using CANA together</a></li>
+      <li><a href="#ai">Turning on the optional AI writing</a></li>
+      <li><a href="#report">Your report &amp; saving a PDF</a></li>
+      <li><a href="#updates">Getting future updates</a></li>
+      <li><a href="#help">If something goes wrong</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <section class="part" id="what">
+    <p class="part-num">Part One</p>
+    <h2>What CANA is, and what it isn't</h2>
+    <p class="intro">CANA is a guided conversation tool for couples. Each of you answers a set of questions across eleven areas of life — faith, marriage, intimacy, children, work, money, and more — and writes a short letter imagining your life ten years from now. CANA then gathers it into a shared plan you can talk through together.</p>
+    <div class="privacy">
+      <h3>Your answers stay on your computer</h3>
+      <p>This matters, so it's worth saying plainly:</p>
+      <div class="row"><span>✦</span><p>Everything you type lives <strong>only on your own Mac</strong>. Nothing is uploaded, and there is no account in the cloud.</p></div>
+      <div class="row"><span>✦</span><p>CANA works fully <strong>offline</strong>. It never needs the internet to do the assessment.</p></div>
+      <div class="row"><span>✦</span><p>The password you set is a <strong>soft lock</strong> to keep partners' entries separate on a shared computer — it is not a bank-grade vault. Anyone with full access to your Mac could reach the data, so don't reuse an important password here.</p></div>
+    </div>
+    <div class="note"><span class="ic">💡</span><p><strong>Good to know:</strong> CANA is a tool for reflection and conversation. It is not therapy, counseling, or a clinical assessment. If something difficult surfaces, it may be worth talking with a pastor or counselor.</p></div>
+  </section>
+
+  <!-- 2 -->
+  <section class="part" id="download">
+    <p class="part-num">Part Two</p>
+    <h2>Downloading the app</h2>
+    <p class="intro">CANA is downloaded from its releases page on GitHub — think of it as the official shelf where each version of the app is kept.</p>
+
+    <div class="step">
+      <div class="dot">1</div>
+      <div class="step-body">
+        <p class="step-title">Open the releases page</p>
+        <p>Click this link to go to the downloads page: <a class="link" href="https://github.com/cana-lab/CANA/releases/latest" target="_blank" rel="noopener">CANA Releases</a>. It opens in your web browser (Safari or Chrome).</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The GitHub releases page, with the latest "CANA" release shown at the top and the green "Latest" tag visible.</p></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">2</div>
+      <div class="step-body">
+        <p class="step-title">Find the download file</p>
+        <p>Under the latest release, look for a section called <strong>Assets</strong>. Inside it you'll see a file whose name ends in <kbd>.dmg</kbd> — for example <kbd>CANA-4.23.0-arm64.dmg</kbd>. That <span class="pill">.dmg</span> file is the app installer.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The expanded "Assets" list with the .dmg file highlighted (the one ending in -arm64.dmg).</p></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">3</div>
+      <div class="step-body">
+        <p class="step-title">Click it to download</p>
+        <p>Click the <kbd>.dmg</kbd> file name. Your browser will download it — this takes a moment, as the file is around 90&nbsp;MB. When it's done, you'll usually find it in your <strong>Downloads</strong> folder.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The browser's download bar/area showing the .dmg finishing downloading.</p></div>
+      </div>
+    </div>
+    <div class="note"><span class="ic">🖥️</span><p><strong>About "arm64":</strong> CANA is built for Apple-silicon Macs (M1, M2, M3, M4 — any Mac from late 2020 onward). If you have a much older Intel Mac, let the developer know.</p></div>
+  </section>
+
+  <!-- 3 -->
+  <section class="part" id="install">
+    <p class="part-num">Part Three</p>
+    <h2>Installing it on your Mac</h2>
+    <p class="intro">Installing means copying the app into your Applications folder. On a Mac this is a simple drag-and-drop.</p>
+
+    <div class="step">
+      <div class="dot">1</div>
+      <div class="step-body">
+        <p class="step-title">Open the downloaded file</p>
+        <p>Double-click the <kbd>.dmg</kbd> file in your Downloads. A small window opens showing the <strong>CANA</strong> app icon next to a shortcut to your <strong>Applications</strong> folder.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The opened .dmg window showing the CANA icon and the Applications folder shortcut side by side.</p></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">2</div>
+      <div class="step-body">
+        <p class="step-title">Drag CANA into Applications</p>
+        <p>Click and hold the <strong>CANA</strong> icon, drag it on top of the <strong>Applications</strong> folder, and let go. That copies the app onto your Mac.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">Mid-drag: the CANA icon being dragged toward the Applications folder, with the arrow between them.</p></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">3</div>
+      <div class="step-body">
+        <p class="step-title">Eject the installer</p>
+        <p>You can now close the little window. In a Finder window, find <strong>CANA</strong> in the sidebar (under Locations) and click the small <strong>⏏ eject</strong> symbol next to it. You can also drag the original <kbd>.dmg</kbd> from Downloads to the Bin — you don't need it anymore.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">A Finder sidebar showing the CANA disk with the eject (⏏) symbol next to it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="part" id="first">
+    <p class="part-num">Part Four</p>
+    <h2>Opening it the first time</h2>
+    <p class="intro">CANA is a signed, Apple-recognized app, so it opens just like any other.</p>
+
+    <div class="step">
+      <div class="dot">1</div>
+      <div class="step-body">
+        <p class="step-title">Open your Applications folder</p>
+        <p>In Finder, click <strong>Applications</strong> in the left sidebar, then find <strong>CANA</strong> in the list.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The Applications folder with the CANA app visible in the list.</p></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">2</div>
+      <div class="step-body">
+        <p class="step-title">Double-click CANA</p>
+        <p>Double-click the icon. The app opens to a welcome screen. The very first time, macOS may briefly ask <em>"CANA is an app downloaded from the internet. Are you sure you want to open it?"</em> — click <strong>Open</strong>. This only happens once.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">Either the one-time "downloaded from the internet — Open?" dialog, OR the CANA welcome/sign-in screen once it opens.</p></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">3</div>
+      <div class="step-body">
+        <p class="step-title">Create your profile</p>
+        <p>On the welcome screen, enter both partners' first names, an email address, and a password, then continue. (The email is just a label for your profile on this computer — it isn't sent anywhere.)</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The CANA sign-up / create-profile screen with the name, email, and password fields.</p></div>
+      </div>
+    </div>
+    <div class="note"><span class="ic">🔁</span><p><strong>Keep it in your Dock:</strong> once CANA is open, you can right-click its icon in the Dock → <strong>Options</strong> → <strong>Keep in Dock</strong>, so it's one click to open next time.</p></div>
+  </section>
+
+  <!-- 5 -->
+  <section class="part" id="use">
+    <p class="part-num">Part Five</p>
+    <h2>Using CANA together</h2>
+    <p class="intro">CANA is designed for both of you. Each partner answers the questions and writes their own letter — independently, so your honest answers aren't shaped by seeing the other's.</p>
+
+    <div class="step">
+      <div class="dot">1</div>
+      <div class="step-body">
+        <p class="step-title">Choose Full Assessment</p>
+        <p>From the home screen, start a <strong>Full Assessment</strong>. (A <strong>Quick Check-In</strong> is a shorter version for revisiting things later.)</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The CANA home screen showing the Full Assessment and Quick Check-In options.</p></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">2</div>
+      <div class="step-body">
+        <p class="step-title">Answer the questions, one chapter at a time</p>
+        <p>Questions come a few at a time, grouped into eleven chapters. For each, slide to where you honestly land. Not sure what a question means? Tap the small <strong>ⓘ</strong> beside it for a plain-language explanation.</p>
+        <p>If a question genuinely doesn't apply to your season of life, switch on <strong>Not applicable</strong> — it'll be left out of your results.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">A question screen showing the answer scale, the ⓘ info button, and the "Not applicable" toggle.</p></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">3</div>
+      <div class="step-body">
+        <p class="step-title">Write your letter from the future</p>
+        <p>After the questions, you'll each write a short letter as if it's ten years from now and life has gone well. There are gentle sentence-starters if you're not sure how to begin. Write naturally — a few honest sentences is plenty.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The "letter from the future" writing screen with the sentence-starter prompts.</p></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">4</div>
+      <div class="step-body">
+        <p class="step-title">Hand the Mac to your partner</p>
+        <p>When the first partner finishes their questions and letter, the second partner does the same. Once <em>both</em> are done, CANA can generate your shared plan.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The progress screen showing one partner complete and the other still to go.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="part" id="ai">
+    <p class="part-num">Part Six</p>
+    <h2>The optional AI writing (you can skip this)</h2>
+    <p class="intro">CANA works completely on its own. But if you'd like the vision, mission, and goals written in warmer, more personal language, CANA can use a small AI model that runs <strong>entirely on your Mac</strong> — your words never leave the computer. This part is optional and a little more technical.</p>
+
+    <div class="note"><span class="ic">✓</span><p><strong>You can ignore all of this.</strong> Without the AI, CANA still gives you every score, every conversation prompt, and a complete written plan. The AI only changes the <em>wording</em>, not the substance.</p></div>
+
+    <div class="step">
+      <div class="dot">1</div>
+      <div class="step-body">
+        <p class="step-title">Install Ollama (the local AI engine)</p>
+        <p>Go to <a class="link" href="https://ollama.com" target="_blank" rel="noopener">ollama.com</a>, download it for Mac, and install it like any app. Ollama is a free, well-known tool for running AI models privately on your own computer.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The ollama.com download page for macOS.</p></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">2</div>
+      <div class="step-body">
+        <p class="step-title">Let CANA download the model for you</p>
+        <p>In CANA, open <strong>Settings → Local AI</strong>. If Ollama is running, you can tap <strong>Download model</strong> and CANA fetches the recommended model with a progress bar — no Terminal needed. (It's a one-time download of a few gigabytes, so use good Wi-Fi.)</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">CANA's Settings → Local AI screen with the "Download model" button and progress bar.</p></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">3</div>
+      <div class="step-body">
+        <p class="step-title">Refresh a report whenever the AI improves</p>
+        <p>On any current report there's a <strong>↻ Refresh AI output</strong> button. Tap it to re-write the vision, mission, and goals with the AI — your scores and answers stay exactly the same. Handy if you set up the AI <em>after</em> first generating a report.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">A report screen with the "↻ Refresh AI output" button visible at the top.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section class="part" id="report">
+    <p class="part-num">Part Seven</p>
+    <h2>Your report, and saving a PDF</h2>
+    <p class="intro">Once both of you are done, CANA shows your shared plan: a joint vision and mission, each person's individual vision, a health score for all eleven areas, goals for one, five, and ten years, the tensions most worth talking about, and gentle insights.</p>
+
+    <div class="step">
+      <div class="dot">1</div>
+      <div class="step-body">
+        <p class="step-title">Read it together, slowly</p>
+        <p>This is the heart of CANA — not the numbers, but the conversation they open. The "Top Tensions" are simply the places where your answers differ most; they're starting points for talking, not verdicts.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The CANA report screen showing the joint vision and the domain-health chart.</p></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">2</div>
+      <div class="step-body">
+        <p class="step-title">Save a PDF to keep</p>
+        <p>Tap <strong>Save as PDF</strong> on the report. macOS opens a print window — choose <strong>Save as PDF</strong> at the bottom and pick where to keep it. This PDF is your permanent keepsake, and the safest way to back up a report.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The macOS print dialog with the "Save as PDF" option highlighted at the bottom-left.</p></div>
+      </div>
+    </div>
+    <div class="note"><span class="ic">📄</span><p><strong>The PDF is neatly laid out</strong> with one section per page — vision, future letters, differences, health, goals for each horizon, tensions, and insights.</p></div>
+  </section>
+
+  <!-- 8 -->
+  <section class="part" id="updates">
+    <p class="part-num">Part Eight</p>
+    <h2>Getting future updates</h2>
+    <p class="intro">When a newer version of CANA is released, the app can tell you.</p>
+    <div class="step">
+      <div class="dot">1</div>
+      <div class="step-body">
+        <p class="step-title">Check for updates</p>
+        <p>On the home screen, use <strong>Check for updates</strong>. If a newer version exists, CANA opens a simple step-by-step guide in your browser that downloads it and walks you through replacing the old version. Your saved data is never touched by updating.</p>
+        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The "Check for updates" control on the CANA home screen, ideally showing an available update.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section class="part" id="help">
+    <p class="part-num">Part Nine</p>
+    <h2>If something goes wrong</h2>
+    <p class="intro">A few common situations and what to do.</p>
+    <div class="note"><span class="ic">🔄</span><p><strong>The app won't open or looks blank.</strong> Quit CANA fully (<kbd>⌘ Q</kbd>) and open it again. Your data is saved and won't be lost.</p></div>
+    <div class="note"><span class="ic">🧠</span><p><strong>The AI writing didn't appear.</strong> Make sure Ollama is running and a model is installed (Part Six), then use <strong>↻ Refresh AI output</strong> on the report. The plan works fine without it either way.</p></div>
+    <div class="note"><span class="ic">💾</span><p><strong>Moving to a new Mac?</strong> Your data lives on the computer where you used CANA — it doesn't travel automatically. Save important reports as PDFs (Part Seven) before switching computers.</p></div>
+    <div class="note warn"><span class="ic">⚠️</span><p><strong>Still stuck?</strong> Reach out to whoever shared CANA with you, and include a photo of any message you see on screen — that makes it much easier to help.</p></div>
+  </section>
+
+</div>
+
+<footer>
+  <p>CANA — Covenant Life · a private space to plan a shared life</p>
+  <p class="mono">For Apple-silicon macOS · Your data stays on your device</p>
+</footer>
+
+</body>
+</html>

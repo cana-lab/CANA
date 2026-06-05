@@ -1,5 +1,25 @@
 # Changelog
 
+## 4.26.0
+- The "Start the Conversation" guide is now SAVED into the report once generated. Reopening it shows the same guide instead of regenerating it each time, so it stays consistent.
+- Added a "↻ Refresh AI output" button on the Start the Conversation page (live report only), to redo the guide with the local AI — e.g. after the model improves.
+- All PDF exports now have precise filenames using the pattern "<Label> DDMMYYYY Name1 Name2":
+  - Report → "Report Summary 05062026 David Abby"
+  - Conversation guide → "Start the Conversation 05062026 David Abby"
+  - History view → "CANA History 05062026 David Abby"
+- Rebuilt the Start the Conversation PDF as a clean 3-page layout: page 1 = title + Where you stand; page 2 = Questions to explore together (shrunk to fit one page); page 3 = Final comments.
+
+
+## 4.25.0
+- "Start the Conversation" guide: removed invented claims about the marriage. The "Where you stand" summary now states ONLY what the scores show (your highest- and lowest-scoring areas and your widest gaps, with the numbers) and never characterizes the relationship (no more phrasing like "at a crossroads" or "strong foundation"). This was fixed in both the AI prompt (now strict and literal, forbidden from diagnosing or using metaphors) and the built-in deterministic text. Aspirational Vision & Mission statements are unchanged by design — they are stated as hopes/prayers, not factual assessments.
+- Fixed a bug where a conversation-guide question could show "undefined" instead of the actual question text.
+- AI generation and "Refresh AI output" now show a real progress bar (with step label and percentage), not just a spinner, so you can see how far along the local model is.
+
+
+## 4.24.0
+- Added a complete, beginner-friendly "Getting started with CANA" guide (public/guide.html), designed for non-technical users and ready to publish on GitHub Pages. It covers downloading, installing, first launch, using the app together, the optional local AI, saving a PDF, updates, and troubleshooting. Written for a clean (notarized) install — no scary warnings. Includes 19 clearly-labeled screenshot slots for real captures to be dropped in. Once deployed it will be reachable at the Pages URL /guide.html.
+
+
 ## 4.23.0
 - Added a "↻ Refresh AI output" button to the report screen. It re-runs only the AI-written parts (joint & individual vision/mission, personalized goals, and the letter comparison) using your local model, while keeping all deterministic scores, gaps, and flags exactly the same. Use it when your local model has improved, or when Ollama wasn't running the first time — so a report can be upgraded without redoing the assessment. Falls back gracefully (your existing report is left unchanged) if the AI isn't reachable or returns nothing usable.
 - Note: refresh works on the current/live report (its original answers and letters are still in memory). Archived past reports can't be refreshed because the raw inputs aren't stored with them.
