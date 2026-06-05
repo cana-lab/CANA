@@ -519,11 +519,14 @@ export function quadrant(normA, normB) {
 
 export function computeAnalytics(answersA, answersB, nameA, nameB, weights) {
   const W = weights || DOMAIN_WEIGHTS;
+  // A question is scored only if BOTH partners gave a numeric answer. A value of
+  // "NA" (Not Applicable, marked by either partner) or undefined excludes it.
+  const isScorable = (v) => v !== undefined && v !== null && v !== "NA" && !isNaN(Number(v));
   const allQuestions = DOMAINS.flatMap((d) =>
     d.questions.map((q) => {
       const rawA = answersA[q.id];
       const rawB = answersB[q.id];
-      if (rawA === undefined || rawB === undefined) return null;
+      if (!isScorable(rawA) || !isScorable(rawB)) return null;
       const normA = normalize(rawA, q.rev);
       const normB = normalize(rawB, q.rev);
       const gap = Math.abs(normA - normB);

@@ -191,30 +191,38 @@ const Wrap = ({ children, narrow }) => (
 
 // Reusable info button for any metric. Shows what it means, how it's computed,
 // and an interpretive scale for the given value. Self-contained open state.
-function MetricInfo({ metricKey, value, accent = "var(--accent)" }) {
+function MetricInfo({ metricKey, value, accent = "var(--accent)", onToggle }) {
   const [open, setOpen] = useState(false);
   const info = METRIC_INFO[metricKey];
   if (!info) return null;
   const sc = scaleText(metricKey, value);
   return (
-    <span style={{ position: "relative", display: "inline-flex" }} className="no-print">
-      <button onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={`Explain ${info.title}`}
+    <span style={{ display: "inline-flex" }} className="no-print">
+      <button onClick={() => { setOpen((v) => !v); if (onToggle) onToggle(!open, { info, sc, value }); }} aria-expanded={open} aria-label={`Explain ${info.title}`}
         style={{ flexShrink: 0, width: 20, height: 20, borderRadius: "50%", border: `1px solid ${open ? accent : "var(--hair)"}`, background: open ? accent : "transparent", color: open ? "#fff" : "var(--ink3)", fontSize: 11, lineHeight: 1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>ⓘ</button>
-      {open ? (
-        <div className="rise" style={{ position: "absolute", top: 26, left: 0, zIndex: 50, width: 320, maxWidth: "80vw", padding: "14px 16px", borderRadius: 12, background: "var(--panel-solid)", boxShadow: "0 8px 30px rgba(0,0,0,0.18)", border: "1px solid var(--hair2)", textAlign: "left" }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", margin: "0 0 6px" }}>{info.title}</p>
-          <p style={{ fontSize: 12.5, color: "var(--ink2)", lineHeight: 1.5, margin: "0 0 8px" }}><strong>What:</strong> {info.what}</p>
-          <p style={{ fontSize: 12.5, color: "var(--ink2)", lineHeight: 1.5, margin: "0 0 8px" }}><strong>How it's measured:</strong> {info.how}</p>
-          {sc ? (
-            <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--hair2)" }}>
-              {value != null && !isNaN(value) ? <p style={{ fontSize: 12.5, color: "var(--ink)", margin: "0 0 4px" }}><strong>Yours ({Number(value).toFixed(1)}): {sc.band}.</strong></p> : null}
-              <p style={{ fontSize: 12.5, color: "var(--ink2)", lineHeight: 1.5, margin: 0 }}>{sc.blurb}</p>
-            </div>
-          ) : null}
-          <p style={{ fontSize: 11, color: "var(--ink3)", lineHeight: 1.45, margin: "10px 0 0", paddingTop: 8, borderTop: "1px solid var(--hair2)" }}>These are self-rated reflections, not a clinical measurement, and aren't compared against other couples.</p>
+    </span>
+  );
+}
+
+// Renders the explanation content for a metric inline (used in an expanding row
+// below the metric, so it can never be clipped or hidden behind other cards).
+function MetricInfoPanel({ metricKey, value }) {
+  const info = METRIC_INFO[metricKey];
+  if (!info) return null;
+  const sc = scaleText(metricKey, value);
+  return (
+    <div className="rise no-print" style={{ marginTop: 12, padding: "14px 16px", borderRadius: 12, background: "var(--bg2)", border: "1px solid var(--hair2)", textAlign: "left" }}>
+      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", margin: "0 0 6px" }}>{info.title}</p>
+      <p style={{ fontSize: 12.5, color: "var(--ink2)", lineHeight: 1.5, margin: "0 0 8px" }}><strong>What:</strong> {info.what}</p>
+      <p style={{ fontSize: 12.5, color: "var(--ink2)", lineHeight: 1.5, margin: "0 0 8px" }}><strong>How it's measured:</strong> {info.how}</p>
+      {sc ? (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--hair2)" }}>
+          {value != null && !isNaN(value) ? <p style={{ fontSize: 12.5, color: "var(--ink)", margin: "0 0 4px" }}><strong>Yours ({Number(value).toFixed(1)}): {sc.band}.</strong></p> : null}
+          <p style={{ fontSize: 12.5, color: "var(--ink2)", lineHeight: 1.5, margin: 0 }}>{sc.blurb}</p>
         </div>
       ) : null}
-    </span>
+      <p style={{ fontSize: 11, color: "var(--ink3)", lineHeight: 1.45, margin: "10px 0 0", paddingTop: 8, borderTop: "1px solid var(--hair2)" }}>These are self-rated reflections, not a clinical measurement, and aren't compared against other couples.</p>
+    </div>
   );
 }
 // Persistent quick-overview strip for the bottom of the window (#6). Shows the
@@ -242,14 +250,14 @@ function DashboardPreview({ trends, onOpen }) {
         <p style={{ ...eyebrow, margin: 0 }}>Your journey · {HD.sessions} session{HD.sessions > 1 ? "s" : ""}{HD.spanDays > 0 ? ` · ${HD.spanDays} days` : ""}</p>
         <button onClick={onOpen} style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0 }}>Open full dashboard →</button>
       </div>
-      <div style={{ display: "flex", gap: 28, flexWrap: "wrap", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ display: "flex", gap: 28, flexWrap: "wrap", alignItems: "flex-start", justifyContent: "center" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
           <RingGauge value={ov} color={ringColor} size={150} stroke={13} label="Overall" />
           <span style={{ fontSize: 12, color: HD.overallDelta > 0 ? "var(--green)" : HD.overallDelta < 0 ? "var(--red)" : "var(--ink3)", fontWeight: 600 }}>
             {HD.overallDelta === 0 ? "Steady" : `${HD.overallDelta > 0 ? "↑ +" : "↓ "}${HD.overallDelta} since baseline`}
           </span>
         </div>
-        <div style={{ flex: 1, minWidth: 240, maxWidth: 340 }}>
+        <div style={{ flex: 1, minWidth: 260, maxWidth: 460 }}>
           <RadarChart axes={radarAxes} color={ringColor} size={280} />
         </div>
       </div>
@@ -352,7 +360,7 @@ function Sparkline({ series, color, w = 96, h = 30, yMax = 10 }) {
 }
 
 /* Radar / spider chart — at-a-glance "shape" of all domains */
-function RadarChart({ axes, size = 320, color = "var(--accent)" }) {
+function RadarChart({ axes, size = 320, color = "var(--accent)", showLegend = true }) {
   const cx = size / 2, cy = size / 2, R = size / 2 - 46;
   const n = axes.length;
   if (n < 3) return null;
@@ -361,19 +369,34 @@ function RadarChart({ axes, size = 320, color = "var(--accent)" }) {
   const poly = axes.map((a, i) => pt(i, Math.max(0, Math.min(1, (a.value || 0) / 10))).join(",")).join(" ");
   const rings = [0.25, 0.5, 0.75, 1];
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} style={{ width: "100%", maxWidth: size, height: "auto", display: "block", margin: "0 auto" }}>
-      {rings.map((f, ri) => (
-        <polygon key={ri} points={axes.map((a, i) => pt(i, f).join(",")).join(" ")} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="1" />
-      ))}
-      {axes.map((a, i) => { const [ex, ey] = pt(i, 1); return <line key={i} x1={cx} y1={cy} x2={ex} y2={ey} stroke="rgba(0,0,0,0.06)" strokeWidth="1" />; })}
-      <polygon points={poly} fill={color} fillOpacity="0.16" stroke={color} strokeWidth="2" strokeLinejoin="round" />
-      {axes.map((a, i) => { const [px, py] = pt(i, Math.max(0, Math.min(1, (a.value || 0) / 10))); return <circle key={i} cx={px} cy={py} r="3" fill={color} />; })}
-      {axes.map((a, i) => {
-        const [lx, ly] = pt(i, 1.16);
-        const anchor = Math.abs(Math.cos(ang(i))) < 0.3 ? "middle" : Math.cos(ang(i)) > 0 ? "start" : "end";
-        return <text key={i} x={lx} y={ly} fill="#8E8E93" fontSize="10.5" textAnchor={anchor} dominantBaseline="middle">{a.icon}</text>;
-      })}
-    </svg>
+    <div>
+      <svg viewBox={`0 0 ${size} ${size}`} style={{ width: "100%", maxWidth: size, height: "auto", display: "block", margin: "0 auto" }}>
+        {rings.map((f, ri) => (
+          <polygon key={ri} points={axes.map((a, i) => pt(i, f).join(",")).join(" ")} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="1" />
+        ))}
+        {axes.map((a, i) => { const [ex, ey] = pt(i, 1); return <line key={i} x1={cx} y1={cy} x2={ex} y2={ey} stroke="rgba(0,0,0,0.06)" strokeWidth="1" />; })}
+        <polygon points={poly} fill={color} fillOpacity="0.16" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+        {axes.map((a, i) => { const [px, py] = pt(i, Math.max(0, Math.min(1, (a.value || 0) / 10))); return <circle key={i} cx={px} cy={py} r="3" fill={color} />; })}
+        {axes.map((a, i) => {
+          const [lx, ly] = pt(i, 1.16);
+          const anchor = Math.abs(Math.cos(ang(i))) < 0.3 ? "middle" : Math.cos(ang(i)) > 0 ? "start" : "end";
+          return <text key={i} x={lx} y={ly} fill="#8E8E93" fontSize="11" fontWeight="600" textAnchor={anchor} dominantBaseline="middle">{a.icon}</text>;
+        })}
+      </svg>
+      {showLegend ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "6px 14px", marginTop: 16, width: "100%" }}>
+          {axes.map((a, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, background: color, opacity: 0.14, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                <span style={{ position: "absolute", color: color, fontSize: 12, fontWeight: 700 }}>{a.icon}</span>
+              </span>
+              <span style={{ fontSize: 12, color: "var(--ink2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1, minWidth: 0 }}>{a.label}</span>
+              {a.value != null ? <span style={{ fontSize: 12, color: "var(--ink3)", fontWeight: 600, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Number(a.value).toFixed(1)}</span> : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -739,37 +762,25 @@ export default function App() {
     window.scrollTo({ top: 0 });
   };
 
+  // Email flow. A mailto: link CANNOT carry a file attachment (protocol
+  // limitation), so we can't truly attach the PDF programmatically. Instead we
+  // trigger the PDF save, then open a short email draft that asks the user to
+  // attach the PDF they just saved — rather than dumping the whole plan as text.
   const emailReport = (R, toEmail) => {
     const L = (s) => (s == null ? "" : String(s));
-    const lines = [];
-    lines.push(`CANA — Covenant Life`);
-    lines.push(`A Biblical Life Plan for ${L(R.nameA)} & ${L(R.nameB)}`);
-    lines.push("");
-    lines.push(`JOINT VISION`); lines.push(L(R.vision)); lines.push("");
-    lines.push(`JOINT MISSION`); lines.push(L(R.mission)); lines.push("");
-    if (R.indivA || R.indivB) {
-      lines.push(`INDIVIDUAL VISIONS`);
-      if (R.indivA) { lines.push(`${L(R.nameA)} — Vision: ${L(R.indivA.vision)}`); lines.push(`${L(R.nameA)} — Mission: ${L(R.indivA.mission)}`); }
-      if (R.indivB) { lines.push(`${L(R.nameB)} — Vision: ${L(R.indivB.vision)}`); lines.push(`${L(R.nameB)} — Mission: ${L(R.indivB.mission)}`); }
-      lines.push("");
-    }
-    lines.push(`DOMAIN HEALTH (0–10 per partner, Δ = gap)`);
-    (R.domainScores || []).forEach((d) => lines.push(`- ${d.label}: ${L(R.nameA)} ${d.avgNormA.toFixed(1)}, ${L(R.nameB)} ${d.avgNormB.toFixed(1)} (Δ${Math.abs(d.avgNormA - d.avgNormB).toFixed(1)})`));
-    lines.push(`Overall: ${L(R.overallScore && R.overallScore.toFixed ? R.overallScore.toFixed(1) : R.overallScore)}/10`);
-    lines.push("");
-    const goalBlock = (title, gs) => { if (!gs || !gs.length) return; lines.push(title); gs.forEach((g) => lines.push(`- [${L(g.domain)}] ${L(g.goal)}`)); lines.push(""); };
-    goalBlock("GOALS — 1 YEAR", R.goals1yr);
-    goalBlock("GOALS — 5 YEAR", R.goals5yr);
-    goalBlock("GOALS — 10 YEAR", R.goals10yr);
-    if (R.tensions && R.tensions.length) {
-      lines.push(`TENSIONS TO DISCUSS`);
-      R.tensions.forEach((t) => lines.push(`- ${L(t.title)} — ${L(t.explanation)}`));
-      lines.push("");
-    }
-    lines.push(`— Generated by CANA. These are conversation-starters, not clinical measurements.`);
-    const body = lines.join("\n");
     const subject = `CANA — Covenant Life plan for ${L(R.nameA)} & ${L(R.nameB)}`;
-    // mailto bodies must be conservatively short; most clients cap ~1800 chars.
+    const body = [
+      `Hi,`,
+      ``,
+      `Attached is our CANA — Covenant Life plan for ${L(R.nameA)} & ${L(R.nameB)}.`,
+      ``,
+      `(If the PDF isn't attached yet: it was just saved to your downloads when you tapped the button — please attach that file before sending.)`,
+      ``,
+      `— Generated by CANA. These are conversation-starters, not clinical measurements.`,
+    ].join("\n");
+    // 1) Save the PDF via the print dialog.
+    try { window.print(); } catch (e) {}
+    // 2) Open a short, clean email draft.
     const url = `mailto:${encodeURIComponent(toEmail || "")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     if (isDesktop && window.cana && window.cana.openExternal) window.cana.openExternal(url);
     else window.location.href = url;
@@ -1371,8 +1382,8 @@ export default function App() {
           </Card>
 
           <div style={{ display: "flex", gap: 10 }}>
-            <Btn onClick={() => { setLLMConfig(llmCfg); probeOllama(); }}>Save</Btn>
-            <Btn kind="secondary" onClick={async () => { setLLMConfig(llmCfg); setLlmSample(""); setLlmState("checking"); const r = await testConnection(); setLlmState(r.ok ? "ok" : "bad"); setLlmSample(r.ok ? r.sample : r.error); }}>{llmState === "checking" ? "Testing…" : "Test"}</Btn>
+            <Btn onClick={() => { const r = setLLMConfig(llmCfg); if (!r.ok) { setLlmState("bad"); setLlmSample(r.error); return; } probeOllama(); setLlmState("ok"); setLlmSample(""); }}>Save</Btn>
+            <Btn kind="secondary" onClick={async () => { const r = setLLMConfig(llmCfg); if (!r.ok) { setLlmState("bad"); setLlmSample(r.error); return; } setLlmSample(""); setLlmState("checking"); const tr = await testConnection(); setLlmState(tr.ok ? "ok" : "bad"); setLlmSample(tr.ok ? tr.sample : tr.error); }}>{llmState === "checking" ? "Testing…" : "Test"}</Btn>
           </div>
           {llmSample ? <p style={{ fontSize: 13, color: llmState === "ok" ? "var(--green)" : "var(--red)", marginTop: 12 }}>{llmState === "ok" ? `✓ Model replied: "${llmSample}"` : `✗ ${llmSample}`}</p> : null}
 
@@ -1545,12 +1556,13 @@ export default function App() {
                 {pageQs.map((q, qiLocal) => {
                   const qi = start + qiLocal;
                   const infoOpen = openInfo === q.id;
+                  const isNA = ans[q.id] === "NA";
                   const answered = ans[q.id] !== undefined;
                   return (
-                  <Card key={q.id} style={{ marginBottom: 14, padding: 20, borderColor: answered ? "rgba(52,199,89,0.35)" : "var(--hair2)" }}>
+                  <Card key={q.id} style={{ marginBottom: 14, padding: 20, borderColor: isNA ? "var(--hair2)" : answered ? "rgba(52,199,89,0.35)" : "var(--hair2)", opacity: isNA ? 0.72 : 1 }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                       <p style={{ flex: 1, fontSize: 16, color: "var(--ink)", margin: "0 0 14px", lineHeight: 1.45, fontWeight: 500, letterSpacing: "-.01em" }}>
-                        <span style={{ color: answered ? "var(--green)" : "var(--ink3)", marginRight: 8, fontWeight: 500 }}>{answered ? "✓" : qi + 1 + "."}</span>{q.text}
+                        <span style={{ color: isNA ? "var(--ink3)" : answered ? "var(--green)" : "var(--ink3)", marginRight: 8, fontWeight: 500 }}>{isNA ? "—" : answered ? "✓" : qi + 1 + "."}</span>{q.text}
                       </p>
                       {(QUESTION_HELP[q.id] || q.info) ? (
                         <button onClick={() => setOpenInfo(infoOpen ? null : q.id)} aria-label="What is this question asking?" aria-expanded={infoOpen}
@@ -1569,7 +1581,20 @@ export default function App() {
                         ) : null}
                       </div>
                     ) : null}
-                    <ScaleInput question={q} value={ans[q.id]} onChange={(v) => handleAnswer(q.id, v)} />
+                    {isNA ? (
+                      <p style={{ fontSize: 13.5, color: "var(--ink3)", fontStyle: "italic", margin: "4px 0 12px" }}>Marked not applicable — this question won't be included in your results.</p>
+                    ) : (
+                      <ScaleInput question={q} value={ans[q.id]} onChange={(v) => handleAnswer(q.id, v)} />
+                    )}
+                    <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+                      <button onClick={() => handleAnswer(q.id, isNA ? undefined : "NA")}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 7, border: "none", background: "none", cursor: "pointer", fontSize: 12.5, color: isNA ? "var(--accent)" : "var(--ink3)", fontWeight: 500, padding: 0 }}>
+                        <span style={{ width: 34, height: 20, borderRadius: 10, background: isNA ? "var(--accent)" : "var(--hair)", position: "relative", transition: "background .15s", flexShrink: 0 }}>
+                          <span style={{ position: "absolute", top: 2, left: isNA ? 16 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left .15s", boxShadow: "0 1px 2px rgba(0,0,0,0.2)" }} />
+                        </span>
+                        Not applicable
+                      </button>
+                    </div>
                   </Card>
                 );})}
               </div>
@@ -2059,15 +2084,34 @@ export default function App() {
             ) : null}
 
             <p style={eyebrow}>Shared Goals</p>
-            <div style={{ marginBottom: 18 }}><Segmented value={goalsTab} onChange={setGoalsTab} options={[{ value: "1yr", label: "1 Year" }, { value: "5yr", label: "5 Years" }, { value: "10yr", label: "10 Years" }]} /></div>
-            <Card style={{ marginBottom: 32 }}>
-              {goals.map((g, i) => (
-                <div key={i} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: i < goals.length - 1 ? "1px solid var(--hair2)" : "none" }}>
-                  <span style={{ fontSize: 13, color: "var(--accent)", fontWeight: 700, minWidth: 24, fontVariantNumeric: "tabular-nums" }}>{String(i + 1).padStart(2, "0")}</span>
-                  <div><p style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 3px", fontWeight: 600 }}>{g.domain}</p><p style={{ fontSize: 15, color: "var(--ink)", margin: 0, lineHeight: 1.5 }}>{g.goal}</p></div>
+            {/* On screen: interactive tabbed view (hidden in print). */}
+            <div className="no-print">
+              <div style={{ marginBottom: 18 }}><Segmented value={goalsTab} onChange={setGoalsTab} options={[{ value: "1yr", label: "1 Year" }, { value: "5yr", label: "5 Years" }, { value: "10yr", label: "10 Years" }]} /></div>
+              <Card style={{ marginBottom: 32 }}>
+                {goals.map((g, i) => (
+                  <div key={i} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: i < goals.length - 1 ? "1px solid var(--hair2)" : "none" }}>
+                    <span style={{ fontSize: 13, color: "var(--accent)", fontWeight: 700, minWidth: 24, fontVariantNumeric: "tabular-nums" }}>{String(i + 1).padStart(2, "0")}</span>
+                    <div><p style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 3px", fontWeight: 600 }}>{g.domain}</p><p style={{ fontSize: 15, color: "var(--ink)", margin: 0, lineHeight: 1.5 }}>{g.goal}</p></div>
+                  </div>
+                ))}
+              </Card>
+            </div>
+            {/* In print/PDF: ALL three horizons, so the exported plan is complete. */}
+            <div className="print-only">
+              {[{ label: "1 Year", list: R.goals1yr }, { label: "5 Years", list: R.goals5yr }, { label: "10 Years", list: R.goals10yr }].map((grp) => (
+                <div key={grp.label} className="pdf-keep" style={{ marginBottom: 18 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 8px", color: "var(--ink2)" }}>Goals — {grp.label}</p>
+                  <Card style={{ marginBottom: 12 }}>
+                    {(grp.list || []).map((g, i) => (
+                      <div key={i} style={{ display: "flex", gap: 12, padding: "8px 0", borderBottom: i < (grp.list || []).length - 1 ? "1px solid var(--hair2)" : "none" }}>
+                        <span style={{ fontSize: 12, color: "var(--accent)", fontWeight: 700, minWidth: 22 }}>{String(i + 1).padStart(2, "0")}</span>
+                        <div><p style={{ fontSize: 10, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 2px", fontWeight: 600 }}>{g.domain}</p><p style={{ fontSize: 13, color: "var(--ink)", margin: 0, lineHeight: 1.45 }}>{g.goal}</p></div>
+                      </div>
+                    ))}
+                  </Card>
                 </div>
               ))}
-            </Card>
+            </div>
 
             <p style={eyebrow}>Top Tensions</p>
             <p style={body}>Ranked by weighted gap — the conversations worth having.</p>
@@ -2125,11 +2169,13 @@ export default function App() {
       const col = good ? "var(--green)" : "var(--red)";
       return <span style={{ fontSize: 12, color: col, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3 }}>{delta > 0 ? "↑" : "↓"} {delta > 0 ? "+" : ""}{delta}</span>;
     };
-    const StatTile = ({ label, value, color, sub, metricKey, spark, sparkColor, delta, invert }) => (
+    const StatTile = ({ label, value, color, sub, metricKey, spark, sparkColor, delta, invert }) => {
+      const [infoOpen, setInfoOpen] = useState(false);
+      return (
       <Card style={{ flex: 1, minWidth: 168, display: "flex", flexDirection: "column", gap: 2 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7, margin: "0 0 4px" }}>
           <p style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600, margin: 0 }}>{label}</p>
-          {metricKey ? <MetricInfo metricKey={metricKey} value={value} /> : null}
+          {metricKey ? <MetricInfo metricKey={metricKey} value={value} onToggle={(o) => setInfoOpen(o)} /> : null}
         </div>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 8 }}>
           <p style={{ fontSize: 32, fontWeight: 700, color, margin: 0, letterSpacing: "-.02em", lineHeight: 1 }}>{value}<span style={{ fontSize: 14, color: "var(--ink3)" }}>/10</span></p>
@@ -2139,8 +2185,10 @@ export default function App() {
           <DeltaChip delta={delta} invert={invert} />
           <span style={{ fontSize: 12, color: "var(--ink3)", lineHeight: 1.3 }}>{sub}</span>
         </div>
+        {infoOpen && metricKey ? <MetricInfoPanel metricKey={metricKey} value={value} /> : null}
       </Card>
-    );
+      );
+    };
     const ChartBlock = ({ label, desc, series, color }) => (
       <div style={{ marginBottom: 26 }}><p style={eyebrow}>{label}</p>{desc ? <p style={{ ...body, fontSize: 13 }}>{desc}</p> : null}
         <Card style={{ padding: 16 }}><LineChart series={series} color={color} />

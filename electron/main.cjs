@@ -36,12 +36,26 @@ ipcMain.handle("cana:which", async (_e, name) => {
 });
 
 ipcMain.handle("cana:open-external", async (_e, url) => {
-  // Allow web links, mailto: links (the report's "Email report" button), and
-  // file: URLs (the local update guide page, opened in the default browser so
-  // it stays open while the app is replaced).
-  if (typeof url === "string" && /^(https?|mailto|file):/.test(url)) {
+  if (typeof url !== "string") return false;
+  // Web links and mailto: (e.g. the report's "Email report" button) are allowed.
+  if (/^(https?|mailto):/.test(url)) {
     await shell.openExternal(url);
     return true;
+  }
+  // file: is allowed ONLY for the bundled update guide page (opened in the
+  // default browser so it survives the app being replaced). Any other local
+  // file path is rejected, so this IPC channel can't be abused to open
+  // arbitrary files or applications on the user's machine.
+  if (/^file:/.test(url)) {
+    try {
+      const u = new URL(url);
+      const p = decodeURIComponent(u.pathname);
+      if (/\/update-guide\.html$/.test(p)) {
+        await shell.openExternal(url);
+        return true;
+      }
+    } catch (e) { /* fall through to reject */ }
+    return false;
   }
   return false;
 });

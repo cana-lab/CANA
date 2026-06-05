@@ -1,5 +1,31 @@
 # Changelog
 
+## 4.21.0
+- Security hardening (from an adversarial review):
+  - The local-AI endpoint is now hard-restricted to this computer (localhost/127.0.0.1). The app refuses to save or send to any other host, and sanitizes the stored value on read — so the couple's letters and answers can never be redirected off the device, even if the setting were tampered with. The CSP is no longer the only line of defense.
+  - Passwords are now hashed with PBKDF2 (210k iterations) instead of plain SHA-256, making offline guessing far slower. Existing accounts are upgraded automatically and invisibly on next sign-in — no action needed, no lockout. Added constant-time hash comparison.
+  - The desktop "open external" channel now permits file: links ONLY for the bundled update guide, blocking any attempt to open arbitrary local files or apps.
+- No change to normal use. Note (unchanged, already shown at sign-in): the password is an on-device soft lock, not a vault; anyone with full access to the computer can reach the underlying data, so don't reuse an important password here.
+
+
+## 4.20.1
+- The radar/spider chart legend (icon → domain name + score) now also appears on the home-screen dashboard preview, not just the full dashboard. Gave the preview's chart column more room so the legend forms a clean grid.
+
+
+## 4.20.0
+- Added a legend (key) beneath the dashboard's radar/spider chart, mapping each domain icon to its full name and current score, in a clean responsive grid with color-matched icon chips. The radar's axis tips still show the icon; the legend now tells you what each one means. The compact home-screen preview links to the full dashboard for the key.
+
+
+## 4.19.0
+- Six fixes:
+  1. Email report: a mailto link cannot carry an attachment, so the button now first saves the PDF (print dialog), then opens a SHORT email draft asking you to attach that PDF — instead of dumping the whole plan as plain text.
+  2. PDF export now includes ALL goal horizons (1, 5, and 10 year), not just the tab currently shown on screen. The on-screen view stays tabbed.
+  3. Print/PDF line breaks fixed: forced clean word-wrapping, smaller print type, and proper page margins so text no longer runs off or breaks badly.
+  4. Dashboard metric info pop-ups now expand INLINE beneath each tile instead of floating (the card blur was trapping them behind other content); the full text is always readable now.
+  5. The AI "tensions from your letters" analysis is now strict and literal: it only surfaces points explicitly written in both letters, never infers motives or feelings, treats different topics as different (not conflicts), and returns fewer/no items rather than forcing far-fetched connections.
+  6. Every question now has a "Not applicable" toggle. Questions marked N/A (by either partner) are fully excluded from scoring, gaps, and the report; a domain whose questions are all N/A is dropped gracefully.
+
+
 ## 4.18.1
 - Fixed the GitHub Pages base path: the web build now uses /CANA/ (matching the case-sensitive repo name) instead of /cana/. With the old value, the deployed Pages site and the in-app update-guide URL would have 404'd. The update guide URL (cana-lab.github.io/CANA/update-guide.html) now matches the deployed path exactly. (Electron build unaffected.)
 

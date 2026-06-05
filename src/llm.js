@@ -16,22 +16,57 @@
 const DEFAULT_BASE = "http://localhost:11434/v1";
 const DEFAULT_MODEL = "llama3.1:8b";
 
+// SECURITY: the couple's letters and answers are sent to this endpoint, so it
+// MUST stay on this machine. We hard-restrict it to loopback (localhost /
+// 127.0.0.1 / [::1]) regardless of what is stored or typed — defense in depth
+// that does not rely on the CSP alone. Any other host is rejected and the
+// default local endpoint is used instead.
+function isLoopbackUrl(u) {
+  try {
+    const url = new URL(u);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+    const h = url.hostname.toLowerCase();
+    return h === "localhost" || h === "127.0.0.1" || h === "::1" || h === "[::1]";
+  } catch (e) { return false; }
+}
+
+// Returns a safe base URL: the stored one if it is loopback, else the default.
+function safeBase(stored) {
+  return isLoopbackUrl(stored) ? stored : DEFAULT_BASE;
+}
+
 export function getLLMConfig() {
   try {
     const raw = localStorage.getItem("covenant_llm_config_v1");
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const cfg = JSON.parse(raw);
+      // Never hand back a non-loopback endpoint, even if one was persisted.
+      cfg.baseUrl = safeBase(cfg.baseUrl);
+      return cfg;
+    }
   } catch (e) {}
   return { baseUrl: DEFAULT_BASE, model: DEFAULT_MODEL, enabled: true };
 }
 
+// Returns { ok, error? }. Refuses to persist a non-loopback endpoint so the
+// app can never be reconfigured to ship personal data off the device.
 export function setLLMConfig(cfg) {
-  try { localStorage.setItem("covenant_llm_config_v1", JSON.stringify(cfg)); } catch (e) {}
+  const incoming = cfg || {};
+  if (incoming.baseUrl !== undefined && !isLoopbackUrl(incoming.baseUrl)) {
+    return { ok: false, error: "For privacy, the AI endpoint must be on this computer (localhost). Your letters never leave the device." };
+  }
+  try { localStorage.setItem("covenant_llm_config_v1", JSON.stringify(incoming)); } catch (e) {}
+  return { ok: true };
 }
+
+// Validity check the UI can call before saving, to show inline feedback.
+export function isValidEndpoint(u) { return isLoopbackUrl(u); }
 
 // Low-level call. Returns the assistant message string, or throws.
 async function chat(messages, { json = false } = {}) {
   const cfg = getLLMConfig();
-  const url = cfg.baseUrl.replace(/\/+$/, "") + "/chat/completions";
+  const base = safeBase(cfg.baseUrl); // hard stop: never POST personal data off-device
+  const url = base.replace(/\/+$/, "") + "/chat/completions";
   const body = {
     model: cfg.model || DEFAULT_MODEL,
     messages,
@@ -91,20 +126,20 @@ function parseJSON(raw) {
 export async function extractLetter(letterText, authorName) {
   if (!letterText || letterText.trim().length < 20) return null;
   try {
-    const sys = "You extract structured themes from a personal letter. Respond ONLY with valid JSON. No prose, no markdown.";
-    const user = `This is a letter ${authorName} wrote from 10 years in the future, describing life as if it went well. Extract the key elements.
+    const sys = "You extract ONLY what is explicitly written in a personal letter. You do not infer, interpret, or add anything not literally stated. Respond ONLY with valid JSON. No prose, no markdown.";
+    const user = `This is a letter ${authorName} wrote from 10 years in the future, describing life as if it went well. Extract ONLY what is explicitly written — do not infer or invent.
 
 LETTER:
 """${letterText.slice(0, 6000)}"""
 
-Return JSON with these arrays of short phrases (3-8 words each), each item a distinct idea:
+Return JSON with these arrays of short phrases (3-8 words each), each a distinct idea taken directly from the text:
 {
-  "dreams": ["fulfilled dreams / hopes described"],
-  "achievements": ["concrete accomplishments described"],
-  "values": ["underlying values evident in the letter"],
-  "themes": ["recurring themes / motifs"]
+  "dreams": ["hopes/dreams the letter explicitly describes"],
+  "achievements": ["concrete accomplishments explicitly described"],
+  "values": ["values the letter EXPLICITLY states (only if literally named — otherwise leave empty)"],
+  "themes": ["topics the letter actually returns to (only if clearly repeated — otherwise leave empty)"]
 }
-Keep each array to at most 8 items. Use the author's own concepts, lightly normalized.`;
+Rules: Use only the author's own stated content. Do NOT infer unstated values or motives. If a category isn't clearly supported by the text, return an empty array for it. At most 8 items per array.`;
     const out = await chat([{ role: "system", content: sys }, { role: "user", content: user }], { json: true });
     const parsed = parseJSON(out);
     if (!parsed) return null;
@@ -120,20 +155,25 @@ Keep each array to at most 8 items. Use the author's own concepts, lightly norma
 export async function compareLetters(extractA, extractB, nameA, nameB) {
   if (!extractA || !extractB) return null;
   try {
-    const sys = "You compare two people's future-vision letters with care and nuance. Differences are not automatically conflicts. Respond ONLY with valid JSON.";
-    const user = `Two partners each wrote a letter from 10 years in the future. Their extracted elements:
+    const sys = "You are a careful, literal analyst. You ONLY report what is explicitly present in two people's letter extracts. You never infer motives, never psychologize, never speculate about feelings or causes, and never connect ideas that aren't directly stated. If something is not clearly written in the text, it does not exist for your purposes. Differences are not conflicts unless the texts plainly contradict each other. Respond ONLY with valid JSON.";
+    const user = `Two partners each wrote a letter from 10 years in the future. Here are the elements extracted from each letter:
 
 ${nameA}: ${JSON.stringify(extractA)}
 ${nameB}: ${JSON.stringify(extractB)}
 
-Identify where their visions genuinely overlap and where they meaningfully differ. Treat semantically equivalent ideas as overlaps even if worded differently (e.g. "our own studio" and "building something of our own"). A difference is only worth listing if it is substantive — not mere wording.
+Your task is STRICT and LITERAL. Follow these rules exactly:
+- Only list a COMMONALITY if BOTH letters explicitly mention the same concrete dream or value. Treat clearly equivalent wording as the same (e.g. "our own studio" ≈ "building something of our own"). Do NOT stretch loose thematic similarity into a commonality.
+- Only list a DIFFERENCE if the two letters make statements that plainly CONFLICT or point in clearly different directions on the SAME topic. Two people simply writing about different topics is NOT a difference — it is just two topics. Do NOT manufacture tension from absence or silence.
+- NEVER infer emotions, intentions, fears, or root causes. NEVER add interpretation beyond the literal words.
+- It is correct and expected to return FEW items, or even an empty list, if the letters don't explicitly support more. Quality over quantity. Do not pad.
+- Rate "tension" conservatively: "low" by default; "medium" or "high" ONLY when the texts directly and unambiguously conflict.
 
 Return JSON:
 {
-  "commonalities": [{"theme":"short label","detail":"one sentence on the shared dream"}],
-  "differences": [{"theme":"short label","a":"what ${nameA} envisions","b":"what ${nameB} envisions","tension":"low|medium|high"}]
+  "commonalities": [{"theme":"short label","detail":"one sentence quoting or closely paraphrasing what BOTH explicitly wrote"}],
+  "differences": [{"theme":"short label","a":"what ${nameA} explicitly wrote","b":"what ${nameB} explicitly wrote","tension":"low|medium|high"}]
 }
-Give the TOP 5 commonalities and TOP 5 differences, most significant first. Rate each difference's tension honestly: low = complementary/easily reconciled, high = genuinely competing visions.`;
+Up to 5 of each, but ONLY those directly supported by the text. Fewer is better than forced.`;
     const out = await chat([{ role: "system", content: sys }, { role: "user", content: user }], { json: true });
     const parsed = parseJSON(out);
     if (!parsed) return null;
