@@ -360,43 +360,31 @@ function Sparkline({ series, color, w = 96, h = 30, yMax = 10 }) {
 }
 
 /* Radar / spider chart — at-a-glance "shape" of all domains */
-function RadarChart({ axes, size = 320, color = "var(--accent)", showLegend = true }) {
-  const cx = size / 2, cy = size / 2, R = size / 2 - 46;
+function RadarChart({ axes, size = 320, color = "var(--accent)" }) {
+  const cx = size / 2, cy = size / 2, R = size / 2 - 58;
   const n = axes.length;
   if (n < 3) return null;
   const ang = (i) => (Math.PI * 2 * i) / n - Math.PI / 2;
   const pt = (i, frac) => [cx + Math.cos(ang(i)) * R * frac, cy + Math.sin(ang(i)) * R * frac];
   const poly = axes.map((a, i) => pt(i, Math.max(0, Math.min(1, (a.value || 0) / 10))).join(",")).join(" ");
   const rings = [0.25, 0.5, 0.75, 1];
+  // Short label per axis (first word of the domain label) so each point is
+  // identifiable on the chart itself — no separate legend needed.
+  const shortLabel = (a) => (a.label || "").split(/[ &]/)[0];
   return (
-    <div>
-      <svg viewBox={`0 0 ${size} ${size}`} style={{ width: "100%", maxWidth: size, height: "auto", display: "block", margin: "0 auto" }}>
-        {rings.map((f, ri) => (
-          <polygon key={ri} points={axes.map((a, i) => pt(i, f).join(",")).join(" ")} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="1" />
-        ))}
-        {axes.map((a, i) => { const [ex, ey] = pt(i, 1); return <line key={i} x1={cx} y1={cy} x2={ex} y2={ey} stroke="rgba(0,0,0,0.06)" strokeWidth="1" />; })}
-        <polygon points={poly} fill={color} fillOpacity="0.16" stroke={color} strokeWidth="2" strokeLinejoin="round" />
-        {axes.map((a, i) => { const [px, py] = pt(i, Math.max(0, Math.min(1, (a.value || 0) / 10))); return <circle key={i} cx={px} cy={py} r="3" fill={color} />; })}
-        {axes.map((a, i) => {
-          const [lx, ly] = pt(i, 1.16);
-          const anchor = Math.abs(Math.cos(ang(i))) < 0.3 ? "middle" : Math.cos(ang(i)) > 0 ? "start" : "end";
-          return <text key={i} x={lx} y={ly} fill="#8E8E93" fontSize="11" fontWeight="600" textAnchor={anchor} dominantBaseline="middle">{a.icon}</text>;
-        })}
-      </svg>
-      {showLegend ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "6px 14px", marginTop: 16, width: "100%" }}>
-          {axes.map((a, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, background: color, opacity: 0.14, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-                <span style={{ position: "absolute", color: color, fontSize: 12, fontWeight: 700 }}>{a.icon}</span>
-              </span>
-              <span style={{ fontSize: 12, color: "var(--ink2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1, minWidth: 0 }}>{a.label}</span>
-              {a.value != null ? <span style={{ fontSize: 12, color: "var(--ink3)", fontWeight: 600, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{Number(a.value).toFixed(1)}</span> : null}
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </div>
+    <svg viewBox={`0 0 ${size} ${size}`} style={{ width: "100%", maxWidth: size, height: "auto", display: "block", margin: "0 auto", overflow: "visible" }}>
+      {rings.map((f, ri) => (
+        <polygon key={ri} points={axes.map((a, i) => pt(i, f).join(",")).join(" ")} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="1" />
+      ))}
+      {axes.map((a, i) => { const [ex, ey] = pt(i, 1); return <line key={i} x1={cx} y1={cy} x2={ex} y2={ey} stroke="rgba(0,0,0,0.06)" strokeWidth="1" />; })}
+      <polygon points={poly} fill={color} fillOpacity="0.16" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+      {axes.map((a, i) => { const [px, py] = pt(i, Math.max(0, Math.min(1, (a.value || 0) / 10))); return <circle key={i} cx={px} cy={py} r="3" fill={color} />; })}
+      {axes.map((a, i) => {
+        const [lx, ly] = pt(i, 1.12);
+        const anchor = Math.abs(Math.cos(ang(i))) < 0.3 ? "middle" : Math.cos(ang(i)) > 0 ? "start" : "end";
+        return <text key={i} x={lx} y={ly} fill="#8E8E93" fontSize="9" fontWeight="600" textAnchor={anchor} dominantBaseline="middle">{shortLabel(a)}</text>;
+      })}
+    </svg>
   );
 }
 
@@ -882,6 +870,73 @@ export default function App() {
       goals1yr: localPlan.goals1yr, goals5yr: localPlan.goals5yr, goals10yr: localPlan.goals10yr,
       // vision/mission/indiv/comparison are preserved from the prior generation
     }));
+  };
+
+  // Re-run ONLY the AI portion of the current live report, keeping the
+  // deterministic scores/gaps/flags exactly as they are. Use when the local
+  // model has improved (or was started after the report was first made) and you
+  // want fresh AI-written vision/mission/goals/letter-comparison. Only works on
+  // the live report (the original answers + letters must still be in memory) —
+  // archived past reports don't store the raw inputs, so they can't be refreshed.
+  const [regenerating, setRegenerating] = useState(false);
+  const regenerateAI = async () => {
+    if (!results || regenerating) return;
+    const cfg = getLLMConfig();
+    setRegenerating(true);
+    setGenMsg("Checking the local AI…");
+    const live = cfg.enabled ? await ollamaRunning() : false;
+    if (!live) { setRegenerating(false); setGenMsg(""); window.alert(cfg.enabled ? "Ollama isn't running. Start it (and make sure a model is installed), then try again." : "The local AI is turned off in Settings. Turn it on and start Ollama, then try again."); return; }
+    try {
+      const analytics = computeAnalytics(answers.A, answers.B, names.A || "Partner A", names.B || "Partner B", weights || undefined);
+      const localPlan = generateLocalPlan(analytics);
+      const nameA = analytics.nameA, nameB = analytics.nameB;
+      const domSummary = (w) => analytics.domainScores.map((d) => `${d.label}: ${(w === "A" ? d.avgNormA : d.avgNormB).toFixed(1)}`).join(", ");
+      const overallSummary = analytics.domainScores.map((d) => `${d.label} ${d.avgNorm.toFixed(1)} (gap ${d.domainGap.toFixed(1)})`).join("; ");
+      const sortedDoms = [...analytics.domainScores].sort((a, b) => b.avgNorm - a.avgNorm);
+      const evalSynthesis = {
+        overall: analytics.overallScore.toFixed(1),
+        strongest: sortedDoms.slice(0, 2).map((d) => `${d.label} (${d.avgNorm.toFixed(1)})`),
+        weakest: sortedDoms.slice(-2).map((d) => `${d.label} (${d.avgNorm.toFixed(1)})`),
+        widestGaps: [...analytics.domainScores].sort((a, b) => b.domainGap - a.domainGap).slice(0, 2).map((d) => `${d.label} (gap ${d.domainGap.toFixed(1)})`),
+        topTensions: (localPlan.tensions || []).slice(0, 3).map((t) => t.title),
+        flags: (localPlan.flags || []).map((f) => f.title || f.label || "").filter(Boolean),
+      };
+      let comparison = compareDreamMarks(dreamMarks.A, dreamMarks.B, nameA, nameB);
+      setGenMsg("Reading the letters…");
+      const exA = letters.A ? await extractLetter(letters.A, nameA) : null;
+      const exB = letters.B ? await extractLetter(letters.B, nameB) : null;
+      if (exA && exB) { setGenMsg("Comparing your visions…"); comparison = mergeComparisons(comparison, await compareLetters(exA, exB, nameA, nameB)); }
+      setGenMsg(`Writing ${nameA}'s vision…`); const indivA = await individualVisionMission(nameA, domSummary("A"), exA);
+      setGenMsg(`Writing ${nameB}'s vision…`); const indivB = await individualVisionMission(nameB, domSummary("B"), exB);
+      setGenMsg("Compiling your joint vision…"); const jointVM = await jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary, evalSynthesis);
+      setGenMsg("Personalizing your goals…"); const goalsLLM = await personalizeGoals(nameA, nameB, overallSummary, comparison, { goals1yr: localPlan.goals1yr, goals5yr: localPlan.goals5yr, goals10yr: localPlan.goals10yr });
+      const llmUsed = !!(indivA || indivB || jointVM);
+      if (!llmUsed) { setRegenerating(false); setGenMsg(""); window.alert("The AI was reachable but returned nothing usable this time. Your report is unchanged."); return; }
+      const refreshed = {
+        ...results,
+        vision: jointVM?.vision || localPlan.vision,
+        mission: jointVM?.mission || localPlan.mission,
+        goals1yr: goalsLLM?.goals1yr || localPlan.goals1yr,
+        goals5yr: goalsLLM?.goals5yr || localPlan.goals5yr,
+        goals10yr: goalsLLM?.goals10yr || localPlan.goals10yr,
+        indivA, indivB, comparison, llmUsed: true,
+        goalsPersonalized: !!goalsLLM,
+        llmSkipReason: "",
+      };
+      saveResults(refreshed);
+      setEditStmts({ vision: refreshed.vision, mission: refreshed.mission });
+      setSessions((prev) => {
+        if (!prev.length) return prev;
+        const copy = [...prev];
+        copy[copy.length - 1] = { ...copy[copy.length - 1], report: refreshed };
+        persistSessions(copy, refreshed);
+        return copy;
+      });
+    } catch (e) {
+      window.alert("The AI refresh failed mid-way. Your existing report is unchanged.");
+    } finally {
+      setRegenerating(false); setGenMsg("");
+    }
   };
 
   // Read the most recent automatic backup (or null).
@@ -1916,12 +1971,156 @@ export default function App() {
       return { lines, drivers };
     };
 
+    // ── Dedicated PRINT layout (PDF). One section per page, fixed order,
+    // independent of the interactive on-screen layout (hidden in print). Each
+    // .pdf-page forces a page break after it; "fit" pages use smaller type so a
+    // long list stays on its single page.
+    const PrintReport = () => {
+      const A = R.nameA, B = R.nameB;
+      const Page = ({ children, fit }) => (
+        <section className="pdf-page" style={{ fontSize: fit ? 11 : 12.5 }}>{children}</section>
+      );
+      const H = ({ children }) => (
+        <h2 style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-.01em", color: "#1d1d1f", margin: "0 0 14px", borderBottom: "2px solid #e5e5ea", paddingBottom: 8 }}>{children}</h2>
+      );
+      const Sub = ({ children }) => (
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: "#8e8e93", margin: "16px 0 8px" }}>{children}</p>
+      );
+      const goalList = (list, fit) => (
+        <div>
+          {(list || []).map((g, i) => (
+            <div key={i} style={{ display: "flex", gap: 10, padding: fit ? "5px 0" : "8px 0", borderBottom: i < (list || []).length - 1 ? "1px solid #ececec" : "none" }}>
+              <span style={{ color: "#0a84ff", fontWeight: 700, minWidth: 20, fontSize: fit ? 11 : 12 }}>{String(i + 1).padStart(2, "0")}</span>
+              <div>
+                <p style={{ fontSize: fit ? 9 : 10, color: "#8e8e93", textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 2px", fontWeight: 600 }}>{g.domain}</p>
+                <p style={{ fontSize: fit ? 11 : 13, color: "#1d1d1f", margin: 0, lineHeight: 1.4 }}>{g.goal}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+      return (
+        <div className="print-only">
+          <Page>
+            <p style={{ fontSize: 12, color: "#8e8e93", letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, margin: "0 0 4px" }}>CANA — Covenant Life</p>
+            <p style={{ fontSize: 13, color: "#8e8e93", margin: "0 0 20px" }}>A plan for {A} &amp; {B}</p>
+            <H>Joint Vision</H>
+            <p style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.5, color: "#1d1d1f", margin: "0 0 20px", letterSpacing: "-.01em" }}>{R.vision}</p>
+            <H>Joint Mission</H>
+            <p style={{ fontSize: 14, lineHeight: 1.55, color: "#3a3a3c", margin: "0 0 20px" }}>{R.mission}</p>
+            {(R.indivA || R.indivB) ? (
+              <>
+                <H>Individual Visions</H>
+                {["A", "B"].map((p) => { const iv = p === "A" ? R.indivA : R.indivB; const nm = p === "A" ? A : B; if (!iv) return null;
+                  return (
+                    <div key={p} style={{ marginBottom: 14 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: "#b8860b", margin: "0 0 4px" }}>{nm}</p>
+                      <p style={{ fontSize: 12.5, fontStyle: "italic", color: "#1d1d1f", lineHeight: 1.5, margin: "0 0 4px" }}><strong>Vision:</strong> {iv.vision}</p>
+                      <p style={{ fontSize: 12.5, fontStyle: "italic", color: "#3a3a3c", lineHeight: 1.5, margin: 0 }}><strong>Mission:</strong> {iv.mission}</p>
+                    </div>
+                  ); })}
+              </>
+            ) : null}
+          </Page>
+
+          {R.comparison ? (
+            <Page>
+              <H>Future Perfect — Where Your Letters Meet</H>
+              <p style={{ fontSize: 12.5, color: "#3a3a3c", margin: "0 0 16px" }}>Letter alignment: <strong>{R.comparison.letterAlignment}/10</strong>. Differences can be complementary, not just conflicts.</p>
+              <Sub>Top Shared Dreams</Sub>
+              {(R.comparison.commonalities || []).length ? (R.comparison.commonalities || []).map((c, i) => (
+                <div key={i} style={{ borderLeft: "3px solid #34c759", paddingLeft: 12, marginBottom: 10 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, margin: c.detail ? "0 0 2px" : 0, color: "#1d1d1f" }}>{c.theme}</p>
+                  {c.detail ? <p style={{ fontSize: 12, color: "#3a3a3c", margin: 0, lineHeight: 1.4 }}>{c.detail}</p> : null}
+                </div>
+              )) : <p style={{ fontSize: 12.5, color: "#8e8e93" }}>No strongly shared dreams surfaced — worth discussing.</p>}
+            </Page>
+          ) : null}
+
+          {R.comparison ? (
+            <Page>
+              <H>Top Differences</H>
+              <p style={{ fontSize: 12, color: "#8e8e93", margin: "0 0 14px" }}>Where your letters point in different directions. A difference is not automatically a conflict.</p>
+              {(R.comparison.differences || []).length ? (R.comparison.differences || []).map((d, i) => (
+                <div key={i} style={{ borderLeft: `3px solid ${d.tension === "high" ? "#ff3b30" : d.tension === "medium" ? "#ff9f0a" : "#0a84ff"}`, paddingLeft: 12, marginBottom: 12 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, margin: "0 0 2px", color: "#1d1d1f" }}>{d.theme} <span style={{ fontSize: 10, color: "#8e8e93", textTransform: "uppercase" }}>· {d.tension}</span></p>
+                  <p style={{ fontSize: 12, color: "#3a3a3c", margin: 0, lineHeight: 1.4 }}>{d.a} · {d.b}</p>
+                </div>
+              )) : <p style={{ fontSize: 12.5, color: "#8e8e93" }}>No major divergences.</p>}
+            </Page>
+          ) : null}
+
+          <Page fit>
+            <H>Domain Health</H>
+            <div style={{ display: "flex", gap: 8, fontSize: 10, color: "#8e8e93", marginBottom: 8, fontWeight: 600 }}>
+              <span style={{ width: 130 }}></span><span style={{ flex: 1 }}>{A}</span><span style={{ width: 24 }}></span><span style={{ flex: 1 }}>{B}</span><span style={{ width: 24 }}></span><span style={{ width: 34, textAlign: "right" }}>Gap</span>
+            </div>
+            {(R.domainScores || []).map((d) => {
+              const gap = Math.abs(d.avgNormA - d.avgNormB);
+              const gapCol = gap >= 3 ? "#ff3b30" : gap >= 2 ? "#ff9f0a" : "#8e8e93";
+              return (
+                <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+                  <span style={{ fontSize: 11, width: 130, color: "#3a3a3c" }}>{d.label}</span>
+                  <div style={{ flex: 1, height: 6, background: "#ececec", borderRadius: 3, position: "relative" }}><div style={{ position: "absolute", height: "100%", width: `${d.avgNormA * 10}%`, background: "#0a84ff", borderRadius: 3 }} /></div>
+                  <span style={{ fontSize: 11, width: 24, textAlign: "right", color: "#3a3a3c" }}>{d.avgNormA.toFixed(1)}</span>
+                  <div style={{ flex: 1, height: 6, background: "#ececec", borderRadius: 3, position: "relative" }}><div style={{ position: "absolute", height: "100%", width: `${d.avgNormB * 10}%`, background: "#b8860b", borderRadius: 3 }} /></div>
+                  <span style={{ fontSize: 11, width: 24, textAlign: "right", color: "#3a3a3c" }}>{d.avgNormB.toFixed(1)}</span>
+                  <span style={{ fontSize: 10, width: 34, textAlign: "right", color: gapCol, fontWeight: 700 }}>Δ{gap.toFixed(1)}</span>
+                </div>
+              );
+            })}
+            <p style={{ fontSize: 12, color: "#1d1d1f", fontWeight: 700, marginTop: 14 }}>Overall: {R.overallScore?.toFixed ? R.overallScore.toFixed(1) : R.overallScore}/10</p>
+          </Page>
+
+          <Page fit><H>Shared Goals — 1 Year</H>{goalList(R.goals1yr, true)}</Page>
+          <Page fit><H>Shared Goals — 5 Years</H>{goalList(R.goals5yr, true)}</Page>
+          <Page fit><H>Shared Goals — 10 Years</H>{goalList(R.goals10yr, true)}</Page>
+
+          <Page fit>
+            <H>Top Tensions</H>
+            <p style={{ fontSize: 11, color: "#8e8e93", margin: "0 0 12px" }}>Ranked by weighted gap — the conversations worth having.</p>
+            {(R.tensions || []).map((t, i) => (
+              <div key={i} style={{ borderLeft: `3px solid ${t.gapClass?.color || "#ff9f0a"}`, paddingLeft: 12, marginBottom: 10 }}>
+                <p style={{ fontSize: 12.5, fontWeight: 600, margin: "0 0 3px", color: "#1d1d1f" }}>{i + 1}. {t.title}</p>
+                <p style={{ fontSize: 11.5, color: "#3a3a3c", margin: "0 0 3px", lineHeight: 1.4 }}>{t.explanation}</p>
+                <p style={{ fontSize: 10.5, color: "#8e8e93", margin: 0 }}>{A}: {t.scoreA} · {B}: {t.scoreB} · {t.gapClass?.label} · {t.domain}</p>
+              </div>
+            ))}
+          </Page>
+
+          <Page>
+            <H>Insights</H>
+            {(R.flags || []).length ? (R.flags || []).map((f, i) => (
+              <div key={i} style={{ borderLeft: `3px solid ${flagColor(f.type)}`, paddingLeft: 14, marginBottom: 16 }}>
+                <p style={{ fontSize: 10.5, color: "#8e8e93", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 700, margin: "0 0 4px" }}>{f.label}</p>
+                <p style={{ fontSize: 13, color: "#1d1d1f", margin: 0, lineHeight: 1.5 }}>{f.text}</p>
+              </div>
+            )) : <p style={{ fontSize: 12.5, color: "#8e8e93" }}>No critical flags — broad alignment.</p>}
+            <p style={{ fontSize: 10.5, color: "#8e8e93", marginTop: 24, paddingTop: 12, borderTop: "1px solid #ececec", lineHeight: 1.5 }}>Generated by CANA — Covenant Life. These are self-rated reflections and conversation-starters, not clinical measurements.</p>
+          </Page>
+        </div>
+      );
+    };
+
     return (
       <div>
+        <PrintReport />
         <Chrome title={reviewing ? `CANA — Report · ${new Date(archiveReport.ts || Date.now()).toLocaleDateString()}` : "CANA — Your Plan"} right={<div style={{ display: "flex", gap: 8 }}>{reviewing ? <Btn kind="ghost" onClick={() => { setArchiveReport(null); setScreen("dashboard"); window.scrollTo({ top: 0 }); }}>Done reviewing</Btn> : <>{hasHistory ? <Btn kind="ghost" onClick={() => setScreen("dashboard")}>Dashboard</Btn> : null}<Btn kind="ghost" onClick={() => setScreen("welcome")}>Home</Btn></>}</div>} />
         <Wrap>
-          <div style={{ padding: "44px 0 90px" }}>
-            <p style={{ fontSize: 12, color: R.llmUsed ? "var(--gold)" : "var(--ink3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 18 }}>{R.llmUsed ? (R.goalsPersonalized ? "✦ Vision, mission & goals written by your local AI · editable" : "✦ Vision & mission written by your local AI · editable") : "Generated locally · editable"}</p>
+          <div style={{ padding: "44px 0 90px" }} className="no-print">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
+              <p style={{ fontSize: 12, color: R.llmUsed ? "var(--gold)" : "var(--ink3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".08em", margin: 0 }}>{R.llmUsed ? (R.goalsPersonalized ? "✦ Vision, mission & goals written by your local AI · editable" : "✦ Vision & mission written by your local AI · editable") : "Generated locally · editable"}</p>
+              {!reviewing ? (
+                <Btn kind="subtle" style={{ padding: "6px 14px", fontSize: 13 }} disabled={regenerating} onClick={regenerateAI}>
+                  {regenerating ? (genMsg || "Refreshing…") : "↻ Refresh AI output"}
+                </Btn>
+              ) : null}
+            </div>
+            {!reviewing && regenerating ? (
+              <Card className="rise" style={{ marginBottom: 20, padding: 14, background: "var(--bg2)", borderLeft: "3px solid var(--accent)" }}>
+                <p style={{ fontSize: 13, color: "var(--ink2)", margin: 0 }}>{genMsg || "Re-running the local AI…"} The scores and gaps stay the same — only the AI-written text is refreshed.</p>
+              </Card>
+            ) : null}
 
             {!reviewing && !R.llmUsed && R.llmSkipReason ? (
               <Card className="rise no-print" style={{ marginBottom: 20, padding: 16, background: "var(--bg2)", borderLeft: "3px solid var(--amber)" }}>
@@ -1929,7 +2128,7 @@ export default function App() {
                 <p style={{ fontSize: 13, color: "var(--ink2)", lineHeight: 1.5, margin: "0 0 10px" }}>{R.llmSkipReason}</p>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <Btn kind="secondary" style={{ padding: "6px 14px", fontSize: 13 }} onClick={openSetup}>Set up the local AI</Btn>
-                  <Btn kind="subtle" style={{ padding: "6px 14px", fontSize: 13 }} onClick={async () => { await probeOllama(); generate(); }}>Regenerate with AI</Btn>
+                  <Btn kind="subtle" style={{ padding: "6px 14px", fontSize: 13 }} disabled={regenerating} onClick={regenerateAI}>{regenerating ? "Working…" : "Regenerate with AI"}</Btn>
                 </div>
               </Card>
             ) : null}
@@ -2084,8 +2283,8 @@ export default function App() {
             ) : null}
 
             <p style={eyebrow}>Shared Goals</p>
-            {/* On screen: interactive tabbed view (hidden in print). */}
-            <div className="no-print">
+            {/* On screen: interactive tabbed view. The PDF (PrintReport) renders all horizons. */}
+            <div>
               <div style={{ marginBottom: 18 }}><Segmented value={goalsTab} onChange={setGoalsTab} options={[{ value: "1yr", label: "1 Year" }, { value: "5yr", label: "5 Years" }, { value: "10yr", label: "10 Years" }]} /></div>
               <Card style={{ marginBottom: 32 }}>
                 {goals.map((g, i) => (
@@ -2095,22 +2294,6 @@ export default function App() {
                   </div>
                 ))}
               </Card>
-            </div>
-            {/* In print/PDF: ALL three horizons, so the exported plan is complete. */}
-            <div className="print-only">
-              {[{ label: "1 Year", list: R.goals1yr }, { label: "5 Years", list: R.goals5yr }, { label: "10 Years", list: R.goals10yr }].map((grp) => (
-                <div key={grp.label} className="pdf-keep" style={{ marginBottom: 18 }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 8px", color: "var(--ink2)" }}>Goals — {grp.label}</p>
-                  <Card style={{ marginBottom: 12 }}>
-                    {(grp.list || []).map((g, i) => (
-                      <div key={i} style={{ display: "flex", gap: 12, padding: "8px 0", borderBottom: i < (grp.list || []).length - 1 ? "1px solid var(--hair2)" : "none" }}>
-                        <span style={{ fontSize: 12, color: "var(--accent)", fontWeight: 700, minWidth: 22 }}>{String(i + 1).padStart(2, "0")}</span>
-                        <div><p style={{ fontSize: 10, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 2px", fontWeight: 600 }}>{g.domain}</p><p style={{ fontSize: 13, color: "var(--ink)", margin: 0, lineHeight: 1.45 }}>{g.goal}</p></div>
-                      </div>
-                    ))}
-                  </Card>
-                </div>
-              ))}
             </div>
 
             <p style={eyebrow}>Top Tensions</p>

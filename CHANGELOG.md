@@ -1,5 +1,25 @@
 # Changelog
 
+## 4.23.0
+- Added a "↻ Refresh AI output" button to the report screen. It re-runs only the AI-written parts (joint & individual vision/mission, personalized goals, and the letter comparison) using your local model, while keeping all deterministic scores, gaps, and flags exactly the same. Use it when your local model has improved, or when Ollama wasn't running the first time — so a report can be upgraded without redoing the assessment. Falls back gracefully (your existing report is left unchanged) if the AI isn't reachable or returns nothing usable.
+- Note: refresh works on the current/live report (its original answers and letters are still in memory). Archived past reports can't be refreshed because the raw inputs aren't stored with them.
+
+
+## 4.22.0
+- Removed the radar chart legend (it looked cluttered). Each axis is now labeled directly on the chart with a short domain name, so points are still identifiable.
+- Completely rebuilt the PDF export with a clean, fixed one-section-per-page layout, independent of the on-screen view:
+  - Page 1: Joint Vision, Joint Mission, Individual Visions
+  - Page 2: Future Perfect (shared dreams)
+  - Page 3: Top Differences
+  - Page 4: Domain Health
+  - Page 5: Shared Goals — 1 Year (fit to page)
+  - Page 6: Shared Goals — 5 Years (fit to page)
+  - Page 7: Shared Goals — 10 Years (fit to page)
+  - Page 8: Top Tensions (fit to page)
+  - Page 9: Insights
+  The previous PDF reused the interactive screen layout and broke awkwardly across pages; the new one is purpose-built for print with proper page breaks and print-safe colors.
+
+
 ## 4.21.0
 - Security hardening (from an adversarial review):
   - The local-AI endpoint is now hard-restricted to this computer (localhost/127.0.0.1). The app refuses to save or send to any other host, and sanitizes the stored value on read — so the couple's letters and answers can never be redirected off the device, even if the setting were tampered with. The CSP is no longer the only line of defense.
