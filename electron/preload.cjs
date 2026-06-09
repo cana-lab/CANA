@@ -16,4 +16,17 @@ contextBridge.exposeInMainWorld("cana", {
   whichBinary: (name) => ipcRenderer.invoke("cana:which", name),
   // Open a URL in the user's default browser (for download pages).
   openExternal: (url) => ipcRenderer.invoke("cana:open-external", url),
+  // Auto-update (electron-updater). All three are best-effort; they resolve
+  // to { ok: false } in dev or when the updater isn't initialized.
+  updater: {
+    check:    () => ipcRenderer.invoke("cana:update-check"),
+    download: () => ipcRenderer.invoke("cana:update-download"),
+    install:  () => ipcRenderer.invoke("cana:update-install"),
+    // Subscribe to lifecycle events. Returns an unsubscribe function.
+    onStatus: (cb) => {
+      const handler = (_e, payload) => { try { cb(payload); } catch (e) {} };
+      ipcRenderer.on("cana:update-status", handler);
+      return () => ipcRenderer.removeListener("cana:update-status", handler);
+    },
+  },
 });

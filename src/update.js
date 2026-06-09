@@ -1,10 +1,16 @@
 // CANA — update checking
 // ----------------------------------------------------------------------------
-// Checks GitHub Releases for a newer version. No auto-install (that would
-// require Apple code-signing); this only DETECTS and links to the download.
+// Two code paths in one module:
 //
-//  >>> EDIT THIS ONE LINE once your GitHub repo exists: <<<
-//      Set it to "owner/repo", e.g. "dasachs/cana".
+//  - Electron (`window.cana.updater` present): we delegate to the native
+//    electron-updater bridge wired up in main.cjs. Squirrel.Mac verifies the
+//    downloaded .dmg's code signature against the running app's signature
+//    before installing — i.e. only updates signed with the same Developer ID
+//    can replace the current binary. This is the integrity check we did not
+//    have with the old "open the GitHub page" flow.
+//
+//  - Web build (GitHub Pages demo, where no real install is possible): we
+//    fetch /releases/latest and offer the manual download link.
 export const GITHUB_REPO = "cana-lab/CANA"; // your GitHub owner/repo
 
 // Optional hosted location of the update guide page (the web build deployed to
@@ -29,7 +35,34 @@ export function compareVersions(a, b) {
   return 0;
 }
 
-// Check GitHub for the latest release. Returns one of:
+// True if the electron-updater bridge is available (packaged Electron app).
+export function hasNativeUpdater() {
+  try {
+    return typeof window !== "undefined" && window.cana && window.cana.updater &&
+      typeof window.cana.updater.check === "function";
+  } catch (e) { return false; }
+}
+
+// Trigger a native check. The actual state comes back asynchronously via
+// `subscribeUpdateStatus`. Returns { ok: true } on success, { ok: false, error }
+// otherwise (e.g. running in dev or unsigned).
+export async function nativeCheck()    { return hasNativeUpdater() ? window.cana.updater.check()    : { ok: false }; }
+export async function nativeDownload() { return hasNativeUpdater() ? window.cana.updater.download() : { ok: false }; }
+export async function nativeInstall()  { return hasNativeUpdater() ? window.cana.updater.install()  : { ok: false }; }
+
+// Subscribe to update lifecycle events. Returns an unsubscribe function (or
+// a no-op if the bridge is absent). Payload states:
+//   "checking" | "available" {version, notes}
+//   "uptodate" {version}
+//   "downloading" {percent}
+//   "downloaded" {version}
+//   "error" {message}
+export function subscribeUpdateStatus(cb) {
+  if (!hasNativeUpdater() || typeof window.cana.updater.onStatus !== "function") return () => {};
+  return window.cana.updater.onStatus(cb);
+}
+
+// Web-only fallback: check GitHub for the latest release. Returns one of:
 //   { state: "uptodate", current }
 //   { state: "update", current, latest, url, dmgUrl, dmgName, notes }
 //   { state: "unconfigured" }                      (repo not set yet)

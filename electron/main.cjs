@@ -11,6 +11,49 @@ const fs = require("fs");
 
 const isDev = !app.isPackaged;
 
+// ── Auto-update (electron-updater + Squirrel.Mac) ──────────────────────────
+// electron-updater fetches `latest-mac.yml` (and the .dmg) from this repo's
+// GitHub Releases (configured in package.json → build.publish). Squirrel.Mac
+// then verifies the downloaded .dmg's code signature against the signature
+// of the running app — i.e. only updates produced by the same Developer ID
+// will install. That is the integrity check the old fetch-and-prompt flow
+// did not have.
+let autoUpdater = null;
+try {
+  ({ autoUpdater } = require("electron-updater"));
+  autoUpdater.autoDownload = false;       // ask the user first
+  autoUpdater.autoInstallOnAppQuit = true; // but install on next quit once they consented
+  autoUpdater.logger = { info: () => {}, warn: () => {}, error: console.error, debug: () => {} };
+} catch (e) {
+  // In `electron .` dev runs without the dependency installed, fall back gracefully.
+  autoUpdater = null;
+}
+
+// Forward update lifecycle to whichever renderer is open, so the UI can show
+// "downloading…" / "ready to install" without polling.
+function broadcastUpdate(payload) {
+  for (const w of BrowserWindow.getAllWindows()) {
+    try { w.webContents.send("cana:update-status", payload); } catch (e) { /* ignore closed wins */ }
+  }
+}
+
+function wireAutoUpdater() {
+  if (!autoUpdater || isDev) return;
+  autoUpdater.on("checking-for-update", () => broadcastUpdate({ state: "checking" }));
+  autoUpdater.on("update-available",   (info) => broadcastUpdate({ state: "available", version: info.version, notes: info.releaseNotes || "" }));
+  autoUpdater.on("update-not-available", (info) => broadcastUpdate({ state: "uptodate", version: info.version }));
+  autoUpdater.on("download-progress",  (p) => broadcastUpdate({ state: "downloading", percent: Math.round(p.percent || 0) }));
+  autoUpdater.on("update-downloaded",  (info) => broadcastUpdate({ state: "downloaded", version: info.version }));
+  autoUpdater.on("error",              (err) => broadcastUpdate({ state: "error", message: String(err && err.message || err) }));
+}
+
+// IPC: renderer can ask "check now", "start the download", "restart and install".
+// All three are no-ops in dev / when the updater isn't loaded — the UI's old
+// manual-link fallback still works in that case.
+ipcMain.handle("cana:update-check",   async () => { if (autoUpdater && !isDev) { try { await autoUpdater.checkForUpdates(); return { ok: true }; } catch (e) { return { ok: false, error: e.message }; } } return { ok: false, error: "Updater unavailable in dev." }; });
+ipcMain.handle("cana:update-download", async () => { if (autoUpdater && !isDev) { try { await autoUpdater.downloadUpdate(); return { ok: true }; } catch (e) { return { ok: false, error: e.message }; } } return { ok: false }; });
+ipcMain.handle("cana:update-install",  async () => { if (autoUpdater && !isDev) { setImmediate(() => autoUpdater.quitAndInstall()); return { ok: true }; } return { ok: false }; });
+
 // ── First-launch setup IPC ────────────────────────────────────────────────
 // whichBinary: report whether "node" or "ollama" is present. We check the
 // PATH via `command -v` and also a few well-known install locations, because
@@ -153,6 +196,12 @@ function buildMenu() {
 app.whenReady().then(() => {
   buildMenu();
   createWindow();
+  wireAutoUpdater();
+  // A single silent check on launch. The renderer shows a banner when
+  // something is available; we never download or install without consent.
+  if (autoUpdater && !isDev) {
+    setTimeout(() => { try { autoUpdater.checkForUpdates(); } catch (e) {} }, 5000);
+  }
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

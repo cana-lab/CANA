@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.45.0
+- Auto-update (macOS): integrated electron-updater with Squirrel.Mac. The packaged Mac app now silently checks GitHub Releases for a new version 5s after launch and surfaces a banner in Settings if one is available. Downloads happen in the background only after the user clicks "Download & install"; **Squirrel.Mac verifies the new .dmg's code signature against the running app's signature before installing**, so only updates signed with the same Developer ID can replace the current binary. That signature check is the integrity guarantee the old open-the-GitHub-page flow did not have.
+  - New IPC channels (`cana:update-check / -download / -install`) and a JS subscription (`subscribeUpdateStatus`) push lifecycle events (`checking / available / downloading / downloaded / error`) into the UI live.
+  - electron-builder publish config now points at the `cana-lab/CANA` GitHub repo, so `pack:mac` produces both the `.dmg` and the `latest-mac.yml` the updater reads.
+- Electron upgraded from 31 → 32 (latest in the 32.x line). Resolves the Electron ASAR-integrity-bypass advisory and several other moderate-severity issues. *Honest scope*: Electron 42 is the current stable; 11 further advisories require additional major bumps and are tracked as an open item for the post-beta hardening pass. With sandbox:true + contextIsolation:true (already in place), the actual exploitability of the remaining issues against CANA is small.
+- Local crash diagnostics (no telemetry):
+  - New `src/crashLog.js` writes the last 25 React render errors and uncaught JS errors/promise rejections to localStorage, with timestamps, version, and platform. **Nothing leaves the device.** No Sentry, no PostHog, no fetch.
+  - ErrorBoundary now offers "Save diagnostic log" alongside "Return home" — saves a JSON file the user can email to support if they choose.
+  - Settings → new "Diagnostic log" card exposes Save / Clear and the entry count. Privacy promise explicit in the UI copy.
+- App.jsx split: **bewusst aufgeschoben.** The file is 2872 lines as a single component. Splitting it without UI tests in place is the kind of refactor that has crashed all platforms before in this repo (CHANGELOG 4.37.0). The right sequence is (a) Playwright or Vitest-browser tests for the main flows first, then (b) screen-by-screen extraction. Tracked as a post-beta task.
+- Verified: all 26 unit tests pass; web + electron + iOS web builds clean. NOT verified (out of this environment's reach): real Squirrel.Mac update flow with a signed/notarized build, electron-updater behavior on first install vs. update, real iOS device build with the updated bundle.
+
 ## 4.44.0
 - Release-readiness pass for App Store / TestFlight, plus the project hygiene the chat-based workflow had left half-finished. Code behavior is unchanged for end users; what shifted is *how the app is built, signed, tested, and released*.
 - iOS — App Store blockers fixed in source:

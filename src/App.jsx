@@ -12,9 +12,13 @@ import {
 } from "./llm.js";
 import { TREE_PATH, TREE_TRANSFORM } from "./logo.js";
 import { INTRO_SECTIONS, PREPARE, SCORE_INFO, MODEL_CHOICES, SETUP } from "./content.js";
-import { APP_VERSION, checkForUpdate, GUIDE_BASE } from "./update.js";
+import {
+  APP_VERSION, checkForUpdate, GUIDE_BASE,
+  hasNativeUpdater, nativeCheck, nativeDownload, nativeInstall, subscribeUpdateStatus,
+} from "./update.js";
 import { createProfile, signIn, listProfiles, registerProfileRecord } from "./auth.js";
 import { encryptPayload, decryptPayload, buildTransferPayload, validateTransfer } from "./transfer.js";
+import { exportCrashLog, readCrashLog, clearCrashLog } from "./crashLog.js";
 import { METRIC_INFO, scaleText, SCORE_BANDS, bandFor } from "./metrics.js";
 import { QUESTION_HELP } from "./questionHelp.js";
 
@@ -869,6 +873,18 @@ export default function App() {
 
   const runUpdateCheck = async () => {
     setUpdate({ checking: true, result: null });
+    // Packaged desktop: delegate to electron-updater (Squirrel.Mac verifies
+    // the new .dmg's signature against ours before installing). The status
+    // arrives asynchronously via subscribeUpdateStatus below.
+    if (hasNativeUpdater()) {
+      const r = await nativeCheck();
+      if (!r.ok) {
+        setUpdate({ checking: false, result: { state: "error", message: r.error || "Updater unavailable." } });
+      }
+      // The "available / uptodate / error" state will come in via the
+      // subscription effect; don't synthesise a result here.
+      return;
+    }
     const result = await checkForUpdate();
     setUpdate({ checking: false, result });
     // Auto-dismiss the message after 10 seconds (but keep an available update visible).
@@ -876,6 +892,22 @@ export default function App() {
       setTimeout(() => setUpdate((u) => (u.result === result ? { checking: false, result: null } : u)), 10000);
     }
   };
+
+  // Subscribe to native updater lifecycle once at mount. The bridge is only
+  // present in the packaged Electron app, so this is a no-op on web / iOS.
+  useEffect(() => {
+    if (!hasNativeUpdater()) return;
+    const off = subscribeUpdateStatus((s) => {
+      if (!s) return;
+      if (s.state === "checking")    setUpdate({ checking: true,  result: null });
+      else if (s.state === "available")   setUpdate({ checking: false, result: { state: "update",   current: APP_VERSION, latest: s.version, notes: s.notes || "", native: true } });
+      else if (s.state === "uptodate")    setUpdate({ checking: false, result: { state: "uptodate", current: APP_VERSION } });
+      else if (s.state === "downloading") setUpdate({ checking: false, result: { state: "downloading", percent: s.percent, native: true } });
+      else if (s.state === "downloaded")  setUpdate({ checking: false, result: { state: "downloaded",  version: s.version, native: true } });
+      else if (s.state === "error")       setUpdate({ checking: false, result: { state: "error",      message: s.message || "Update error" } });
+    });
+    return off;
+  }, []);
 
   const generate = async () => {
     setGenerating(true); setGenProg(5); setGenMsg("Scoring on this device…");
@@ -1464,6 +1496,28 @@ export default function App() {
             <p style={{ fontSize: 11.5, color: "var(--ink3)", marginTop: 12, marginBottom: 0, lineHeight: 1.5 }}>
               Importing replaces this profile's current answers and reports with the ones in the file. Keep your passphrase somewhere safe — it cannot be recovered.
             </p>
+          </Card>
+
+          <Card style={{ marginTop: 14, padding: 22 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-.015em", color: "var(--ink)", margin: "0 0 6px" }}>Diagnostic log</h2>
+            <p style={{ fontSize: 12.5, color: "var(--ink3)", margin: "0 0 14px", lineHeight: 1.55 }}>
+              If the app ever crashes or misbehaves, the last {25} errors are kept on this device. You can save them as a file and send it to support if you'd like help. <strong>Nothing is sent automatically.</strong> No data ever leaves your machine without your action.
+            </p>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <Btn kind="secondary" onClick={() => {
+                const n = readCrashLog().length;
+                if (n === 0) { window.alert("No diagnostic entries recorded — nothing to save."); return; }
+                exportCrashLog();
+              }}>
+                Save diagnostic log
+              </Btn>
+              <button onClick={() => {
+                if (window.confirm("Clear all diagnostic entries on this device?")) clearCrashLog();
+              }} style={{ border: "none", background: "none", color: "var(--ink3)", fontSize: 12.5, cursor: "pointer", padding: 0 }}>
+                Clear log
+              </button>
+              <span style={{ fontSize: 11.5, color: "var(--ink3)" }}>{readCrashLog().length} entries recorded</span>
+            </div>
           </Card>
 
           {update.result ? (
