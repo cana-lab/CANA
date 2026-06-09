@@ -1520,25 +1520,83 @@ export default function App() {
             </div>
           </Card>
 
-          {update.result ? (
-            <div className="rise" style={{ marginTop: 12, padding: "12px 16px", borderRadius: 10, maxWidth: 520,
-              background: update.result.state === "update" ? "rgba(10,132,255,0.07)" : "var(--bg2)",
-              borderLeft: `3px solid ${update.result.state === "update" ? "var(--accent)" : update.result.state === "error" ? "var(--amber)" : "var(--green)"}` }}>
-              {update.result.state === "update" ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 13.5, color: "var(--ink)" }}>CANA {update.result.latest} is available (you have {update.result.current}).</span>
-                  <Btn kind="secondary" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => openUpdateGuide(update.result)}>Download &amp; install →</Btn>
-                  <button onClick={() => openDownload(update.result.url)} style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 12.5, fontWeight: 500, cursor: "pointer", padding: 0 }}>View on GitHub</button>
-                </div>
-              ) : update.result.state === "uptodate" ? (
-                <span style={{ fontSize: 13.5, color: "var(--ink2)" }}>You're up to date — CANA {update.result.current} is the latest.</span>
-              ) : update.result.state === "unconfigured" ? (
-                <span style={{ fontSize: 13.5, color: "var(--ink2)" }}>Update checking isn't set up yet. (No release source configured.)</span>
-              ) : (
-                <span style={{ fontSize: 13.5, color: "var(--ink2)" }}>{update.result.message}</span>
-              )}
-            </div>
-          ) : null}
+          {(update.checking || update.result) ? (() => {
+            const r = update.result || {};
+            const isNative = !!r.native;            // came from electron-updater
+            const accent =
+              r.state === "update"      ? "var(--accent)" :
+              r.state === "available"   ? "var(--accent)" :
+              r.state === "downloading" ? "var(--accent)" :
+              r.state === "downloaded"  ? "var(--green)"  :
+              r.state === "error"       ? "var(--amber)"  : "var(--green)";
+            const tint =
+              r.state === "update" || r.state === "available" || r.state === "downloading"
+                ? "rgba(10,132,255,0.07)"
+                : r.state === "downloaded" ? "rgba(52,199,89,0.07)"
+                : r.state === "error" ? "rgba(255,159,10,0.07)"
+                : "var(--bg2)";
+            return (
+              <div className="rise" style={{ marginTop: 12, padding: "14px 18px", borderRadius: 10, maxWidth: 560, background: tint, borderLeft: `3px solid ${accent}` }}>
+                {update.checking && !r.state ? (
+                  <span style={{ fontSize: 13.5, color: "var(--ink2)" }}>Checking for updates…</span>
+                ) : r.state === "checking" ? (
+                  <span style={{ fontSize: 13.5, color: "var(--ink2)" }}>Checking for updates…</span>
+                ) : r.state === "available" && isNative ? (
+                  // Native flow: electron-updater has confirmed an update.
+                  <div>
+                    <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--ink)", marginBottom: 4 }}>CANA {r.latest} is available</div>
+                    <div style={{ fontSize: 12.5, color: "var(--ink3)", marginBottom: 10 }}>You have {r.current}. The update will download in the background; you can keep using the app.</div>
+                    {r.notes ? (
+                      <details style={{ marginBottom: 10 }}>
+                        <summary style={{ fontSize: 12, color: "var(--accent)", cursor: "pointer" }}>Release notes</summary>
+                        <pre style={{ fontSize: 12, color: "var(--ink2)", whiteSpace: "pre-wrap", maxHeight: 160, overflow: "auto", marginTop: 8, padding: 10, background: "var(--bg2)", borderRadius: 8 }}>{String(r.notes).slice(0, 1200)}</pre>
+                      </details>
+                    ) : null}
+                    <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                      <Btn style={{ padding: "8px 18px", fontSize: 13.5 }} onClick={async () => {
+                        const dl = await nativeDownload();
+                        if (!dl.ok) setUpdate({ checking: false, result: { state: "error", message: dl.error || "Download failed to start." } });
+                      }}>Download update</Btn>
+                      <button onClick={() => setUpdate({ checking: false, result: null })} style={{ border: "none", background: "none", color: "var(--ink3)", fontSize: 12.5, cursor: "pointer", padding: 0 }}>Not now</button>
+                    </div>
+                  </div>
+                ) : r.state === "update" ? (
+                  // Legacy / web fallback: open GitHub page or download URL.
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13.5, color: "var(--ink)" }}>CANA {r.latest} is available (you have {r.current}).</span>
+                    <Btn kind="secondary" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => openUpdateGuide(r)}>Download &amp; install →</Btn>
+                    <button onClick={() => openDownload(r.url)} style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 12.5, fontWeight: 500, cursor: "pointer", padding: 0 }}>View on GitHub</button>
+                  </div>
+                ) : r.state === "downloading" ? (
+                  <div>
+                    <div style={{ fontSize: 13.5, color: "var(--ink)", marginBottom: 8 }}>Downloading update…</div>
+                    <div style={{ height: 6, background: "var(--hair)", borderRadius: 999, overflow: "hidden" }}>
+                      <div style={{ width: `${Math.max(2, Math.min(100, r.percent || 0))}%`, height: "100%", background: "var(--accent)", transition: "width .3s ease" }} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                      <span style={{ fontSize: 12, color: "var(--ink3)" }}>You can keep using CANA.</span>
+                      <span style={{ fontSize: 12, color: "var(--ink3)", fontVariantNumeric: "tabular-nums" }}>{Math.round(r.percent || 0)}%</span>
+                    </div>
+                  </div>
+                ) : r.state === "downloaded" ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: 220 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--ink)" }}>CANA {r.version} is ready to install</div>
+                      <div style={{ fontSize: 12.5, color: "var(--ink3)", marginTop: 2 }}>Apple has verified the new version's signature. CANA will quit, install the update, and reopen.</div>
+                    </div>
+                    <Btn style={{ padding: "8px 18px", fontSize: 13.5 }} onClick={() => nativeInstall()}>Restart &amp; install</Btn>
+                    <button onClick={() => setUpdate({ checking: false, result: null })} style={{ border: "none", background: "none", color: "var(--ink3)", fontSize: 12.5, cursor: "pointer", padding: 0 }}>Install on next quit</button>
+                  </div>
+                ) : r.state === "uptodate" ? (
+                  <span style={{ fontSize: 13.5, color: "var(--ink2)" }}>You're up to date — CANA {r.current || APP_VERSION} is the latest.</span>
+                ) : r.state === "unconfigured" ? (
+                  <span style={{ fontSize: 13.5, color: "var(--ink2)" }}>Update checking isn't set up yet. (No release source configured.)</span>
+                ) : r.state === "error" ? (
+                  <span style={{ fontSize: 13.5, color: "var(--ink2)" }}>{r.message || "Update check failed."}</span>
+                ) : null}
+              </div>
+            );
+          })() : null}
         </div>
       </Wrap>
     </div>

@@ -1,5 +1,16 @@
 # Changelog
 
+## 4.46.0
+- Electron upgraded from 32 → 42 (current stable). With this bump all 17 Electron-specific advisories that npm audit had flagged are gone — the remaining 8 advisories are entirely in dev-only build tooling (electron-builder transitive tar, vite/esbuild dev server), nothing that ships in the user-facing binary. The main.cjs / preload.cjs APIs we use (BrowserWindow, ipcMain.handle, Menu.buildFromTemplate, shell.openExternal, app lifecycle) are unchanged across this range, so no application code had to move.
+- Settings → update banner: native UX redesign for the electron-updater flow.
+  - **Checking**: small inline status while the GitHub release index is fetched.
+  - **Update available**: app name + version + optional collapsed release notes; primary "Download update" button triggers the background download.
+  - **Downloading**: live progress bar with percent, with a note that the app keeps working.
+  - **Ready to install**: "Restart & install" + a "Install on next quit" deferral, with explicit copy that Apple has verified the new version's signature (Squirrel.Mac signature check).
+  - **Up to date / error / unconfigured** states keep the previous one-line treatment.
+  - The web-fallback "Download & install →" path (used by the GitHub Pages demo where no native installer exists) is preserved unchanged.
+- Verified: 26 unit tests pass; web + electron + iOS web builds clean; `electron --version` reports 42.4.0; all Node-side scripts parse clean. NOT verified: real Squirrel.Mac install handoff (needs a signed/notarized previous version on disk and a new release in `cana-lab/CANA`), iOS device build.
+
 ## 4.45.0
 - Auto-update (macOS): integrated electron-updater with Squirrel.Mac. The packaged Mac app now silently checks GitHub Releases for a new version 5s after launch and surfaces a banner in Settings if one is available. Downloads happen in the background only after the user clicks "Download & install"; **Squirrel.Mac verifies the new .dmg's code signature against the running app's signature before installing**, so only updates signed with the same Developer ID can replace the current binary. That signature check is the integrity guarantee the old open-the-GitHub-page flow did not have.
   - New IPC channels (`cana:update-check / -download / -install`) and a JS subscription (`subscribeUpdateStatus`) push lifecycle events (`checking / available / downloading / downloaded / error`) into the UI live.

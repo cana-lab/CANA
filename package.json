@@ -1,7 +1,7 @@
 {
   "name": "cana",
   "private": true,
-  "version": "4.45.0",
+  "version": "4.46.0",
   "type": "module",
   "description": "A private, local-first biblical life-planning tool for couples. Runs in a desktop browser and talks directly to a local Ollama LLM. No data leaves your machine.",
   "license": "MIT",
@@ -35,7 +35,7 @@
     "@electron/notarize": "^2.5.0",
     "@vitejs/plugin-react": "^4.3.1",
     "concurrently": "^8.2.2",
-    "electron": "^32.3.3",
+    "electron": "^42.4.0",
     "electron-builder": "^24.13.3",
     "jsdom": "^29.1.1",
     "vite": "^5.4.0",
