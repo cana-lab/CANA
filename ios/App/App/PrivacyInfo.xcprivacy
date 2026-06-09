@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  CANA — Privacy manifest (Apple Privacy Manifest, required since May 2024).
+  https://developer.apple.com/documentation/bundleresources/privacy_manifest_files
+
+  This declares, in source-controlled form, that CANA on iOS:
+    - Collects NO data from the user (NSPrivacyCollectedDataTypes empty).
+    - Does NOT track the user (NSPrivacyTracking = false), and has no
+      cross-context tracking domains (NSPrivacyTrackingDomains empty).
+    - Accesses one "required reason" API category — UserDefaults — solely
+      to store the app's own settings/state on this device (reason CA92.1).
+
+  All user content (couple's answers, letters, results) is stored locally
+  via WKWebView's storage and never leaves the device. There is no server,
+  no analytics, no telemetry, and no third-party tracking SDK.
+
+  The Capacitor pods ship their own PrivacyInfo.xcprivacy declarations for
+  the APIs they each use; Apple aggregates them at build time.
+-->
+<plist version="1.0">
+<dict>
+    <key>NSPrivacyTracking</key>
+    <false/>
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array/>
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <!-- CA92.1: Access info from same app, per Apple docs.
+                     We use UserDefaults (via WKWebView's storage layer) to
+                     persist this app's own settings on this device. -->
+                <string>CA92.1</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>

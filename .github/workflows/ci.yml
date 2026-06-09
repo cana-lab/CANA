@@ -1,0 +1,80 @@
+name: CI
+
+# Runs on every push and pull request to verify the three platform bundles
+# still build cleanly, all unit tests pass, and the version files are in sync.
+# This is the safety net the project did not have before — a fresh checkout on
+# someone else's machine has to do exactly what your machine does.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Web + Electron + iOS-web build, unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check version sync (package.json ↔ ios pbxproj)
+        run: npm run versions:check
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Build web bundle
+        run: npm run build
+
+      - name: Build electron renderer
+        env:
+          BUILD_TARGET: electron
+        run: npm run build
+
+      - name: Build iOS web layer
+        env:
+          BUILD_TARGET: ios
+        run: npm run build
+
+      - name: Upload web bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-bundle-${{ github.sha }}
+          path: dist
+          retention-days: 7
+
+  electron-package:
+    # On a real PR we don't have Apple credentials, so we only verify the
+    # unsigned electron-builder packaging succeeds — same as `pack:mac` minus
+    # signing/notarization. This catches electron-builder config breakage early.
+    name: Electron unsigned pack (macOS runner)
+    runs-on: macos-latest
+    needs: build-and-test
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build and package (unsigned)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          npm run predist:mac
+          npx electron-builder --mac --publish never -c.mac.identity=null

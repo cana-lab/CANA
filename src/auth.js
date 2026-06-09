@@ -125,3 +125,33 @@ export async function signIn({ email, password }) {
 export function listProfiles() {
   return loadProfiles().map((p) => ({ id: p.id, email: p.email, nameA: p.nameA, nameB: p.nameB }));
 }
+
+// Register a profile that already carries its own credentials (salt + hash),
+// e.g. one brought over from another device via encrypted import. We DO NOT
+// re-hash — the same email + password the user had on the original device will
+// work here unchanged. If a profile with this email already exists on this
+// device, we return it instead of overwriting (the caller decides what to do).
+export function registerProfileRecord(rec) {
+  if (!rec || !rec.email || !rec.hash || !rec.salt) {
+    return { ok: false, error: "The file is missing account credentials." };
+  }
+  const e = String(rec.email).trim().toLowerCase();
+  const id = profileId(e);
+  const list = loadProfiles();
+  const existing = list.find((p) => p.id === id);
+  if (existing) return { ok: true, profile: existing, existed: true };
+  const profile = {
+    id,
+    nameA: (rec.nameA || "").trim(),
+    nameB: (rec.nameB || "").trim(),
+    email: e,
+    salt: rec.salt,
+    hash: rec.hash,
+    algo: rec.algo || "pbkdf2",
+    createdAt: rec.createdAt || new Date().toISOString(),
+    importedAt: new Date().toISOString(),
+  };
+  list.push(profile);
+  saveProfiles(list);
+  return { ok: true, profile, existed: false };
+}

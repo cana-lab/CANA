@@ -15,14 +15,16 @@ export const QUESTION_HELP = {
   f5: "This asks how settled and at peace you feel about where you stand with God — your sense of security in your faith, free of nagging fear or doubt.",
   f6: "This asks whether, when you face big decisions, you sense God guiding you — a lived, active faith rather than one that stays purely theoretical.",
   f7: "This asks whether you're actually growing as a person in Christlike ways — more patient, humble, and self-giving than you used to be. These are the traits that show up most in a marriage.",
-  f8: "This asks how spiritually 'on the same page' you feel with your spouse. A big difference between the two of you here is worth noticing, because shared faith tends to anchor everything else.",
+  f8: "This asks whether the two of you see your marriage itself as something sacred — God-given, with a holy purpose — rather than only a practical partnership. A big gap between you here is worth noticing.",
   f9: "This asks whether your children actually see your faith lived out — in what you do, not only what you say.",
   f10: "This asks whether you're putting your gifts to use in serving others, as opposed to faith staying private and inward.",
   f11: "This asks how pressing it feels, to you, to deepen your own faith over the next year or two. It's measuring felt priority, which helps rank what to focus on.",
   f12: "This asks whether you sense God may be calling your family toward something significant that you haven't fully stepped into yet.",
+  f13: "This asks whether you feel safe being spiritually honest with your spouse — sharing doubts and struggles without fear of being judged. It's about spiritual closeness, not having it all figured out.",
+  f14: "This gently asks whether you carry a fear that God might stop loving you if you fail Him. There's no right answer — it's a private point for reflection, not a test, and a higher answer simply lowers the score because it points to anxiety rather than rest.",
 
   // ── Marriage & Covenant ──
-  m1: "This asks whether you feel truly seen and loved by your spouse — known for who you really are, not just living alongside each other.",
+  m1: "This asks how well you actually know your spouse's inner world — could you name their current hopes, dreams, and worries? It's about up-to-date knowledge of their life, not just affection.",
   m2: "This asks whether the two of you can talk about hard things without it turning destructive — being able to raise difficult topics and stay connected through them.",
   m3: "This asks how healthy and fulfilling your closeness is — both physical and emotional intimacy together.",
   m4: "This asks whether you're content with your time together — both how much of it there is and how good it is.",
@@ -36,9 +38,10 @@ export const QUESTION_HELP = {
   m12: "This asks whether your marriage is actively getting stronger — not just holding steady or coasting.",
   m13: "This asks whether you feel free to be fully and honestly yourself in your marriage, without having to hide or perform.",
   m14: "This asks how much unresolved tension in your marriage weighs on you. A high answer here points to something that needs attention — which is why it counts toward a lower (not higher) score.",
-  m15: "This asks how often, in conflict, you tend to put the problem mostly on your spouse. Honest self-examination here is healthy; a high answer is a flag, which is why it lowers the score rather than raising it.",
+  m15: "This asks how often, during conflict, you feel contempt toward your spouse — sarcasm, mockery, eye-rolling, or a sense of being above them. It's the hardest of these to admit, and the most important: a high answer is a flag, which is why it lowers the score.",
   m16: "This asks whether you actively help each other become the people God is calling you to be — growth as a shared project.",
   m17: "This asks whether you've actually told your spouse what you expect — out loud — rather than assuming they should already know. Unspoken expectations are a common, quiet source of strain.",
+  m18: "This asks whether, when arguments get intense, you shut down or go silent — withdrawing rather than staying engaged. It's often a sign of feeling overwhelmed. A higher answer lowers the score.",
 
   // ── Children & Family ──
   c1: "This asks how satisfied you are with your relationship with each of your children — its closeness and depth, child by child.",
@@ -51,6 +54,7 @@ export const QUESTION_HELP = {
   c8: "This asks whether parenting is leaving enough room for your marriage and your own inner life — or crowding them out.",
   c9: "This asks how equipped and confident you feel in your role as a parent.",
   c10: "This asks how important it feels, to you, to get more aligned on parenting over the next year or two.",
+  c11: "This asks whether you see raising your children as a sacred calling that God is also using to shape and grow you — parenting as formation, not only duty.",
 
   // ── Vocation & Work ──
   v1: "This asks whether your work feels like a genuine calling with meaning, rather than just something you do out of obligation or habit.",
@@ -92,7 +96,7 @@ export const QUESTION_HELP = {
   b1: "This asks how satisfied you are with your current physical health and energy.",
   b2: "This asks whether you have sustainable, consistent habits around sleep, exercise, and eating — patterns you can actually keep.",
   b3: "This asks whether you're building physical health now that will still serve you in your 60s and 70s.",
-  b4: "This asks whether you manage stress well and have healthy emotional and mental rhythms.",
+  b4: "This asks whether arguments physically overwhelm you — heart racing, too worked up to think straight. That bodily 'flooding' makes calm problem-solving almost impossible. A high answer is a flag, which is why it lowers the score.",
   b5: "This asks whether your physical health supports the life you want — rather than holding you back from it.",
   b6: "This asks how urgently your physical health needs sustained, intentional investment.",
   b7: "This asks whether you treat rest and Sabbath as something that genuinely matters — a real discipline, not an afterthought.",
@@ -119,12 +123,13 @@ export const QUESTION_HELP = {
   // ── Intimacy & Sexual Union ──
   in1: "This asks, overall, how satisfied you are with the physical intimacy in your marriage. Answer for how things are now, honestly and just for yourself.",
   in2: "This asks whether intimacy feels emotionally close — a real sense of connection with your spouse, not just physical.",
-  in3: "This asks whether the two of you can talk about your sex life openly and kindly, rather than it being an awkward or off-limits subject.",
+  in3: "This asks how satisfied you are with the warmth, affection, and caring between you — the everyday tenderness, not only sex.",
   in4: "This asks whether you feel wanted and cherished by your spouse.",
   in5: "This asks whether your levels of desire and how often you're intimate feel comfortable to both of you — not a source of pressure or frustration on either side.",
   in6: "This asks whether leftover hurt or resentment tends to get in the way of intimacy. A high answer means it does, so it lowers the score — it's pointing at something to address, not a judgment.",
   in7: "This asks whether you're at peace with how the two of you handle intimacy through changing seasons — stress, pregnancy, illness, age — rather than only on good days.",
   in8: "This asks how pressing it feels to give your intimacy some intentional attention over the next year or two.",
+  in9: "This asks whether you experience physical intimacy as something that renews your commitment to each other — a meaningful reaffirming of your bond, not only a physical act. A reflective question about meaning.",
 
   // ── In-Laws & Extended Family ──
   il1: "This asks whether you and your spouse act as a united team when it comes to your parents and wider families — facing them together rather than being divided.",
@@ -135,4 +140,5 @@ export const QUESTION_HELP = {
   il6: "This asks how much tension or conflict with family members weighs on your marriage. A high answer means it's a burden, so it lowers the score.",
   il7: "This asks whether you're able to set and hold loving boundaries with family when you need to — firm but kind, not cutting people off.",
   il8: "This asks how important it feels to work on extended-family dynamics over the next year or two.",
+  il9: "This asks whether you instinctively take your spouse's side and protect your marriage when your own family criticizes them — putting the two of you first as a unit.",
 };

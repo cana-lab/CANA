@@ -24,53 +24,53 @@
 export const RESPONSE_TYPES = {
   AGREEMENT: {
     name: "Agreement",
-    low:  [{ v: 0, l: "0", d: "Not true" },     { v: 1, l: "1", d: "Rarely true" }, { v: 2, l: "2", d: "Seldom true" },  { v: 3, l: "3", d: "Partly true" }],
-    high: [{ v: 7, l: "7", d: "Mostly true" },   { v: 8, l: "8", d: "Often true" },  { v: 9, l: "9", d: "Very true" },    { v: 10, l: "10", d: "Fully true" }],
+    low:  [{ v: 0, l: "0", d: "Not true" },     { v: 1, l: "1", d: "Rarely true" }, { v: 2, l: "2", d: "Seldom true" },  { v: 3, l: "3", d: "Partly true" }, { v: 4, l: "4", d: "Somewhat true" }],
+    high: [{ v: 6, l: "6", d: "Fairly true" },   { v: 7, l: "7", d: "Mostly true" },   { v: 8, l: "8", d: "Often true" },  { v: 9, l: "9", d: "Very true" },    { v: 10, l: "10", d: "Fully true" }],
   },
   SATISFACTION: {
     name: "Satisfaction",
-    low:  [{ v: 0, l: "0", d: "Deeply unsatisfied" }, { v: 1, l: "1", d: "Very unsatisfied" }, { v: 2, l: "2", d: "Unsatisfied" }, { v: 3, l: "3", d: "Slightly unsatisfied" }],
-    high: [{ v: 7, l: "7", d: "Mostly satisfied" },   { v: 8, l: "8", d: "Satisfied" },        { v: 9, l: "9", d: "Very satisfied" }, { v: 10, l: "10", d: "Fully satisfied" }],
+    low:  [{ v: 0, l: "0", d: "Deeply unsatisfied" }, { v: 1, l: "1", d: "Very unsatisfied" }, { v: 2, l: "2", d: "Unsatisfied" }, { v: 3, l: "3", d: "Slightly unsatisfied" }, { v: 4, l: "4", d: "Somewhat unsatisfied" }],
+    high: [{ v: 6, l: "6", d: "Somewhat satisfied" }, { v: 7, l: "7", d: "Mostly satisfied" },   { v: 8, l: "8", d: "Satisfied" },        { v: 9, l: "9", d: "Very satisfied" }, { v: 10, l: "10", d: "Fully satisfied" }],
   },
   FREQUENCY: {
     name: "Frequency",
-    low:  [{ v: 0, l: "0", d: "Never" },   { v: 1, l: "1", d: "Almost never" }, { v: 2, l: "2", d: "Rarely" },     { v: 3, l: "3", d: "Occasionally" }],
-    high: [{ v: 7, l: "7", d: "Often" },   { v: 8, l: "8", d: "Regularly" },    { v: 9, l: "9", d: "Very often" }, { v: 10, l: "10", d: "Consistently" }],
+    low:  [{ v: 0, l: "0", d: "Never" },   { v: 1, l: "1", d: "Almost never" }, { v: 2, l: "2", d: "Rarely" },     { v: 3, l: "3", d: "Occasionally" }, { v: 4, l: "4", d: "Sometimes" }],
+    high: [{ v: 6, l: "6", d: "Fairly often" }, { v: 7, l: "7", d: "Often" },   { v: 8, l: "8", d: "Regularly" },    { v: 9, l: "9", d: "Very often" }, { v: 10, l: "10", d: "Consistently" }],
   },
   CLARITY: {
     name: "Clarity",
-    low:  [{ v: 0, l: "0", d: "No clarity" },     { v: 1, l: "1", d: "Very unclear" }, { v: 2, l: "2", d: "Unclear" },     { v: 3, l: "3", d: "Slightly clear" }],
-    high: [{ v: 7, l: "7", d: "Fairly clear" },   { v: 8, l: "8", d: "Clear" },        { v: 9, l: "9", d: "Very clear" },  { v: 10, l: "10", d: "Completely clear" }],
+    low:  [{ v: 0, l: "0", d: "No clarity" },     { v: 1, l: "1", d: "Very unclear" }, { v: 2, l: "2", d: "Unclear" },     { v: 3, l: "3", d: "Slightly clear" }, { v: 4, l: "4", d: "Somewhat clear" }],
+    high: [{ v: 6, l: "6", d: "Mostly clear" },   { v: 7, l: "7", d: "Fairly clear" },   { v: 8, l: "8", d: "Clear" },        { v: 9, l: "9", d: "Very clear" },  { v: 10, l: "10", d: "Completely clear" }],
   },
   URGENCY: {
     name: "Urgency",
-    low:  [{ v: 0, l: "0", d: "Not urgent" },     { v: 1, l: "1", d: "Very low" }, { v: 2, l: "2", d: "Low" },           { v: 3, l: "3", d: "Somewhat low" }],
-    high: [{ v: 7, l: "7", d: "Fairly urgent" },  { v: 8, l: "8", d: "Urgent" },   { v: 9, l: "9", d: "Very urgent" },   { v: 10, l: "10", d: "Critical" }],
+    low:  [{ v: 0, l: "0", d: "Not urgent" },     { v: 1, l: "1", d: "Very low" }, { v: 2, l: "2", d: "Low" },           { v: 3, l: "3", d: "Somewhat low" }, { v: 4, l: "4", d: "Mild" }],
+    high: [{ v: 6, l: "6", d: "Moderate" },       { v: 7, l: "7", d: "Fairly urgent" },  { v: 8, l: "8", d: "Urgent" },   { v: 9, l: "9", d: "Very urgent" },   { v: 10, l: "10", d: "Critical" }],
   },
   IMPORTANCE: {
     name: "Importance",
-    low:  [{ v: 0, l: "0", d: "Not important" },    { v: 1, l: "1", d: "Very minor" }, { v: 2, l: "2", d: "Minor" },        { v: 3, l: "3", d: "Somewhat minor" }],
-    high: [{ v: 7, l: "7", d: "Fairly important" }, { v: 8, l: "8", d: "Important" },  { v: 9, l: "9", d: "Very important" }, { v: 10, l: "10", d: "Essential" }],
+    low:  [{ v: 0, l: "0", d: "Not important" },    { v: 1, l: "1", d: "Very minor" }, { v: 2, l: "2", d: "Minor" },        { v: 3, l: "3", d: "Somewhat minor" }, { v: 4, l: "4", d: "Mildly relevant" }],
+    high: [{ v: 6, l: "6", d: "Moderately important" }, { v: 7, l: "7", d: "Fairly important" }, { v: 8, l: "8", d: "Important" },  { v: 9, l: "9", d: "Very important" }, { v: 10, l: "10", d: "Essential" }],
   },
   CONCERN: {
     name: "Concern",
-    low:  [{ v: 0, l: "0", d: "No concern" },        { v: 1, l: "1", d: "Barely concerns" }, { v: 2, l: "2", d: "Minor concern" },    { v: 3, l: "3", d: "Somewhat concerns" }],
-    high: [{ v: 7, l: "7", d: "Fairly concerned" },  { v: 8, l: "8", d: "Concerned" },       { v: 9, l: "9", d: "Very concerned" },   { v: 10, l: "10", d: "Deeply troubled" }],
+    low:  [{ v: 0, l: "0", d: "No concern" },        { v: 1, l: "1", d: "Barely concerns" }, { v: 2, l: "2", d: "Minor concern" },    { v: 3, l: "3", d: "Somewhat concerns" }, { v: 4, l: "4", d: "Mild concern" }],
+    high: [{ v: 6, l: "6", d: "Moderate concern" },  { v: 7, l: "7", d: "Fairly concerned" },  { v: 8, l: "8", d: "Concerned" },       { v: 9, l: "9", d: "Very concerned" },   { v: 10, l: "10", d: "Deeply troubled" }],
   },
   PEACE: {
     name: "Peace",
-    low:  [{ v: 0, l: "0", d: "Deep unrest" },     { v: 1, l: "1", d: "Very unsettled" }, { v: 2, l: "2", d: "Unsettled" },       { v: 3, l: "3", d: "Some unrest" }],
-    high: [{ v: 7, l: "7", d: "Mostly at peace" }, { v: 8, l: "8", d: "At peace" },       { v: 9, l: "9", d: "Very peaceful" },   { v: 10, l: "10", d: "Complete peace" }],
+    low:  [{ v: 0, l: "0", d: "Deep unrest" },     { v: 1, l: "1", d: "Very unsettled" }, { v: 2, l: "2", d: "Unsettled" },       { v: 3, l: "3", d: "Some unrest" }, { v: 4, l: "4", d: "Slightly unsettled" }],
+    high: [{ v: 6, l: "6", d: "Fairly settled" },  { v: 7, l: "7", d: "Mostly at peace" }, { v: 8, l: "8", d: "At peace" },       { v: 9, l: "9", d: "Very peaceful" },   { v: 10, l: "10", d: "Complete peace" }],
   },
   PULL: {
     name: "Pull",
-    low:  [{ v: 0, l: "0", d: "No pull" },       { v: 1, l: "1", d: "Barely any" },   { v: 2, l: "2", d: "Slight pull" },     { v: 3, l: "3", d: "Some pull" }],
-    high: [{ v: 7, l: "7", d: "Notable pull" },  { v: 8, l: "8", d: "Strong pull" },  { v: 9, l: "9", d: "Very strong" },     { v: 10, l: "10", d: "Irresistible" }],
+    low:  [{ v: 0, l: "0", d: "No pull" },       { v: 1, l: "1", d: "Barely any" },   { v: 2, l: "2", d: "Slight pull" },     { v: 3, l: "3", d: "Some pull" }, { v: 4, l: "4", d: "Mild pull" }],
+    high: [{ v: 6, l: "6", d: "Moderate pull" }, { v: 7, l: "7", d: "Notable pull" },  { v: 8, l: "8", d: "Strong pull" },  { v: 9, l: "9", d: "Very strong" },     { v: 10, l: "10", d: "Irresistible" }],
   },
   WILLINGNESS: {
     name: "Willingness",
-    low:  [{ v: 0, l: "0", d: "Not willing" },     { v: 1, l: "1", d: "Very reluctant" }, { v: 2, l: "2", d: "Reluctant" },     { v: 3, l: "3", d: "Slightly open" }],
-    high: [{ v: 7, l: "7", d: "Fairly willing" },  { v: 8, l: "8", d: "Willing" },        { v: 9, l: "9", d: "Very willing" },  { v: 10, l: "10", d: "Fully open" }],
+    low:  [{ v: 0, l: "0", d: "Not willing" },     { v: 1, l: "1", d: "Very reluctant" }, { v: 2, l: "2", d: "Reluctant" },     { v: 3, l: "3", d: "Slightly open" }, { v: 4, l: "4", d: "Somewhat open" }],
+    high: [{ v: 6, l: "6", d: "Fairly willing" },  { v: 7, l: "7", d: "Mostly willing" },  { v: 8, l: "8", d: "Willing" },        { v: 9, l: "9", d: "Very willing" },  { v: 10, l: "10", d: "Fully open" }],
   },
 };
 
@@ -131,6 +131,7 @@ const DOMAINS_RAW = [
   {
     id: "faith", label: "Faith & Calling", icon: "✦", scripture: SCRIPTURES.faith,
     intro: "These questions examine your relationship with God, your sense of calling, and how faith consciously shapes your daily decisions and long-term direction.",
+    summary: "How God and a shared sense of calling shape your direction together. Scripture treats the marriage itself as sacred (Matthew 6:33); research on \"sanctification\" finds couples who hold their marriage as sacred report less conflict and greater commitment — which is why this chapter carries the most weight.",
     about: {
       weight: "Highest weight (1.30)",
       biblical: "Christian theology treats marriage as a covenant that images God's faithfulness, and faith as the organizing center of a life (Matthew 6:33, \"seek first the kingdom\"). A shared spiritual orientation is integral, not peripheral, to a union (Ecclesiastes 4:12 — a threefold cord, read for centuries as the couple plus God).",
@@ -152,8 +153,8 @@ const DOMAINS_RAW = [
         info: "Experienced divine guidance in decisions — a marker of an active, lived faith rather than a nominal one." },
       { id: "f7",  text: "I am actively growing in the character of Christ — patience, humility, sacrificial love.",   type: T.AGREEMENT,
         info: "Growth in Christlike character (patience, humility, sacrificial love) — the virtues that most directly translate into marital behavior." },
-      { id: "f8",  text: "I feel spiritually aligned with my spouse.",                                                 type: T.AGREEMENT,
-        info: "Perceived spiritual alignment with the spouse. A large gap between partners here is flagged as a primary tension, because the sanctification literature makes shared sacred perception high-leverage." },
+      { id: "f8",  text: "My spouse and I see our marriage as having a sacred, God-given character.",                  type: T.AGREEMENT,
+        info: "Sanctification of marriage — viewing the marriage as sacred. In the research literature (Mahoney and colleagues) this perception is associated with higher reported marital satisfaction and commitment, though the relationship appears to run in both directions (satisfied couples also tend to view their marriage as sacred). A large gap between partners here is flagged as a tension." },
       { id: "f9",  text: "I am living out my faith in ways that are visible to my children.",                          type: T.FREQUENCY,
         info: "Whether faith is visibly modeled to children (Deuteronomy 6:6-7) — discipleship as a parenting responsibility." },
       { id: "f10", text: "I am using my spiritual gifts in service to others.",                                        type: T.FREQUENCY,
@@ -162,11 +163,16 @@ const DOMAINS_RAW = [
         info: "Urgency of deepening faith in the near term — surfaces felt priority, which helps rank goals." },
       { id: "f12", text: "I sense God is calling our family to something significant we have not yet fully embraced.", type: T.AGREEMENT,
         info: "Senses an unembraced calling for the family — designed to surface latent direction the couple may not have voiced." },
+      { id: "f13", text: "I feel safe sharing my deepest spiritual doubts and struggles with my spouse, without fear of judgment.", type: T.AGREEMENT,
+        info: "Spiritual intimacy — the freedom to be spiritually honest and vulnerable with one's spouse. Associated in the literature with closeness and relationship quality." },
+      { id: "f14", text: "I sometimes fear that God would withdraw His love from me if I failed Him.",                 type: T.FREQUENCY, rev: true,
+        info: "A gentle measure of anxious attachment to God (Kirkpatrick & Shaver; Rowatt & Kirkpatrick). Reverse-scored: a higher rating reflects more anxiety. This is a sensitive, personal item, intended for individual reflection rather than comparison or judgement; it is not a diagnosis." },
     ],
   },
   {
     id: "marriage", label: "Marriage & Covenant", icon: "◈", scripture: SCRIPTURES.marriage,
     intro: "These questions examine the health, depth, and trajectory of your marriage covenant — not just its present state but what it is becoming.",
+    summary: "The friendship, conflict, and covenant at the core of your union. Built on Ephesians 5's mutual self-giving and on Gottman's four decades of research — the habits (turning toward each other, repair, avoiding contempt) that reliably distinguish marriages that last.",
     about: {
       weight: "Second-highest weight (1.25)",
       biblical: "Ephesians 5:21–33 opens with mutual submission (\"submitting to one another out of reverence for Christ\") before addressing husbands and wives, and charges sacrificial, Christlike love. Colossians 3:13 makes forgiveness and \"bearing with one another\" baseline competencies. Marriage is covenant — unconditional commitment — not contract (Genesis 2:24; Matthew 19:5–6).",
@@ -174,8 +180,8 @@ const DOMAINS_RAW = [
       science: "This domain operationalizes John Gottman's four decades of observational research: the 5:1 positivity ratio in conflict (≈20:1 outside it); the \"Four Horsemen\" (criticism, contempt, defensiveness, stonewalling), with contempt the single strongest divorce predictor; and the decisive role of repair attempts — 84% of high-conflict newlyweds who repaired effectively were stable six years later. Emotional disengagement predicts a later, drift-type divorce, so warmth and \"turning toward\" are measured, not just low conflict.",
     },
     questions: [
-      { id: "m1",  text: "I feel deeply known and loved by my spouse.",                                                type: T.AGREEMENT, core: true,
-        info: "The fondness/admiration system in Gottman's model — feeling known and loved is the core anchor of marital health. This is the domain's core question." },
+      { id: "m1",  text: "I could list my spouse's major hopes, dreams, and current worries.",                        type: T.AGREEMENT, core: true,
+        info: "A concrete measure of Gottman's \"Love Maps\" — how well you know the details of your spouse's inner world. Knowing your partner's world is the foundation of the friendship system, which Gottman links to relationship stability. This is the domain's core question." },
       { id: "m2",  text: "We communicate openly about difficult topics without destructive conflict.",                 type: T.FREQUENCY,
         info: "Open communication without the 'Four Horsemen' (criticism, contempt, defensiveness, stonewalling). Contempt is the strongest single divorce predictor." },
       { id: "m3",  text: "Our physical and emotional intimacy is healthy and fulfilling.",                             type: T.AGREEMENT,
@@ -202,17 +208,20 @@ const DOMAINS_RAW = [
         info: "Freedom to be authentically oneself — measures psychological safety within the covenant." },
       { id: "m14", text: "How much do unresolved tensions in our marriage concern you?",                               type: T.CONCERN, rev: true,
         info: "Concern about unresolved tensions. Reverse-scored: high concern is a negative signal, so it is inverted before scoring." },
-      { id: "m15", text: "When we conflict, I tend to see the problem as mostly my spouse's fault.",                   type: T.FREQUENCY, rev: true,
-        info: "Drawn from Tim Keller's central claim that the chief enemy of a marriage is each spouse's own self-centeredness, not the partner's flaws. Echoed empirically by Gottman's finding that taking responsibility is one of the most effective repair attempts. A high score here (often blaming the spouse) is a flag even when other scores look healthy — which is why it is reverse-scored." },
+      { id: "m15", text: "During conflict, I feel contempt, superiority, or the urge to mock my spouse.",              type: T.FREQUENCY, rev: true,
+        info: "Contempt — sarcasm, mockery, eye-rolling, a sense of superiority. In Gottman's observational research, contempt was the single strongest predictor of divorce among the \"Four Horsemen.\" Reverse-scored: a higher rating is a negative signal. A high score here is flagged even when other scores look healthy." },
       { id: "m16", text: "We actively help each other grow into the people God is calling us to become.",              type: T.AGREEMENT,
         info: "Keller frames marriage as 'spiritual friendship' — the spouse as the person helping you become your 'future glory-self.' This is distinct from both romantic satisfaction and covenant commitment: it measures whether the marriage has a shared, forward-looking purpose of mutual sanctification." },
       { id: "m17", text: "I have clearly communicated my real expectations to my spouse — rather than assuming they should already know them.", type: T.AGREEMENT,
         info: "Drawn from Paul Tripp's 'What Did You Expect?' — marriages erode through unexamined, unspoken expectations and the slow accumulation of small unaddressed offenses. Unspoken expectations are independently one of the better-supported predictors of dissatisfaction in the secular literature. This measures whether expectations are made explicit, not merely held." },
+      { id: "m18", text: "When we argue, I become so overwhelmed that I shut down or stop responding.",                 type: T.FREQUENCY, rev: true,
+        info: "Stonewalling — withdrawing or shutting down during conflict, one of Gottman's \"Four Horsemen.\" It is often a response to physiological flooding (see Body & Health). Reverse-scored: a higher rating is a negative signal." },
     ],
   },
   {
     id: "children", label: "Children & Family", icon: "◇", scripture: SCRIPTURES.children,
     intro: "These questions examine your vision for your children's formation, your parenting partnership, and the culture you are building in your home.",
+    summary: "Your shared vision for raising and discipling children, and the culture of your home. Children are framed as a heritage and a discipleship calling (Deuteronomy 6:6-7); the transition to parenthood is also one of the most documented strains on a marriage — naming it early helps.",
     about: {
       weight: "Above baseline (1.10)",
       biblical: "Children are framed as a heritage and a discipleship responsibility (Psalm 127:3; Deuteronomy 6:6–7 — teaching faith \"when you sit at home and when you walk along the road\").",
@@ -239,11 +248,14 @@ const DOMAINS_RAW = [
         info: "Feeling equipped and confident in the parenting role." },
       { id: "c10", text: "How important is deeper alignment on parenting in the next 1–2 years?",                      type: T.IMPORTANCE,
         info: "Felt importance of deeper alignment on parenting in the coming years." },
+      { id: "c11", text: "I see parenting as a sacred calling through which God is also shaping me.",                  type: T.AGREEMENT,
+        info: "Sanctification of parenting — viewing the parenting role as sacred. In the research literature this perception is associated with greater investment and more positive parenting; the transition to parenthood is also the single most common period for a decline in marital satisfaction (Cowan & Cowan), which this domain helps surface." },
     ],
   },
   {
     id: "vocation", label: "Vocation & Work", icon: "⬡", scripture: SCRIPTURES.vocation,
     intro: "These questions examine your sense of calling in work — paid, creative, or service — and whether your current activity reflects your deepest gifts and purpose.",
+    summary: "Whether your work — paid, creative, or service — reflects your gifts and calling. The Reformation saw all honest work as vocation, done \"as for the Lord\" (Colossians 3:23); a sense of meaningful contribution supports well-being that spills into the marriage.",
     about: {
       weight: "Baseline weight (1.00)",
       biblical: "Work as calling (vocatio) is a core Reformation insight: \"Whatever you do, work heartily, as for the Lord and not for men\" (Colossians 3:23).",
@@ -275,6 +287,7 @@ const DOMAINS_RAW = [
   {
     id: "place", label: "Place & Home", icon: "△", scripture: SCRIPTURES.place,
     intro: "Where we live is a theological question, not merely a logistical one. These questions surface your convictions and desires about home, roots, and belonging.",
+    summary: "Where and how you live — home, roots, and belonging — treated as a spiritual question, not just logistics. Scripture says God sets \"the boundaries of their dwelling place\" (Acts 17:26); an unresolved sense of place is a quiet, chronic stressor on a couple.",
     about: {
       weight: "Slightly above baseline (1.05)",
       biblical: "Place and dwelling are not spiritually neutral: God \"determined allotted periods and the boundaries of their dwelling place\" (Acts 17:26).",
@@ -306,6 +319,7 @@ const DOMAINS_RAW = [
   {
     id: "money", label: "Money & Stewardship", icon: "◎", scripture: SCRIPTURES.money,
     intro: "Money reveals values. These questions examine how you relate to financial resources as a steward rather than an owner — and where alignment or tension exists between you.",
+    summary: "How you handle money together — as stewards rather than owners. \"You cannot serve God and money\" (Matthew 6:24); financial conflict is among the most robust predictors of divorce, so alignment here protects far more than the budget.",
     about: {
       weight: "Above baseline (1.10)",
       biblical: "Money is a stewardship rather than an ownership question (1 Timothy 6:17–19; Matthew 6:24 — \"you cannot serve God and money\"). The biblical frame treats generosity as a spiritual-health indicator, not merely a budget line.",
@@ -337,6 +351,7 @@ const DOMAINS_RAW = [
   {
     id: "body", label: "Body & Health", icon: "◉", scripture: SCRIPTURES.body,
     intro: "The body is not separate from vocation and spirit. These questions examine your stewardship of physical health — including what the next decade will require of you.",
+    summary: "Stewardship of physical health, energy, and rest — including what the next decade will ask of you. The body is called a temple and Sabbath a command (1 Cor 6:19; Exodus 20:8-10); health and rest shape your very capacity to turn toward each other.",
     about: {
       weight: "Below baseline (0.90)",
       biblical: "The body is a temple of the Holy Spirit (1 Corinthians 6:19), and Sabbath rest is a command, not a luxury (Exodus 20:8–10).",
@@ -349,8 +364,8 @@ const DOMAINS_RAW = [
         info: "Sustainable, consistent habits around sleep, rest, and recovery." },
       { id: "b3",  text: "I am building physical capacity now that will matter in my 60s and 70s.",                   type: T.AGREEMENT,
         info: "Building physical capacity now that will matter later in life." },
-      { id: "b4",  text: "I manage stress well and have healthy emotional and psychological rhythms.",                type: T.AGREEMENT,
-        info: "Stress management and emotional regulation — relevant to the physiological 'flooding' Gottman documents in conflict." },
+      { id: "b4",  text: "During an argument, my heart races or I feel so worked up that it's hard to think clearly.", type: T.FREQUENCY, rev: true,
+        info: "A concrete measure of \"flooding\" — the physiological fight-or-flight response Gottman documented in conflict, which makes calm problem-solving and repair very difficult. Reverse-scored: a higher rating is a negative signal. The research-supported response is a deliberate 20-minute self-soothing break before continuing." },
       { id: "b5",  text: "My physical health supports the life I want to live — it does not limit it.",               type: T.AGREEMENT, core: true,
         info: "Whether physical health supports the life one wants to live. The domain's core question; the body as a temple of the Spirit." },
       { id: "b6",  text: "How urgently does your physical health need intentional, sustained investment?",            type: T.URGENCY,
@@ -362,6 +377,7 @@ const DOMAINS_RAW = [
   {
     id: "creative", label: "Creative Life & Craft", icon: "✧", scripture: SCRIPTURES.creative,
     intro: "Creativity is not peripheral — it is part of how God-given gifts find expression. These questions examine your creative life and whether it is being honored or quietly neglected.",
+    summary: "The creative gifts and craft that easily get quietly neglected. Scripture says God fills people \"with skill... and all craftsmanship\" (Exodus 35:31); honoring these gifts guards against the slow self-erasure that can corrode a marriage.",
     about: {
       weight: "Lowest weight (0.85)",
       biblical: "God fills people \"with skill, with intelligence, with knowledge, and with all craftsmanship\" (Exodus 35:31) — creative gifts are part of how God-given ability finds expression.",
@@ -387,6 +403,7 @@ const DOMAINS_RAW = [
   {
     id: "community", label: "Community & Legacy", icon: "❋", scripture: SCRIPTURES.community,
     intro: "What we leave behind — in people, in culture, in testimony — matters eternally. These questions examine your vision for legacy and your investment in community beyond your household.",
+    summary: "Your life beyond the household — friendship, service, and the legacy you're building. The \"one another\" commands make isolation a real risk (Hebrews 10:24); socially supported couples measurably fare better over time.",
     about: {
       weight: "Slightly below baseline (0.95)",
       biblical: "The \"one another\" commands make isolation a spiritual risk and community a means of growth: \"let us consider how to stir up one another to love and good works\" (Hebrews 10:24–25).",
@@ -414,6 +431,7 @@ const DOMAINS_RAW = [
   {
     id: "intimacy", label: "Intimacy & Sexual Union", icon: "♥", scripture: SCRIPTURES.intimacy,
     intro: "These questions examine the physical and emotional intimacy of your marriage — closeness, desire, communication about sex, and how cherished and connected you feel. They are asked gently and answered privately; nothing here is shared between partners except, with your consent, the overall sense of where you align.",
+    summary: "Physical and emotional closeness — desire, tenderness, and honesty about sex. Scripture treats sexual union as a good gift, not a concession (Genesis 2:24-25); studies show sexual and relationship satisfaction rise and fall together. Asked gently, answered privately.",
     about: {
       weight: "High weight (1.20)",
       biblical: "Scripture treats sexual union as a good and integral part of marriage, not a concession. Genesis 2:24–25 describes the couple becoming \"one flesh\" and being \"naked and not ashamed.\" Paul frames the marital sexual relationship as a mutual gift and a mutual responsibility, with each spouse entrusting their body to the other (1 Corinthians 7:3–5). The Song of Songs devotes an entire book to the delight of married love. Intimacy is thus understood as covenantal self-giving — a bodily expression of the whole-life union.",
@@ -425,8 +443,8 @@ const DOMAINS_RAW = [
         info: "Overall satisfaction with physical intimacy. Longitudinal studies find sexual satisfaction predicts later relationship satisfaction, which is why this is the domain's core question." },
       { id: "in2", text: "I feel emotionally close and connected to my spouse during intimacy.",                      type: T.AGREEMENT,
         info: "Emotional connection during intimacy — intimacy as whole-person union (Genesis 2:24-25, 'one flesh'), not merely physical." },
-      { id: "in3", text: "We can talk openly and kindly about our sexual relationship.",                            type: T.AGREEMENT,
-        info: "Quality of sexual communication. A meta-analysis (Mallory et al., 2022) finds sexual communication robustly tied to both sexual and relationship satisfaction." },
+      { id: "in3", text: "How satisfied are you with the degree of affection and caring in your marriage?",          type: T.SATISFACTION,
+        info: "Affection and caring — phrasing adapted from the validated Couples Satisfaction Index (CSI-16). A meta-analysis (Mallory et al., 2022) also finds the quality of affectionate communication tied to both sexual and relationship satisfaction." },
       { id: "in4", text: "I feel desired and cherished by my spouse.",                                               type: T.AGREEMENT,
         info: "Feeling desired and cherished — the affirming, self-giving dimension of marital love (Song of Songs)." },
       { id: "in5", text: "Our level of sexual desire and frequency feels mutually comfortable.",                    type: T.AGREEMENT,
@@ -437,11 +455,14 @@ const DOMAINS_RAW = [
         info: "Peace about how the couple navigates intimacy across changing seasons (illness, pregnancy, age, stress) — resilience rather than a snapshot." },
       { id: "in8", text: "How urgent is it to give attention to your intimacy in the next 1–2 years?",               type: T.URGENCY,
         info: "Felt urgency of tending intimacy in the near term — surfaces priority for goal-ranking." },
+      { id: "in9", text: "I experience our sexual union as a renewal of our covenant and commitment to each other.",  type: T.AGREEMENT,
+        info: "Sexual sanctification — viewing the sexual relationship as having sacred meaning. In the research literature this perception is associated with greater sexual and relationship satisfaction (Hernandez-Kane & Mahoney). An invitation to reflect on meaning, not a performance measure." },
     ],
   },
   {
     id: "inlaws", label: "In-Laws & Extended Family", icon: "⌂", scripture: SCRIPTURES.inlaws,
     intro: "These questions examine your relationships with parents, in-laws, and extended family — the boundaries around your marriage, how united you are as a couple, and whether wider family is a source of support or strain.",
+    summary: "Boundaries with parents and extended family, and how united you stand as a couple. \"Leave and cleave\" (Genesis 2:24) sets the principle; a 16-year study found early disagreement about closeness to in-laws predicts higher divorce risk — a united front is protective.",
     about: {
       weight: "Baseline weight (1.00)",
       biblical: "Genesis 2:24 sets the founding principle: a man \"leaves\" his father and mother and \"holds fast\" to his wife. \"Leave and cleave\" establishes the married couple as a new primary unit — honoring parents (Exodus 20:12) while no longer being ruled by them. The order matters: the one-flesh union takes priority, and healthy boundaries protect it rather than dishonoring the wider family.",
@@ -465,6 +486,8 @@ const DOMAINS_RAW = [
         info: "Capacity to set loving boundaries — the practical skill that 'leave and cleave' requires, distinct from cutting family off." },
       { id: "il8", text: "How important is it to address extended-family dynamics in the next 1–2 years?",          type: T.IMPORTANCE,
         info: "Felt importance of addressing extended-family dynamics in the near term — surfaces priority for goal-ranking." },
+      { id: "il9", text: "If my family of origin criticizes my spouse, I am quick to defend my spouse and our marriage.", type: T.AGREEMENT,
+        info: "\"We-ness\" — prioritizing the marital unit over the family of origin. Spousal disagreement about closeness to in-laws early in marriage has been associated with higher divorce risk over time (Fiori et al., 2021); presenting a united front is the protective pattern." },
     ],
   },
 ];
@@ -571,7 +594,9 @@ export function computeAnalytics(answersA, answersB, nameA, nameB, weights) {
   }).filter(Boolean);
 
   const totalWeight = domainScores.reduce((s, d) => s + d.weight, 0);
-  const overallScore = domainScores.reduce((s, d) => s + d.weightedScore, 0) / totalWeight;
+  const overallScore = totalWeight > 0
+    ? domainScores.reduce((s, d) => s + d.weightedScore, 0) / totalWeight
+    : 0; // no scorable domains (e.g. everything marked N/A) → neutral 0 rather than NaN
 
   // Deterministic tie-breaking: sort by weightedGap desc, then domain weight
   // desc, then question id asc — so identical inputs always yield identical order.
@@ -655,6 +680,44 @@ function detectFlags(domainScores, answersA, answersB, nameA, nameB) {
     flags.push({ type: "INSIGHT", label: `Asymmetry — ${d.label}`,
       text: `${leadName} (${leadV}) is notably further ahead than ${folName} (${folV}) in ${d.label}. Named directly, asymmetry can be a growth catalyst; ignored, it tends to breed resentment.` });
   });
+
+  // ── Behavioral-marker flags (Gottman) ─────────────────────────────────────
+  // m15 = contempt, m18 = stonewalling, b4 = flooding. All reverse-scored, so a
+  // HIGH RAW answer means the harmful pattern is present. We surface these as
+  // prominent flags (not as a mechanical score override) because a single
+  // self-report item is not reliable enough to hard-cap a whole domain — but it
+  // is well worth naming, especially contempt.
+  const contemptPresent = (answersA.m15 >= 7) || (answersB.m15 >= 7);
+  if (contemptPresent)
+    flags.push({ type: "URGENT", label: "Contempt Detected",
+      text: `At least one partner reports frequent contempt during conflict (sarcasm, mockery, a sense of superiority). In Gottman's research, contempt was the single strongest predictor of divorce. This is worth taking seriously now, even if other areas look healthy — the research-supported antidote is deliberately building a culture of appreciation and respect. This is a self-reported pattern, not a verdict on your marriage.` });
+
+  const stonewallPresent = (answersA.m18 >= 7) || (answersB.m18 >= 7);
+  if (stonewallPresent)
+    flags.push({ type: "TENSION", label: "Stonewalling Pattern",
+      text: `At least one partner tends to shut down or withdraw during conflict (stonewalling). This is often a response to feeling physiologically overwhelmed; a brief, agreed self-soothing break before continuing tends to help more than pushing through.` });
+
+  // Physiological flooding: flooding present (b4 high raw) AND marriage strained.
+  const floodingPresent = (answersA.b4 >= 7) || (answersB.b4 >= 7);
+  if (floodingPresent && ds.marriage && ds.marriage.avgNorm < 5)
+    flags.push({ type: "TENSION", label: "Physiological Flooding",
+      text: `Conflict appears to trigger a strong fight-or-flight response (a racing heart, feeling overwhelmed) while the marriage is also under strain. When the body floods, the brain can't process repair attempts well. A deliberate 20-minute cooling-off period before resuming hard conversations is the commonly recommended step.` });
+
+  // Core Attachment Insecurity: anxious toward God (f14 high raw) AND the
+  // marriage shows strain. We deliberately do NOT claim a romantic-attachment
+  // measure we don't have; we pair God-attachment anxiety with marital strain,
+  // and we keep the language gentle and non-diagnostic.
+  const godAnxious = (answersA.f14 >= 7) || (answersB.f14 >= 7);
+  if (godAnxious && ds.marriage && ds.marriage.avgNorm < 5)
+    flags.push({ type: "INSIGHT", label: "Felt Security",
+      text: `At least one partner expresses some fear of being abandoned by God, alongside current marital strain. Research finds a modest link between anxiety toward God and anxiety in close relationships — a sense of a "secure base." This is a gentle observation for personal reflection and prayer, not a diagnosis; it may simply be worth noticing together.` });
+
+  // Sanctification Buffer: marriage low but the marriage is held as sacred
+  // (f8 high raw). A note of genuine hope grounded in the research.
+  const sanctificationHigh = (answersA.f8 >= 8) || (answersB.f8 >= 8);
+  if (ds.marriage && ds.marriage.avgNorm < 5 && sanctificationHigh)
+    flags.push({ type: "STRENGTH", label: "Sacred-Bond Buffer",
+      text: `Your marriage is under some strain right now, yet at least one of you strongly holds it as sacred and God-given. In the research literature, viewing a marriage as sacred is associated with greater motivation to protect and repair it. That shared sense of sacred purpose can be real fuel for the work ahead.` });
 
   return flags;
 }
@@ -760,6 +823,68 @@ function pickGoal(domainId, band, timeframe) {
   return t[band][timeframe];
 }
 
+// Per-partner aspirational vision + mission, built deterministically from that
+// partner's own domain scores. Aspirational in tone (a hope/prayer, not a claim
+// about the present), matching the joint vision/mission. `which` is "A" or "B".
+// Returns { vision, mission }. No randomness, no network.
+function buildIndividualVM(analytics, which) {
+  const { domainScores, nameA, nameB } = analytics;
+  const name = which === "A" ? nameA : nameB;
+  const score = (d) => (which === "A" ? d.avgNormA : d.avgNormB);
+  const ranked = [...domainScores].sort((a, b) => score(b) - score(a));
+  const strong = ranked.slice(0, 2);
+  const weak = ranked.slice(-2);
+  const lc = (d) => d.label.split(/[ &]/)[0].toLowerCase();
+
+  // A short, domain-specific aspirational clause for a growth area.
+  const GROWTH_CLAUSE = {
+    faith: "let their walk with Christ set the rhythm of daily life",
+    marriage: "turn toward their spouse with deliberate, patient love",
+    intimacy: "grow in honest, tender closeness",
+    children: "be a steady, present, faith-shaping parent",
+    inlaws: "hold extended-family relationships with grace and clear boundaries",
+    vocation: "do work that genuinely uses their gifts",
+    place: "put down real roots and belong somewhere",
+    money: "steward resources with both wisdom and open-handed generosity",
+    body: "care for their body as a gift to be kept, not spent",
+    creative: "make space for the creative gifts entrusted to them",
+    community: "invest deeply in a few people and a church family",
+  };
+  const STRENGTH_CLAUSE = {
+    faith: "a living faith",
+    marriage: "a committed, attentive marriage",
+    intimacy: "genuine closeness",
+    children: "wholehearted parenting",
+    inlaws: "healthy family relationships",
+    vocation: "meaningful work",
+    place: "a sense of rootedness",
+    money: "faithful stewardship",
+    body: "physical discipline",
+    creative: "creative vitality",
+    community: "a generous presence with others",
+  };
+  // Guard: with very few scored domains, strong/weak can overlap or be missing.
+  // Fall back gracefully rather than indexing past the end of the array.
+  const fallbackStrength = (d) => d ? (STRENGTH_CLAUSE[d.id] || d.label.toLowerCase()) : "the gifts God has given";
+  const fallbackGrowth = (d) => d ? (GROWTH_CLAUSE[d.id] || `tend their ${lc(d)}`) : "keep growing in every area";
+  const fallbackArea = (d) => d ? lc(d) : "every part of life";
+
+  const g0 = fallbackGrowth(weak[0]);
+  const g1 = weak[1] && weak[1].id !== weak[0].id ? fallbackGrowth(weak[1]) : null;
+  const s0 = fallbackStrength(strong[0]);
+  const s1 = strong[1] && strong[1].id !== strong[0].id ? fallbackStrength(strong[1]) : null;
+  const w0 = fallbackArea(weak[0]);
+  const w1 = weak[1] && weak[1].id !== weak[0].id ? fallbackArea(weak[1]) : null;
+
+  const strengthsPhrase = s1 ? `${s0} and ${s1}` : s0;
+  const growthAreas = w1 ? `${w0} and ${w1}` : w0;
+  const growthActions = g1 ? `${g0} and ${g1}` : g0;
+
+  const vision = `By God's grace, ${name} will grow into the person He is calling them to be — drawing on ${strengthsPhrase}, and giving prayerful attention to ${growthAreas} — so that their whole life, inside the marriage and beyond it, bears witness to Christ.`;
+  const mission = `${name} will seek God daily, love and serve their spouse and family with intention, and steward their gifts faithfully. In this season they will protect their ${s0} while deliberately working to ${growthActions}.`;
+  return { vision, mission };
+}
+
 export function generateLocalPlan(analytics) {
   const { domainScores, tensions, flags, goalPriority1yr, goalPriority5yr,
           goalPriority10yr, overallScore, nameA, nameB } = analytics;
@@ -767,11 +892,30 @@ export function generateLocalPlan(analytics) {
   const ds = Object.fromEntries(domainScores.map((d) => [d.id, d]));
   const band = (id) => (ds[id] && ds[id].avgNorm >= 6.5 ? "high" : "low");
 
+  // Guard: if nothing is scorable (e.g. every question was marked N/A, or the
+  // assessment is empty), return a safe, honest minimal plan rather than
+  // crashing on empty-array access below.
+  if (!domainScores.length) {
+    const emptyVM = {
+      vision: `By God's grace, ${nameA} and ${nameB} will build a Christ-centered marriage and family.`,
+      mission: `Once you have completed the assessment, this plan will reflect your actual answers. For now, there isn't enough information to generate a personalized vision.`,
+    };
+    return {
+      vision: emptyVM.vision, mission: emptyVM.mission,
+      goals1yr: [], goals5yr: [], goals10yr: [],
+      indivA: { ...emptyVM }, indivB: { ...emptyVM },
+      tensions: [], flags, domainScores, overallScore, nameA, nameB,
+    };
+  }
+
   // ── Vision ──────────────────────────────────────────────────────────────
   // Selected by overall health and the strongest/weakest domains.
   const sorted = [...domainScores].sort((a, b) => b.avgNorm - a.avgNorm);
-  const topTwo = sorted.slice(0, 2).map((d) => d.label.split(" ")[0].toLowerCase());
-  const bottomTwo = sorted.slice(-2).map((d) => d.label.split(" ")[0].toLowerCase());
+  const lcLabel = (d) => d.label.split(" ")[0].toLowerCase();
+  const topList = sorted.slice(0, 2).map(lcLabel);
+  const botList = sorted.slice(-2).map(lcLabel);
+  const strengthsText = topList.length > 1 ? `${topList[0]} and ${topList[1]}` : topList[0];
+  const growthText = botList.length > 1 ? `${botList[0]} and ${botList[1]}` : botList[0];
 
   const healthFraming = overallScore >= 7
     ? "building on a genuinely strong foundation"
@@ -779,7 +923,7 @@ export function generateLocalPlan(analytics) {
     ? "with real strengths to build on and clear areas calling for growth"
     : "honestly naming the work ahead and trusting God to meet you in it";
 
-  const vision = `By God's grace, ${nameA} and ${nameB} will build a Christ-centered family — drawing on their strength in ${topTwo[0]} and ${topTwo[1]}, while intentionally tending ${bottomTwo[0]} and ${bottomTwo[1]} — so that their marriage, their children, and their work all bear witness to the One who called them, ${healthFraming}.`;
+  const vision = `By God's grace, ${nameA} and ${nameB} will build a Christ-centered family — drawing on their strength in ${strengthsText}, while intentionally tending ${growthText} — so that their marriage, their children, and their work all bear witness to the One who called them, ${healthFraming}.`;
 
   // ── Mission ─────────────────────────────────────────────────────────────
   const weakestLabel = sorted[sorted.length - 1].label;
@@ -810,8 +954,13 @@ export function generateLocalPlan(analytics) {
     };
   });
 
+  // ── Individual visions/missions (deterministic, per partner) ─────────────
+  const indivA = buildIndividualVM(analytics, "A");
+  const indivB = buildIndividualVM(analytics, "B");
+
   return {
     vision, mission, goals1yr, goals5yr, goals10yr,
+    indivA, indivB,
     tensions: tensionItems, flags, domainScores, overallScore, nameA, nameB,
   };
 }

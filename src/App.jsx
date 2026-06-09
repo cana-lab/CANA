@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import "./styles.css";
 import {
   DOMAINS, RESPONSE_TYPES, SCRIPTURES, CORE_QUESTIONS, DREAM_ELEMENTS, DOMAIN_WEIGHTS,
@@ -10,10 +10,11 @@ import {
   extractLetter, compareLetters, individualVisionMission, jointVisionMission, personalizeGoals, conversationGuide,
   ollamaRunning, installedModels, pullModel,
 } from "./llm.js";
-import { TREE_PATH } from "./logo.js";
+import { TREE_PATH, TREE_TRANSFORM } from "./logo.js";
 import { INTRO_SECTIONS, PREPARE, SCORE_INFO, MODEL_CHOICES, SETUP } from "./content.js";
 import { APP_VERSION, checkForUpdate, GUIDE_BASE } from "./update.js";
-import { createProfile, signIn, listProfiles } from "./auth.js";
+import { createProfile, signIn, listProfiles, registerProfileRecord } from "./auth.js";
+import { encryptPayload, decryptPayload, buildTransferPayload, validateTransfer } from "./transfer.js";
 import { METRIC_INFO, scaleText, SCORE_BANDS, bandFor } from "./metrics.js";
 import { QUESTION_HELP } from "./questionHelp.js";
 
@@ -46,7 +47,7 @@ function Logo({ size = 28, radius }) {
       </defs>
       <g clipPath={`url(#lg-sq-${size})`}>
         <rect width="1024" height="1024" fill={`url(#lg-bg-${size})`} />
-        <path d={TREE_PATH} fill={`url(#lg-ink-${size})`} fillRule="evenodd" />
+        <path d={TREE_PATH} transform={TREE_TRANSFORM} fill={`url(#lg-ink-${size})`} />
       </g>
       <path d="M512 40C200 40 40 200 40 512C40 824 200 984 512 984C824 984 984 824 984 512C984 200 824 40 512 40Z" fill="none" stroke="#000" strokeOpacity="0.1" strokeWidth="2" />
     </svg>
@@ -182,8 +183,12 @@ function Chrome({ title, right }) {
   return (
     <div style={{
       position: "sticky", top: 0, zIndex: 20, display: "flex", alignItems: "center",
-      justifyContent: "space-between", padding: "10px 20px",
-      background: "rgba(245,245,247,0.8)", backdropFilter: "saturate(180%) blur(20px)",
+      justifyContent: "space-between",
+      padding: "10px 20px",
+      paddingTop: "calc(10px + env(safe-area-inset-top, 0px))",
+      paddingLeft: "calc(20px + env(safe-area-inset-left, 0px))",
+      paddingRight: "calc(20px + env(safe-area-inset-right, 0px))",
+      background: "rgba(245,245,247,0.92)", backdropFilter: "saturate(180%) blur(20px)",
       WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: "1px solid var(--hair2)",
     }} className="no-print">
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -433,6 +438,14 @@ function LineChart({ series, color, yMax = 10 }) {
 }
 
 export default function App() {
+  // Platform flags — defined first so effects and handlers can use them safely.
+  // isDesktop = Electron build; isIOS = native iOS app (Capacitor). Used to hide
+  // desktop-only UI on iOS (update check, Ollama setup, Mac links) and to label
+  // the on-device AI correctly.
+  const isDesktop = typeof window !== "undefined" && window.cana && window.cana.isDesktop;
+  const isIOS = typeof window !== "undefined" && window.Capacitor &&
+    typeof window.Capacitor.getPlatform === "function" && window.Capacitor.getPlatform() === "ios";
+
   const [screen, setScreen] = useState("login");
   const [profile, setProfile] = useState(null); // active couple profile (null = logged out)
   const pid = profile ? profile.id : null;
@@ -450,6 +463,9 @@ export default function App() {
   const [dreamMarks, setDreamMarks] = useState({ A: {}, B: {} });
   const [llmCfg, setLlmCfg] = useState(getLLMConfig());
   const [llmState, setLlmState] = useState("checking"); // ok | bad | checking
+  // On iOS: whether the on-device Apple model is available ("yes"|"no"|"checking").
+  // Used to label/hide the AI badge correctly (never show "Ollama" on iOS).
+  const [appleAI, setAppleAI] = useState("checking");
   const [llmModels, setLlmModels] = useState([]);
   const [llmSample, setLlmSample] = useState("");
   const [genMsg, setGenMsg] = useState("");
@@ -457,6 +473,7 @@ export default function App() {
   const [generating, setGenerating] = useState(false);
   const [editStmts, setEditStmts] = useState(null);
   const [openInfo, setOpenInfo] = useState(null);   // which question's info is expanded
+  const [chapterInfo, setChapterInfo] = useState(null); // which domain's summary modal is open (domain id)
   const [showAbout, setShowAbout] = useState(false); // "About this Chapter" panel toggle
   const [weights, setWeights] = useState(null);     // custom domain weights override (null = defaults)
   const [showWeights, setShowWeights] = useState(false);
@@ -485,6 +502,24 @@ export default function App() {
   useEffect(() => { setQPage(0); }, [dIdx, person]);
 
   useEffect(() => { probeOllama(); }, []);
+
+  // On iOS, detect once whether the on-device Apple model is actually available
+  // (iPhone supports it, iOS 26+, Apple Intelligence on, built with iOS 26 SDK).
+  // Drives the header AI badge so it never shows "Ollama" on iOS.
+  useEffect(() => {
+    if (!isIOS) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const fm = await import("./foundationModel.js");
+        const ok = await fm.isAppleAIAvailable();
+        if (!cancelled) setAppleAI(ok ? "yes" : "no");
+      } catch (e) {
+        if (!cancelled) setAppleAI("no");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isIOS]);
 
   // Restore the active profile for THIS browser session, so an in-app recovery
   // reload (e.g. after a render error) returns home without logging the user
@@ -541,7 +576,11 @@ export default function App() {
   const allDone = domain.questions.every((q) => ans[q.id] !== undefined);
   const hasHistory = sessions.length > 0;
   // Lightweight trends for the persistent bottom overview strip (#6).
-  const liveTrends = (() => { try { return computeTrends(sessions); } catch (e) { return null; } })();
+  // Memoized so it only recomputes when the sessions actually change, not on
+  // every unrelated re-render.
+  const liveTrends = useMemo(() => {
+    try { return computeTrends(sessions); } catch (e) { return null; }
+  }, [sessions]);
 
   // Automatic in-app safety copy. Keeps the last few good snapshots of the
   // sessions + latest report under a separate key, so a bug or accidental reset
@@ -641,8 +680,6 @@ export default function App() {
   };
 
   // ── First-launch setup wizard ────────────────────────────────────────────
-  const isDesktop = typeof window !== "undefined" && window.cana && window.cana.isDesktop;
-
   const refreshSetup = useCallback(async () => {
     setSetupChecking(true);
     const up = await ollamaRunning();
@@ -766,7 +803,7 @@ export default function App() {
     });
     let guide = fallback, usedAI = false;
     const cfg = getLLMConfig();
-    const live = cfg.enabled ? await ollamaRunning() : false;
+    const live = (isIOS || cfg.enabled) ? await ollamaRunning() : false;
     if (live) {
       const overallSummary = (R.domainScores || []).map((d) => `${d.label} ${d.avgNorm.toFixed(1)} (gap ${d.domainGap.toFixed(1)})`).join("; ");
       const topGaps = [...(R.tensions || [])].slice(0, 5).map((t) => ({ domain: t.domainLabel || "", question: t.title, scoreA: t.scoreA, scoreB: t.scoreB, gap: t.gap }));
@@ -846,11 +883,14 @@ export default function App() {
     const localPlan = generateLocalPlan(analytics);
     const nameA = analytics.nameA, nameB = analytics.nameB;
     let comparison = mode === "full" ? compareDreamMarks(dreamMarks.A, dreamMarks.B, nameA, nameB) : null;
-    let indivA = null, indivB = null, jointVM = null, llmUsed = false;
+    // Default to the deterministic individual visions so the report is complete
+    // even with no AI. The AI (if it runs) overwrites these below.
+    let indivA = localPlan.indivA || null, indivB = localPlan.indivB || null, jointVM = null, llmUsed = false;
     const cfg = getLLMConfig();
     // Check Ollama liveness directly at generation time (don't rely on the
     // possibly-stale llmState from a prior probe).
-    const ollamaLive = (cfg.enabled && mode === "full") ? await ollamaRunning() : false;
+    const aiEnabled = isIOS || cfg.enabled; // iOS uses the Apple model regardless of the Ollama toggle
+    const ollamaLive = (aiEnabled && mode === "full") ? await ollamaRunning() : false;
     const domSummary = (w) => analytics.domainScores.map((d) => `${d.label}: ${(w === "A" ? d.avgNormA : d.avgNormB).toFixed(1)}`).join(", ");
     const overallSummary = analytics.domainScores.map((d) => `${d.label} ${d.avgNorm.toFixed(1)} (gap ${d.domainGap.toFixed(1)})`).join("; ");
     // Richer synthesis of the actual evaluation, so the joint vision/mission can
@@ -869,19 +909,22 @@ export default function App() {
     // instead of silently falling back.
     let llmSkipReason = "";
     if (mode !== "full") llmSkipReason = "Quick check-ins always use the built-in text (AI writes only for full assessments).";
-    else if (!cfg.enabled) llmSkipReason = "The local AI is turned off in settings, so the built-in text was used.";
+    else if (isIOS && !ollamaLive) llmSkipReason = "On-device AI isn't available on this device, so the built-in text was used. The built-in plan is complete on its own.";
+    else if (!aiEnabled) llmSkipReason = "The local AI is turned off in settings, so the built-in text was used.";
     else if (!ollamaLive) llmSkipReason = "Ollama wasn't detected as running, so the built-in text was used. Start Ollama and regenerate to use the AI.";
-    if (cfg.enabled && mode === "full" && ollamaLive) {
+    if (aiEnabled && mode === "full" && ollamaLive) {
       try {
         setGenMsg("Reading the letters…"); setGenProg(20);
         const exA = letters.A ? await extractLetter(letters.A, nameA) : null;
         const exB = letters.B ? await extractLetter(letters.B, nameB) : null;
         if (exA && exB) { setGenMsg("Comparing your visions…"); setGenProg(35); comparison = mergeComparisons(comparison, await compareLetters(exA, exB, nameA, nameB)); }
-        setGenMsg(`Writing ${nameA}'s vision…`); setGenProg(50); indivA = await individualVisionMission(nameA, domSummary("A"), exA);
-        setGenMsg(`Writing ${nameB}'s vision…`); setGenProg(65); indivB = await individualVisionMission(nameB, domSummary("B"), exB);
-        setGenMsg("Compiling your joint vision…"); setGenProg(80); jointVM = await jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary, evalSynthesis);
+        setGenMsg(`Writing ${nameA}'s vision…`); setGenProg(50); const aiIndivA = await individualVisionMission(nameA, domSummary("A"), exA, localPlan.indivA);
+        setGenMsg(`Writing ${nameB}'s vision…`); setGenProg(65); const aiIndivB = await individualVisionMission(nameB, domSummary("B"), exB, localPlan.indivB);
+        if (aiIndivA) indivA = aiIndivA;
+        if (aiIndivB) indivB = aiIndivB;
+        setGenMsg("Compiling your joint vision…"); setGenProg(80); jointVM = await jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary, evalSynthesis, { vision: localPlan.vision, mission: localPlan.mission });
         setGenMsg("Personalizing your goals…"); setGenProg(92); goalsLLM = await personalizeGoals(nameA, nameB, overallSummary, comparison, { goals1yr: localPlan.goals1yr, goals5yr: localPlan.goals5yr, goals10yr: localPlan.goals10yr });
-        llmUsed = !!(indivA || indivB || jointVM);
+        llmUsed = !!(aiIndivA || aiIndivB || jointVM);
         if (!llmUsed) llmSkipReason = "The AI was reachable but returned nothing usable, so the built-in text was used.";
       } catch (e) { llmSkipReason = "The AI call failed mid-way, so the built-in text was used."; }
     }
@@ -939,9 +982,17 @@ export default function App() {
     if (!results || regenerating) return;
     const cfg = getLLMConfig();
     setRegenerating(true);
-    setGenMsg("Checking the local AI…"); setGenProg(5);
-    const live = cfg.enabled ? await ollamaRunning() : false;
-    if (!live) { setRegenerating(false); setGenMsg(""); setGenProg(0); window.alert(cfg.enabled ? "Ollama isn't running. Start it (and make sure a model is installed), then try again." : "The local AI is turned off in Settings. Turn it on and start Ollama, then try again."); return; }
+    setGenMsg("Checking the on-device AI…"); setGenProg(5);
+    // On iOS the Apple on-device model is used (no Ollama toggle needed); elsewhere
+    // the Ollama path is gated by the user's "enable local AI" setting.
+    const live = isIOS ? await ollamaRunning() : (cfg.enabled ? await ollamaRunning() : false);
+    if (!live) {
+      setRegenerating(false); setGenMsg(""); setGenProg(0);
+      window.alert(isIOS
+        ? "On-device AI isn't available on this device. The built-in plan is complete on its own."
+        : (cfg.enabled ? "Ollama isn't running. Start it (and make sure a model is installed), then try again." : "The local AI is turned off in Settings. Turn it on and start Ollama, then try again."));
+      return;
+    }
     try {
       const analytics = computeAnalytics(answers.A, answers.B, names.A || "Partner A", names.B || "Partner B", weights || undefined);
       const localPlan = generateLocalPlan(analytics);
@@ -962,11 +1013,11 @@ export default function App() {
       const exA = letters.A ? await extractLetter(letters.A, nameA) : null;
       const exB = letters.B ? await extractLetter(letters.B, nameB) : null;
       if (exA && exB) { setGenMsg("Comparing your visions…"); setGenProg(35); comparison = mergeComparisons(comparison, await compareLetters(exA, exB, nameA, nameB)); }
-      setGenMsg(`Writing ${nameA}'s vision…`); setGenProg(50); const indivA = await individualVisionMission(nameA, domSummary("A"), exA);
-      setGenMsg(`Writing ${nameB}'s vision…`); setGenProg(65); const indivB = await individualVisionMission(nameB, domSummary("B"), exB);
-      setGenMsg("Compiling your joint vision…"); setGenProg(80); const jointVM = await jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary, evalSynthesis);
+      setGenMsg(`Writing ${nameA}'s vision…`); setGenProg(50); const indivA = await individualVisionMission(nameA, domSummary("A"), exA, localPlan.indivA) || localPlan.indivA;
+      setGenMsg(`Writing ${nameB}'s vision…`); setGenProg(65); const indivB = await individualVisionMission(nameB, domSummary("B"), exB, localPlan.indivB) || localPlan.indivB;
+      setGenMsg("Compiling your joint vision…"); setGenProg(80); const jointVM = await jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary, evalSynthesis, { vision: localPlan.vision, mission: localPlan.mission });
       setGenMsg("Personalizing your goals…"); setGenProg(92); const goalsLLM = await personalizeGoals(nameA, nameB, overallSummary, comparison, { goals1yr: localPlan.goals1yr, goals5yr: localPlan.goals5yr, goals10yr: localPlan.goals10yr });
-      const llmUsed = !!(indivA || indivB || jointVM);
+      const llmUsed = !!(jointVM || goalsLLM);
       if (!llmUsed) { setRegenerating(false); setGenMsg(""); setGenProg(0); window.alert("The AI was reachable but returned nothing usable this time. Your report is unchanged."); return; }
       const refreshed = {
         ...results,
@@ -1027,17 +1078,128 @@ export default function App() {
     } catch (e) { setToast("Restore failed"); }
   };
 
+  // ── Encrypted device-to-device transfer (Mac ⇄ iPhone) ──────────────────
+  // Export this profile's full data into one encrypted file the user carries
+  // over (AirDrop / email / Files). The passphrase never leaves the device and
+  // is required to import; a leaked file reveals nothing without it.
+  const [transferBusy, setTransferBusy] = useState(false);
+
+  const exportData = async () => {
+    if (transferBusy) return;
+    const pass = window.prompt(
+      "Choose a passphrase to protect this export (you'll need the same one to import on the other device). At least 6 characters:"
+    );
+    if (pass == null) return; // cancelled
+    setTransferBusy(true);
+    try {
+      const payload = buildTransferPayload(
+        { names, answers, sessions, results },
+        { appVersion: APP_VERSION, platform: isIOS ? "ios" : isDesktop ? "desktop" : "web", profileEmail: profile ? profile.email : null },
+        profile // carry the account (email + salt + hash) so the other device can recreate the same login
+      );
+      const fileText = await encryptPayload(payload, pass);
+      const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const fname = `CANA-data-${(profile && profile.nameA) || "export"}-${stamp}.cana`;
+      const blob = new Blob([fileText], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const n = payload.counts;
+      setToast(`Exported ${n.reports} report${n.reports === 1 ? "" : "s"} — keep your passphrase safe`);
+    } catch (e) {
+      setToast(e.message || "Export failed");
+    } finally {
+      setTransferBusy(false);
+    }
+  };
+
+  const importFileRef = useRef(null);
+
+  const onImportFileChosen = async (ev) => {
+    const file = ev.target && ev.target.files && ev.target.files[0];
+    if (ev.target) ev.target.value = ""; // allow re-picking the same file later
+    if (!file) return;
+    let text;
+    try { text = await file.text(); } catch (e) { setToast("Couldn't read that file"); return; }
+    const pass = window.prompt("Enter the passphrase used when this file was exported:");
+    if (pass == null) return;
+    setTransferBusy(true);
+    try {
+      const decoded = await decryptPayload(text, pass);
+      const v = validateTransfer(decoded);
+      const nReports = (v.sessions || []).filter((s) => s && s.report).length;
+      const when = v.meta && v.meta.exportedAt ? new Date(v.meta.exportedAt).toLocaleString() : "another device";
+
+      // Decide which profile the imported data belongs to.
+      // 1) If signed in → import into the current profile (replacing its data).
+      // 2) If NOT signed in and the file carries its account → recreate that
+      //    login automatically and sign into it (no manual sign-up needed).
+      // 3) If NOT signed in and the file has no account → ask the user to sign in
+      //    or create an account first.
+      let targetProfile = profile;
+      let createdAccount = false;
+      if (!targetProfile) {
+        if (v.account) {
+          const reg = registerProfileRecord(v.account);
+          if (!reg.ok) { setToast(reg.error || "Couldn't recreate the account from this file."); setTransferBusy(false); return; }
+          targetProfile = reg.profile;
+          createdAccount = !reg.existed;
+        } else {
+          setToast("Please sign in or create an account first, then import.");
+          setTransferBusy(false);
+          return;
+        }
+      }
+      const tpid = targetProfile.id;
+
+      const confirmMsg = createdAccount
+        ? `Set up the account "${targetProfile.email}" on this device and import ${nReports} report${nReports === 1 ? "" : "s"} and ${v.sessions.length} saved session${v.sessions.length === 1 ? "" : "s"} (exported ${when})?\n\nYou'll sign in with the same email and password you used before.`
+        : `Import ${nReports} report${nReports === 1 ? "" : "s"} and ${v.sessions.length} saved session${v.sessions.length === 1 ? "" : "s"} (exported ${when})?\n\nThis REPLACES the data in "${targetProfile.email}".`;
+      if (!window.confirm(confirmMsg)) { setTransferBusy(false); return; }
+
+      // Persist the imported data under the target profile.
+      try {
+        localStorage.setItem(keyFor(LS_KEY_BASE, tpid), JSON.stringify({ names: v.names, answers: v.answers }));
+        localStorage.setItem(keyFor(LS_SESSIONS_BASE, tpid), JSON.stringify(v.sessions));
+        if (v.results) localStorage.setItem(keyFor(LS_RESULTS_BASE, tpid), JSON.stringify(v.results));
+        else localStorage.removeItem(keyFor(LS_RESULTS_BASE, tpid));
+      } catch (e) {}
+
+      // Reflect into in-memory state and make the target profile active.
+      setNames(v.names);
+      setAnswers(v.answers && (v.answers.A || v.answers.B) ? v.answers : { A: {}, B: {} });
+      setSessions(v.sessions);
+      setResults(v.results);
+      setArchiveReport(null);
+      if (!profile) enterApp(targetProfile); // sign into the freshly imported account
+      setToast(createdAccount ? "Account and data imported — you're signed in" : "Imported successfully");
+      setScreen("welcome");
+      window.scrollTo({ top: 0 });
+    } catch (e) {
+      setToast(e.message || "Import failed");
+    } finally {
+      setTransferBusy(false);
+    }
+  };
+
   const eraseEverything = () => {
     if (!confirm("Erase ALL data — answers and history — from this device?")) return;
     localStorage.removeItem(keyFor(LS_KEY_BASE, pid)); localStorage.removeItem(keyFor(LS_SESSIONS_BASE, pid)); localStorage.removeItem(keyFor(LS_RESULTS_BASE, pid));
     setNames({ A: "", B: "" }); resetDraft(); setSessions([]); setResults(null); setArchiveReport(null); setScreen("welcome");
   };
 
-  const llmBadge = (
+  // On iOS: show "On-device AI" only when the Apple model is actually available;
+  // otherwise hide the badge entirely (never show Ollama wording on iOS).
+  // On desktop/web: unchanged Ollama status.
+  const llmBadge = (isIOS && appleAI !== "yes") ? null : (
     <button onClick={() => setScreen("settings")} className="no-print" style={{
       display: "flex", alignItems: "center", gap: 7, border: "1px solid var(--hair)",
       background: "var(--panel-solid)", borderRadius: 20, padding: "5px 12px", fontSize: 12.5, color: "var(--ink2)", fontWeight: 500 }}>
-      <StatusDot state={llmState} /> {llmState === "ok" ? `Ollama · ${(llmCfg.model || "").split(":")[0]}` : llmState === "bad" ? "Ollama offline" : "Checking…"}
+      {isIOS
+        ? (<><StatusDot state="ok" /> On-device AI</>)
+        : (<><StatusDot state={llmState} /> {llmState === "ok" ? `Ollama · ${(llmCfg.model || "").split(":")[0]}` : llmState === "bad" ? "Ollama offline" : "Checking…"}</>)}
     </button>
   );
 
@@ -1091,6 +1253,18 @@ export default function App() {
               ) : null}
             </Card>
 
+            <div style={{ marginTop: 16, textAlign: "center" }}>
+              <button onClick={() => importFileRef.current && importFileRef.current.click()} disabled={transferBusy}
+                style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 13, fontWeight: 500, cursor: "pointer", padding: 0 }}>
+                {transferBusy ? "Working…" : "Coming from another device? Import your data"}
+              </button>
+              <input ref={importFileRef} type="file" accept=".cana,application/octet-stream,application/json"
+                onChange={onImportFileChosen} style={{ display: "none" }} />
+              <p style={{ fontSize: 11.5, color: "var(--ink3)", lineHeight: 1.5, marginTop: 6 }}>
+                Brings over your account and reports from an encrypted file exported on your other device.
+              </p>
+            </div>
+
             <p style={{ fontSize: 11.5, color: "var(--ink3)", lineHeight: 1.6, marginTop: 18, textAlign: "center" }}>
               Accounts are stored only on this device to keep couples' data separate. This is local privacy separation, not a secure server login — your password is saved as a one-way hash, never in plain text, but anyone with full access to this Mac could reach the underlying data. Don't reuse an important password here.
             </p>
@@ -1104,6 +1278,46 @@ export default function App() {
   if (screen === "welcome") return (
     <div>
       <Toast message={toast} />
+      {chapterInfo ? (() => {
+        const d = DOMAINS.find((x) => x.id === chapterInfo);
+        if (!d) return null;
+        return (
+          <div onClick={() => setChapterInfo(null)} className="no-print"
+            style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)",
+              display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label={`About ${d.label}`}
+              style={{ background: "var(--panel-solid)", borderRadius: 16, maxWidth: 540, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.35)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 24, color: "var(--gold)" }}>{d.icon}</span>
+                  <h2 style={{ fontSize: 21, fontWeight: 700, color: "var(--ink)", margin: 0, letterSpacing: "-.01em" }}>{d.label}</h2>
+                </div>
+                <button onClick={() => setChapterInfo(null)} aria-label="Close"
+                  style={{ border: "none", background: "var(--bg2)", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", color: "var(--ink2)", fontSize: 16, lineHeight: 1 }}>✕</button>
+              </div>
+              {d.about && d.about.weight ? (
+                <p style={{ fontSize: 11, color: "var(--accent)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", margin: "0 0 14px" }}>{d.about.weight} in the overall score</p>
+              ) : null}
+              {d.summary ? (
+                <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.6, margin: "0 0 16px" }}>{d.summary}</p>
+              ) : null}
+              <div style={{ borderTop: "1px solid var(--hair2)", paddingTop: 16 }}>
+                <p style={{ fontSize: 11.5, color: "var(--gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 6px" }}>Biblical grounding</p>
+                <p style={{ fontSize: 14, color: "var(--ink2)", lineHeight: 1.6, margin: "0 0 16px" }}><RichText text={d.about.biblical} /></p>
+                {d.about.books ? (<>
+                  <p style={{ fontSize: 11.5, color: "var(--gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 6px" }}>Further reading</p>
+                  <p style={{ fontSize: 14, color: "var(--ink2)", lineHeight: 1.6, margin: "0 0 16px" }}><RichText text={d.about.books} /></p>
+                </>) : null}
+                <p style={{ fontSize: 11.5, color: "var(--gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 6px" }}>What the research says</p>
+                <p style={{ fontSize: 14, color: "var(--ink2)", lineHeight: 1.6, margin: 0 }}><RichText text={d.about.science} /></p>
+              </div>
+              <div style={{ marginTop: 18, fontStyle: "italic", color: "var(--ink2)", fontSize: 13.5, borderLeft: "3px solid var(--hair)", paddingLeft: 12 }}>
+                "{d.scripture.text}" — {d.scripture.ref}
+              </div>
+            </div>
+          </div>
+        );
+      })() : null}
       <Chrome title="CANA" right={llmBadge} />
       <Wrap>
         <div style={{ padding: "60px 0 80px" }}>
@@ -1125,7 +1339,7 @@ export default function App() {
           </div>
           <div className="rise-4" style={{ marginTop: 12, display: "flex", gap: 12, flexWrap: "wrap" }}>
             <Btn kind="secondary" onClick={() => { setScreen("intro"); window.scrollTo({ top: 0 }); }}>Introduction</Btn>
-            <Btn kind="secondary" onClick={openSetup}>Set up the local AI</Btn>
+            {!isIOS ? <Btn kind="secondary" onClick={openSetup}>Set up the local AI</Btn> : null}
           </div>
           {!names.A && !hasHistory ? <p style={{ fontSize: 12.5, color: "var(--ink3)", marginTop: 10 }}>The quick check-in unlocks after your first full assessment.</p> : null}
 
@@ -1169,12 +1383,22 @@ export default function App() {
             );
           })()}
 
-          <div style={{ marginTop: 56, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12 }}>
+          <div style={{ marginTop: 56, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12, alignItems: "stretch" }}>
             {DOMAINS.map((d, i) => (
-              <Card key={d.id} style={{ padding: 16, animationDelay: `${.2 + i * .03}s` }} className="rise lift">
-                <div style={{ fontSize: 22, marginBottom: 6, color: "var(--gold)" }}>{d.icon}</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{d.label}</div>
-              </Card>
+              <button key={d.id} onClick={() => setChapterInfo(d.id)}
+                aria-label={`About ${d.label}`}
+                style={{ display: "block", width: "100%", height: "100%", textAlign: "left", cursor: "pointer",
+                  font: "inherit", color: "inherit", background: "none", border: "none",
+                  padding: 0, margin: 0, appearance: "none", WebkitAppearance: "none",
+                  WebkitTapHighlightColor: "transparent", outline: "none" }}>
+                <Card style={{ padding: 16, animationDelay: `${.2 + i * .03}s`, height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column" }} className="rise lift">
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ fontSize: 22, color: "var(--gold)" }}>{d.icon}</div>
+                    <span style={{ fontSize: 15, color: "var(--ink3)", lineHeight: 1 }}>ⓘ</span>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginTop: "auto", paddingTop: 10, minHeight: "2.6em", display: "flex", alignItems: "flex-end" }}>{d.label}</div>
+                </Card>
+              </button>
             ))}
           </div>
           {hasHistory && liveTrends ? <DashboardPreview trends={liveTrends} onOpen={() => { setScreen("dashboard"); window.scrollTo({ top: 0 }); }} /> : null}
@@ -1184,11 +1408,13 @@ export default function App() {
             </p>
             <span style={{ fontSize: 12.5, color: "var(--ink3)" }}>·</span>
             <span style={{ fontSize: 12.5, color: "var(--ink3)" }}>CANA {APP_VERSION}</span>
-            <button onClick={runUpdateCheck} disabled={update.checking}
-              style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 12.5, fontWeight: 500, cursor: "pointer", padding: 0 }}>
-              {update.checking ? "Checking…" : "Check for updates"}
-            </button>
-            <span style={{ fontSize: 12.5, color: "var(--ink3)" }}>·</span>
+            {!isIOS ? (
+              <button onClick={runUpdateCheck} disabled={update.checking}
+                style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 12.5, fontWeight: 500, cursor: "pointer", padding: 0 }}>
+                {update.checking ? "Checking…" : "Check for updates"}
+              </button>
+            ) : null}
+            {!isIOS ? <span style={{ fontSize: 12.5, color: "var(--ink3)" }}>·</span> : null}
             <span style={{ fontSize: 12.5, color: "var(--ink3)" }}>Signed in as {profile.email}</span>
             <button onClick={logout}
               style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 12.5, fontWeight: 500, cursor: "pointer", padding: 0 }}>
@@ -1216,6 +1442,30 @@ export default function App() {
           <p style={{ fontSize: 11.5, color: "var(--ink3)", marginTop: 8, lineHeight: 1.5, maxWidth: 560 }}>
             CANA keeps an automatic safety copy of your reports inside the app, so an accidental reset can be undone here. This copy lives on this device only — for a backup that survives clearing your browser or moving computers, use "Save as PDF" on a report.
           </p>
+
+          {/* Encrypted transfer between devices (Mac ⇄ iPhone) */}
+          <Card style={{ marginTop: 20, maxWidth: 560 }}>
+            <p style={{ fontSize: 15, fontWeight: 600, margin: "0 0 4px" }}>Move your data to another device</p>
+            <p style={{ fontSize: 12.5, color: "var(--ink3)", margin: "0 0 14px", lineHeight: 1.55 }}>
+              {isIOS
+                ? "Export an encrypted file here, then send it to your iPhone or Mac (AirDrop, email, or Files) and import it there. Bring your CANA account's answers and reports with you. You choose a passphrase — without it the file can't be read."
+                : "Export an encrypted file here, then send it to your other device — your iPhone or another Mac (AirDrop, email, or Files) — and import it there. Bring your CANA account's answers and reports with you. You choose a passphrase — without it the file can't be read."}
+            </p>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Btn onClick={exportData} disabled={transferBusy}>
+                {transferBusy ? "Working…" : (isIOS ? "Export to share" : "Export to share")}
+              </Btn>
+              <Btn kind="secondary" disabled={transferBusy} onClick={() => importFileRef.current && importFileRef.current.click()}>
+                {isIOS ? "Import from Mac" : "Import from iPhone"}
+              </Btn>
+              <input ref={importFileRef} type="file" accept=".cana,application/octet-stream,application/json"
+                onChange={onImportFileChosen} style={{ display: "none" }} />
+            </div>
+            <p style={{ fontSize: 11.5, color: "var(--ink3)", marginTop: 12, marginBottom: 0, lineHeight: 1.5 }}>
+              Importing replaces this profile's current answers and reports with the ones in the file. Keep your passphrase somewhere safe — it cannot be recovered.
+            </p>
+          </Card>
+
           {update.result ? (
             <div className="rise" style={{ marginTop: 12, padding: "12px 16px", borderRadius: 10, maxWidth: 520,
               background: update.result.state === "update" ? "rgba(10,132,255,0.07)" : "var(--bg2)",
@@ -1453,6 +1703,18 @@ export default function App() {
       <Wrap narrow>
         <div style={{ padding: "44px 0 80px" }}>
           <p style={eyebrow}>Settings</p>
+          {isIOS ? (
+            <>
+              <h2 style={h2}>On-device AI</h2>
+              <p style={body}>On supported iPhones (iOS 26 and later with Apple Intelligence), your vision, mission, and letter analysis can be enhanced by Apple's on-device model. It runs entirely on your iPhone — nothing is ever sent anywhere. On other devices, the app uses its built-in writing, which is fully complete on its own. There is nothing to configure here.</p>
+              <Card style={{ marginTop: 8 }}>
+                <p style={{ fontSize: 14, color: "var(--ink2)", margin: 0, lineHeight: 1.6 }}>
+                  AI enhancement is automatic and optional. Whether or not it is available, every score, comparison, and the full plan are generated on your device.
+                </p>
+              </Card>
+            </>
+          ) : (
+          <>
           <h2 style={h2}>Local AI (Ollama)</h2>
           <p style={body}>Vision, mission, and letter analysis are written by a model running on this Mac via Ollama. Everything is optional — scoring works without it — and nothing ever leaves your machine.</p>
 
@@ -1538,6 +1800,8 @@ export default function App() {
             </ol>
             <p style={{ fontSize: 12.5, color: "var(--ink3)", marginTop: 12, marginBottom: 0 }}>Full details in docs/LLM_SETUP.md.</p>
           </Card>
+          </>
+          )}
         </div>
       </Wrap>
     </div>
@@ -2233,7 +2497,7 @@ export default function App() {
                 <p style={{ fontSize: 13.5, color: "var(--ink)", fontWeight: 600, margin: "0 0 4px" }}>This report used the built-in text, not the local AI.</p>
                 <p style={{ fontSize: 13, color: "var(--ink2)", lineHeight: 1.5, margin: "0 0 10px" }}>{R.llmSkipReason}</p>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <Btn kind="secondary" style={{ padding: "6px 14px", fontSize: 13 }} onClick={openSetup}>Set up the local AI</Btn>
+                  {!isIOS ? <Btn kind="secondary" style={{ padding: "6px 14px", fontSize: 13 }} onClick={openSetup}>Set up the local AI</Btn> : null}
                   <Btn kind="subtle" style={{ padding: "6px 14px", fontSize: 13 }} disabled={regenerating} onClick={regenerateAI}>{regenerating ? "Working…" : "Regenerate with AI"}</Btn>
                 </div>
               </Card>

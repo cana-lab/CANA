@@ -1,5 +1,141 @@
 # Changelog
 
+## 4.44.0
+- Release-readiness pass for App Store / TestFlight, plus the project hygiene the chat-based workflow had left half-finished. Code behavior is unchanged for end users; what shifted is *how the app is built, signed, tested, and released*.
+- iOS — App Store blockers fixed in source:
+  - `UIRequiredDeviceCapabilities = ["arm64"]` (was `["armv7"]`, a leftover from the Capacitor template that contradicted iOS 16 and would trip the validator).
+  - Added `PrivacyInfo.xcprivacy` (Apple privacy manifest, required for new submissions since May 2024): declares no tracking, no data collected, only the Required-Reason API UserDefaults under CA92.1 (app's own data).
+  - Declared `ITSAppUsesNonExemptEncryption=false` in Info.plist (standard auth crypto exempt under EAR §740.17(b)(1)) — Apple no longer asks at upload time.
+  - Declared `WKAppBoundDomains=[]` to make the existing `limitsNavigationsToAppBoundDomains` setting explicit.
+  - Normalized `IPHONEOS_DEPLOYMENT_TARGET` to 16.0 across all configurations (the file had a stale 13.0 at project level and 16.6 at target level).
+- Versioning is now a single source of truth: `package.json` `version` is the only place a human edits it. A new `scripts/sync-versions.cjs` patches `MARKETING_VERSION` (and bumps `CURRENT_PROJECT_VERSION` on iOS builds) before each platform build. Mac users will no longer see "Version 1.0" in iOS Settings while the web layer says 4.44.
+- iOS project layout: the entire `ios/` folder is now committed (Info.plist, pbxproj, PrivacyInfo, plugin sources). Only `ios/App/Pods/`, `ios/App/App/public/` (cap-sync output), and `xcuserdata` remain ignored. Previously the whole `ios/` directory lived only on the developer's Mac, with one stray plugin file accidentally force-committed.
+- macOS — Electron security hardening:
+  - Renderer now runs with the Chromium sandbox ON (`sandbox: true`). The previous `sandbox: false` was justified with "needs localhost reach", which was incorrect — the sandbox does not block outgoing HTTP. With contextIsolation + nodeIntegration off, sandbox-on is the documented best practice.
+  - Removed `com.apple.security.cs.allow-unsigned-executable-memory` from the hardened-runtime entitlements. Modern Electron only needs `allow-jit`; the extra entitlement was a common audit finding.
+- Tests + CI:
+  - Added Vitest with 26 smoke tests covering the pure modules: `engine.js` (edge cases the 4.32.0 hardening was claimed to fix — empty/all-NA, 1-domain, NaN-overall), `auth.js` (PBKDF2 round-trip, wrong-password rejection, cross-device import non-duplication), `transfer.js` (AES-GCM round-trip, wrong-passphrase, tamper, foreign-file rejection). These pin claims that previously lived only in the CHANGELOG.
+  - Added `.github/workflows/ci.yml`: on every push and PR, runs `versions:check` + tests + all three platform bundles + an unsigned electron-builder pack on macOS-runner. A fresh checkout on someone else's machine now has to actually work.
+- Source hygiene:
+  - `CLAUDE.md` added to the repo root so future Claude Code sessions inherit the project rules without a re-paste.
+  - CHANGELOG had two separate `## 4.33.0` entries; merged them.
+- Not in this release (open items): `electron-updater` with signature verification (separate, ~half-day), Electron 32 major bump, App.jsx code-splitting, opt-in crash reporting. Each is its own decision.
+- Verified: all 26 unit tests pass; web + electron + iOS web builds clean; `plutil -lint` passes for Info.plist + PrivacyInfo.xcprivacy. NOT verified (out of this environment's reach): real Xcode compile of the iOS project with the new pbxproj entries, real Apple notarization run, real iOS device build.
+
+## 4.43.0
+- Chapter tiles are now uniform height across the grid, so one-line and two-line titles ("Faith & Calling" vs "Intimacy & Sexual Union") line up evenly. Icon sits top, title aligns to the bottom. macOS, web, and iOS.
+- Mac distribution is now signing- and notarization-ready, so a GitHub-released .dmg opens on any Mac with a normal double-click (no "app is damaged", no Terminal for end users):
+  - Hardened runtime + entitlements (build/entitlements.mac.plist), universal binary (Apple Silicon + Intel), afterSign notarization hook (scripts/notarize.cjs via @electron/notarize).
+  - New double-click launcher "Build signed Mac app.command": on first run it stores your Apple ID, Team ID, and app-specific password in the macOS Keychain (never in the repo), then builds + signs + notarizes + staples in one step. Later releases are one double-click.
+  - One-time setup documented in SIGNING_AND_NOTARIZING.md (certificate, app-specific password, Team ID, GitHub release steps).
+- Note: signing/notarization runs on your Mac with your Apple credentials and could not be executed in this build environment — the config, hook, and launcher are verified for syntax and the web/iOS/electron bundles build clean, but the actual signed .dmg must be produced on your Mac via the launcher.
+
+## 4.42.0
+- iOS: the top header now respects the status bar (safe-area inset + viewport-fit=cover), so the time, Wi-Fi and battery stay readable instead of being overlapped by app content.
+- Chapter tiles: removed the visible button frame that appeared when the tiles became tappable. The tiles look exactly like the original cards again (no outline/background box) while still opening the summary on tap. Applies to macOS, web and iOS.
+- Verified: all 3 builds clean; web + iOS render clean; safe-area + button reset present in the iOS bundle.
+
+## 4.41.0
+- Reverted to the original tree artwork (the geometric placeholder was removed) and fixed only the icon sizing: the app icon is now full-bleed for recent macOS (Tahoe / 26), filling the whole square instead of sitting in a smaller rounded inset. Regenerated build/icon.icns and all public/icon-*.png plus an opaque public/AppIcon-1024.png for iOS.
+- Note: the original tree was sourced from the internet and remains a copyright risk; it is a placeholder until a graphic designer supplies original artwork. See ICON_SETUP.md. Do not submit to the App Store with this artwork as-is.
+- Verified: all 3 builds clean; web + iOS render clean; icon opaque (no alpha).
+
+## 4.40.0
+- New, original app icon and brand mark. The previous oak was traced from an image found online (a copyright risk); the new oak is generated geometrically from code — recursive branches, an organic crown of merged circles, and roots — and is not derived from any external image. The old traced path was removed from the source.
+- Full-bleed icon for the new macOS (Tahoe / 26), which applies the rounded-corner mask itself and expects the artwork to fill the whole square. The icon now fills edge to edge instead of sitting in a smaller rounded inset. Regenerated build/icon.icns and all public/icon-*.png, plus an opaque, no-transparency public/AppIcon-1024.png for the iOS App Store icon. See ICON_SETUP.md for the one-time Xcode step.
+- Verified: all 3 builds clean; web + iOS render clean; icon is fully opaque (no alpha); old traced artwork fully removed.
+
+## 4.39.0
+- Chapter tiles on the welcome screen are now buttons: tapping one opens a summary window for that chapter (concise overview + biblical grounding, further reading, what the research says, and the anchor verse). Tiles themselves stay clean (icon + title + an ⓘ hint).
+- Direct device switch without pre-creating an account: the encrypted export now also carries your account (email + password credentials, inside the encrypted blob — never in cleartext). On a fresh device, "Coming from another device? Import your data" on the login screen recreates the same account automatically and signs you in — same email and password as before. If you're already signed in, import still just replaces the current profile's data.
+  - Honest scope: this is still a one-time copy, not live sync. Changes made afterward on one device don't appear on the other until you export/import again. Re-importing an existing account doesn't duplicate it.
+- Verified: full account export->import->sign-in flow incl. wrong-password rejection and no-duplicate on re-import (11 checks); web + iOS render clean; login import entry present; all 3 builds clean.
+
+## 4.38.0
+- Each chapter on the welcome screen now shows a concise summary of what it covers — rooted in both its biblical anchor and the key scientific finding behind it (e.g. Faith: sanctification research + Matthew 6:33; Money: financial-conflict divorce data + Matthew 6:24; Marriage: Gottman + Ephesians 5). The fuller per-chapter background (weight, biblical grounding, supporting books, and the science) remains available on the Introduction screen and when answering each chapter.
+- Same content on Mac, web, and iOS.
+
+## 4.37.0
+- Added encrypted device-to-device data transfer (Mac <-> iPhone). In Settings, "Export to share" writes a single passphrase-encrypted .cana file containing your names, in-progress answers, saved sessions, and current report; carry it over (AirDrop / email / Files) and use "Import from Mac" / "Import from iPhone" on the other device to bring your CANA account's data with you.
+  - Encryption: AES-GCM with a 256-bit key derived from your passphrase via PBKDF2-HMAC-SHA256 (210k iterations); random salt + IV per export. Without the passphrase the file reveals nothing — preserving CANA's privacy promise (no server, no cloud). Wrong passphrase and tampered/foreign files are detected and rejected with clear messages.
+  - Import shows how many reports/sessions the file holds and the export date, and asks for confirmation before replacing the current profile's data.
+- Fixed a render-time crash ("Cannot access 'isIOS' before initialization") introduced when the AI badge effect referenced the platform flags before they were defined; platform flags are now declared at the top of the component. This affected all platforms.
+- Verified: transfer crypto round-trip + wrong-passphrase/tamper/foreign-file rejection (14 checks); full Mac->iOS data-fidelity round-trip (9 checks); web + iOS render clean; all 3 builds clean.
+
+## 4.36.0
+- Fixed the header AI status badge on iOS. It previously showed "Ollama offline" on iPhone, which was wrong (iOS uses the on-device Apple model, never Ollama). Now on iOS the badge shows "On-device AI" when the Apple model is available, and is hidden entirely when the device/OS doesn't support it — no Ollama wording ever appears on iOS. Desktop/web behavior is unchanged.
+
+## 4.35.0
+- Hardened the iOS Apple Foundation Model plugin so it compiles on ANY Xcode version. Previously it failed to build on Xcode without the iOS 26 SDK ("Cannot find 'SystemLanguageModel' / 'LanguageModelSession'"). Now gated on `#if compiler(>=6.2) && canImport(FoundationModels)`: older Xcode skips the Apple-model code entirely and reports it unavailable (app uses deterministic text); a current Xcode with the iOS 26 SDK compiles it and the on-device AI activates automatically — no code change needed later.
+
+## 4.34.0
+- iOS now makes ZERO calls to a local Ollama server — not even a liveness check. Previously the Ollama code was hidden in the UI but two network paths could still fire on iOS (chat() falling through after the Apple model, and the ollamaRunning liveness probe). Both are now hard-stopped on iOS:
+  - chat() throws immediately on iOS if the Apple on-device model is unavailable, so the couple's letters/answers are never sent to localhost; the deterministic fallback is used instead.
+  - ollamaRunning() returns false on iOS without probing localhost.
+- The Ollama code still exists in the shared codebase (used on desktop) but is now provably unreachable on iOS. Desktop/web behavior is unchanged.
+- Verified: chat() and ollamaRunning make 0 network calls on simulated iOS (5/5 checks); desktop AI still uses Ollama correctly; all 3 builds clean; render smoke clean.
+
+## 4.33.0
+- iOS App Store readiness: desktop-only features are now hidden when running as the native iOS app, so the iOS build contains nothing that would be non-functional or against App Store rules.
+  - Hidden on iOS: the "Check for updates" button (GitHub/.dmg update checks aren't allowed on iOS), the entire Ollama setup wizard and "Set up the local AI" buttons, and the Ollama/Mac-install settings section.
+  - On iOS, Settings now shows a short, honest "On-device AI" note (Apple's on-device model, nothing to configure) instead of the Ollama panel.
+  - On iOS the AI enhancement uses Apple's on-device model automatically (no Ollama "enable" toggle needed); all skip/alert messages are platform-aware and no longer mention Ollama.
+- Added a double-click launcher "Build iOS and open Xcode.command" that: checks Node/Xcode/CocoaPods, builds the web app for iOS, creates the native iOS project on first run (or syncs it on later runs), and opens it in Xcode. The final native build (the ▶ Run step) still happens in Xcode, as it must.
+- No change to the desktop or web experience. Verified: all 3 builds clean; web and simulated-iOS both mount with zero runtime errors; all gates confirmed in source.
+- Editorial: a previous edit accidentally created two separate ## 4.33.0 entries; they have been merged here. No code change.
+
+
+## 4.32.0
+- Release-hardening review fixes:
+  - Fixed a crash in plan generation when zero domains are scorable (e.g. every question marked N/A, or an empty/abandoned assessment). The engine now returns a safe "complete the assessment" placeholder instead of throwing.
+  - Fixed overall-score becoming NaN when no domains are scorable (0/0); it now returns 0 cleanly.
+  - Hardened individual and joint vision/mission text against the 1-domain case so they never print "undefined".
+  - Memoized the live trends computation so it only recomputes when sessions change, not on every render.
+- No functional change to normal assessments; all existing behavior, scores, and outputs are unchanged. Verified: all 3 builds clean, engine regression green, edge cases (all-NA / empty / 1-domain / 2-domain) all pass, 0 dependency vulnerabilities, render smoke clean.
+
+
+## 4.31.0
+- Scale change: removed the exact midpoint (5) and added 4 and 6 as options, so the scale is now 0,1,2,3,4,6,7,8,9,10. This keeps people from sitting exactly on the fence while still allowing a "mild" lean. Reverse-scoring stays mathematically clean (4<->6, symmetric around 5). New intermediate labels added for 4 and 6 across all 10 scale types.
+- Question refactoring toward evidence-based behavioral markers (research-checked against primary literature, with honest "associated with" language rather than overstated "predicts"):
+  - m1 -> Love Maps (knowing your spouse's hopes/dreams/worries), m15 -> Contempt (Gottman's strongest divorce predictor), added m18 Stonewalling, b4 -> Flooding (physiological), f8 -> Sanctification (sacred view of marriage), in3 -> affection/caring (CSI-16 phrasing).
+  - Added: f13 spiritual intimacy, f14 God-attachment anxiety (sensitive, reflective, reverse-scored), in9 covenant-renewal view of intimacy, c11 sanctification of parenting, il9 "we-ness" defense of spouse. Now 113 questions.
+- New rule-based flags: Contempt Detected, Stonewalling Pattern, Physiological Flooding, Felt Security (God-attachment), Sacred-Bond Buffer (sanctification as a source of repair motivation).
+- Deliberately NOT implemented: the proposed hard-cap that would force the Marriage score to 3.4 from a single item. A single self-report item is too unreliable to override a whole domain's score; contempt/stonewalling are surfaced as prominent flags instead. Weights and band thresholds left unchanged (those are editorial judgements, not "right/wrong").
+- Updated both reference PDFs (Assessment Questions; How the Evaluation Works) to match.
+- All plain-language help entries updated for changed questions and added for new ones (113/113 covered).
+
+## 4.30.0
+- Mac and iOS now build and package as separate, independent packages from the same single codebase:
+  - Mac (Electron) builds to dist/ and packages a .dmg (npm run pack:mac) → GitHub Releases.
+  - iOS (Capacitor) builds to its own dist-ios/ folder and packages via Xcode (npm run ios:sync) → App Store.
+  - The two build outputs no longer share a folder, so building or releasing one never disturbs the other.
+- Same shared source (src/) and same app identity (com.cana.covenantlife, same version) across both — a fix or new feature lands in both with no code duplication.
+- Setup guide (ios-plugin/IOS_SETUP.md) updated with the separate-packaging model and a Mac-vs-iOS reference table.
+
+
+## 4.29.0
+- Added the foundation for a native iOS app via Capacitor — the SAME tested React app, wrapped as a native iOS build (not a rewrite). New: capacitor.config.json, an "ios" Vite build target (relative asset paths), and npm scripts (build:ios, ios:sync, ios:open).
+- Added a native Swift plugin (ios-plugin/) bridging Apple's on-device Foundation Model (Apple Intelligence, iOS 26+). On iOS the AI enhancement runs fully on-device; on older devices and on web/desktop the app uses the deterministic text or Ollama exactly as before.
+- The AI backend is now selected automatically: Apple Foundation Model on capable iOS, Ollama on desktop, deterministic everywhere else. All of it still sits ON TOP of the deterministic foundation (re-wording only, never replacing the facts).
+- Full setup instructions in ios-plugin/IOS_SETUP.md. The native Xcode project is generated on the Mac (gitignored); the reusable plugin sources are committed.
+- Desktop and web behavior is unchanged. Verified: web/electron/ios builds all clean; JS bridge correct across web/iOS/failure (8/8); desktop AI fallback intact (4/4).
+
+
+## 4.28.0
+- When the local AI is used, it now BUILDS ON the deterministic foundation rather than replacing it. The built-in (fact-based) vision and mission are passed to the AI as a required foundation, and the AI's only job is to re-express them in warmer, more personal language — it is explicitly instructed not to add new claims or drop any of the foundation's facts. This applies to the joint vision/mission and both individual vision/missions.
+- If the AI returns nothing usable, the deterministic foundation is kept as-is (unchanged behavior, now also the literal basis the AI works from).
+- Net effect: the deterministic engine is always the substance; the AI only refines the wording on top of it. This also reduces the chance of the model inventing claims, since it is anchored to the foundation instead of writing freely.
+
+
+## 4.27.0
+- The built-in (deterministic) engine now produces a COMPLETE report on its own — no AI required. This makes the app fully functional offline and on any device (important for the upcoming iOS version, where the local desktop AI can't run).
+  - Added deterministic individual Vision & Mission statements for each partner, built from their own domain scores (previously only the AI produced these; without AI those sections were blank).
+  - The report now defaults to these built-in individual visions, and the AI (when available) overwrites them — so the report is never missing sections.
+  - Joint vision/mission, all goals, tensions, flags, the letter/dream comparison (Future Perfect & Top Differences), and the Start-the-Conversation guide were already fully deterministic and remain so.
+- Fixed the AI-used indicator so it reflects only genuine AI output, not the deterministic defaults.
+- Note: built-in text is template-based and varies less than AI-written text, but it is complete, accurate to your scores, and fully private. Individual statements use neutral "they" since the app doesn't ask each partner's gender.
+
+
 ## 4.26.0
 - The "Start the Conversation" guide is now SAVED into the report once generated. Reopening it shows the same guide instead of regenerating it each time, so it stays consistent.
 - Added a "↻ Refresh AI output" button on the Start the Conversation page (live report only), to redo the guide with the local AI — e.g. after the model improves.

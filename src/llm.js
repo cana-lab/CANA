@@ -16,6 +16,20 @@
 const DEFAULT_BASE = "http://localhost:11434/v1";
 const DEFAULT_MODEL = "llama3.1:8b";
 
+// True only on the native iOS app (Capacitor). Synchronous + safe everywhere:
+// on web/Electron, window.Capacitor is undefined, so this returns false and the
+// normal Ollama path is used. On iOS it lets chat() hard-stop before any
+// localhost network attempt.
+function isIOSPlatform() {
+  try {
+    return typeof window !== "undefined" && window.Capacitor &&
+      typeof window.Capacitor.getPlatform === "function" &&
+      window.Capacitor.getPlatform() === "ios";
+  } catch (e) {
+    return false;
+  }
+}
+
 // SECURITY: the couple's letters and answers are sent to this endpoint, so it
 // MUST stay on this machine. We hard-restrict it to loopback (localhost /
 // 127.0.0.1 / [::1]) regardless of what is stored or typed — defense in depth
@@ -63,7 +77,42 @@ export function setLLMConfig(cfg) {
 export function isValidEndpoint(u) { return isLoopbackUrl(u); }
 
 // Low-level call. Returns the assistant message string, or throws.
+// Backend selection:
+//   - iOS (Capacitor) with Apple Foundation Model available → on-device Apple model.
+//   - Everywhere else → local Ollama (unchanged).
+// Both are mere ENHANCEMENT layers over the deterministic foundation; callers
+// fall back to deterministic output if this throws or returns empty.
 async function chat(messages, { json = false } = {}) {
+  // Try the on-device Apple model first when on iOS. We import lazily so web /
+  // Electron builds never touch Capacitor.
+  try {
+    const fm = await import("./foundationModel.js");
+    if (await fm.isAppleAIAvailable()) {
+      // Flatten the OpenAI-style messages into a system instruction + user prompt.
+      const system = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n");
+      const userPrompt = messages.filter((m) => m.role !== "system").map((m) => m.content).join("\n\n");
+      if (json) {
+        const obj = await fm.appleGenerateJSON(userPrompt, system);
+        if (obj == null) throw new Error("Apple model returned no JSON");
+        return JSON.stringify(obj);
+      }
+      const text = await fm.appleGenerate(userPrompt, system);
+      if (text == null) throw new Error("Apple model returned nothing");
+      return text;
+    }
+  } catch (e) {
+    // The Apple path errored. On non-iOS this just means the plugin isn't there
+    // (expected) and we fall through to Ollama below. On iOS we must NOT fall
+    // through to a localhost Ollama fetch — see the hard stop right after.
+  }
+
+  // Hard stop on iOS: never attempt an Ollama (localhost:11434) fetch on the
+  // native iOS app. If the Apple model was unavailable or failed above, we throw
+  // here so the caller uses its deterministic fallback — with no network attempt.
+  if (isIOSPlatform()) {
+    throw new Error("On-device AI unavailable on iOS; using deterministic output");
+  }
+
   const cfg = getLLMConfig();
   const base = safeBase(cfg.baseUrl); // hard stop: never POST personal data off-device
   const url = base.replace(/\/+$/, "") + "/chat/completions";
@@ -185,63 +234,75 @@ Up to 5 of each, but ONLY those directly supported by the text. Fewer is better 
 }
 
 // ── 3. Individual vision + mission for ONE partner ──────────────────────────
-// Uses that partner's domain scores + their letter extract. Returns {vision,mission} or null.
-export async function individualVisionMission(name, domainSummary, letterExtract) {
+// The deterministic statement is the FOUNDATION. The AI only re-expresses it in
+// warmer, more personal language — it may not add facts or remove any.
+// `baseVM` = { vision, mission } from the deterministic engine (required anchor).
+// Returns {vision,mission} or null.
+export async function individualVisionMission(name, domainSummary, letterExtract, baseVM) {
   try {
-    const sys = "You are a Christian pastoral writer. You write a personal vision and mission for one individual, grounded in their actual data. Respond ONLY with valid JSON.";
-    const user = `Write a personal VISION and MISSION statement for ${name}, grounded in Scripture and their real data.
+    const sys = "You are a Christian pastoral writer. You are given a factual, deterministically-generated vision and mission as the FOUNDATION. Your only job is to re-express that same foundation in warmer, more personal, more natural language. You must NOT introduce any new facts, claims, dreams, strengths, or weaknesses that are not already in the foundation (you may draw on the letter only to choose warmer wording, never to add new claims). You must NOT remove any substantive point from the foundation. You never invent assessments of the person. Respond ONLY with valid JSON.";
+    const user = `Re-express ${name}'s vision and mission below in warmer, more personal language.
 
-THEIR DOMAIN SCORES (0-10, higher = healthier):
-${domainSummary}
+FOUNDATION — this is the factual basis you must preserve (rephrase, do not add or drop facts):
+Vision: ${baseVM?.vision || "(none)"}
+Mission: ${baseVM?.mission || "(none)"}
 
-ELEMENTS FROM THEIR 10-YEAR FUTURE LETTER:
-${letterExtract ? JSON.stringify(letterExtract) : "(no letter provided)"}
+CONTEXT (for choosing warmer wording ONLY — do not introduce new claims from this):
+Their domain scores (0-10): ${domainSummary}
+Elements from their 10-year letter: ${letterExtract ? JSON.stringify(letterExtract) : "(no letter provided)"}
 
 Rules:
-- Vision: ONE sentence — who ${name} is called by God to become, reflecting their letter's dreams and their score pattern (name a strength and a growth area).
-- Mission: ONE or TWO sentences — how ${name} will live toward that vision.
-- Christ-centered, specific, honest. No generic filler.
+- Keep every concrete point from the FOUNDATION (the named strengths and growth areas must remain).
+- Do NOT add new strengths, weaknesses, dreams, or any claim not in the foundation.
+- Vision: ONE sentence. Mission: ONE or TWO sentences. Christ-centered, warm, specific, no generic filler.
+- If you cannot improve on the foundation without inventing, return the foundation essentially as-is.
 
 Return JSON: {"vision":"...","mission":"..."}`;
     const out = await chat([{ role: "system", content: sys }, { role: "user", content: user }], { json: true });
-    return parseJSON(out);
+    const p = parseJSON(out);
+    if (!p || !p.vision || !p.mission) return null;
+    return { vision: p.vision, mission: p.mission };
   } catch (e) { return null; }
 }
 
 // ── 4. Joint vision + mission, compiled from both ───────────────────────────
+// The deterministic joint statement is the FOUNDATION; the AI re-expresses it
+// warmly using the couple's context, without adding or dropping facts.
+// `baseVM` = { vision, mission } from the deterministic engine (required anchor).
 // Returns {vision,mission} or null.
-export async function jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary, evalSynthesis) {
+export async function jointVisionMission(nameA, nameB, indivA, indivB, comparison, overallSummary, evalSynthesis, baseVM) {
   try {
-    const sys = "You are a Christian pastoral writer compiling a COUPLE's shared vision and mission. You ground every line in the couple's actual assessment data — their strengths, their weak areas, and where they most diverge — so the result reads as unmistakably theirs. Respond ONLY with valid JSON.";
+    const sys = "You are a Christian pastoral writer. You are given a factual, deterministically-generated JOINT vision and mission as the FOUNDATION. Your only job is to re-express that same foundation in warmer, more covenantal, more natural language that reads as unmistakably this couple's. You must NOT introduce new facts, strengths, weaknesses, tensions, or claims beyond the foundation and the explicit data given. You must NOT drop any substantive point from the foundation (the named strengths, growth areas, and tension must remain). You never invent an assessment of the marriage. Respond ONLY with valid JSON.";
     const ev = evalSynthesis || {};
-    const user = `Compile a JOINT vision and mission for ${nameA} and ${nameB}, synthesizing BOTH their letters AND their assessment evaluation.
+    const user = `Re-express the couple's JOINT vision and mission below in warmer, more personal language for ${nameA} and ${nameB}.
 
-${nameA}'s individual vision: ${indivA?.vision || "(n/a)"}
-${nameA}'s individual mission: ${indivA?.mission || "(n/a)"}
-${nameB}'s individual vision: ${indivB?.vision || "(n/a)"}
-${nameB}'s individual mission: ${indivB?.mission || "(n/a)"}
+FOUNDATION — the factual basis you must preserve (rephrase; do not add or drop facts):
+Vision: ${baseVM?.vision || "(none)"}
+Mission: ${baseVM?.mission || "(none)"}
 
-Shared dreams (from their letters): ${comparison ? JSON.stringify(comparison.commonalities) : "(n/a)"}
-Divergent dreams: ${comparison ? JSON.stringify(comparison.differences) : "(n/a)"}
-
-ASSESSMENT EVALUATION (use this — it is the core of the synthesis):
+CONTEXT (to choose warmer wording and keep it specific — do NOT add claims not supported here):
+- ${nameA}'s vision: ${indivA?.vision || "(n/a)"}
+- ${nameB}'s vision: ${indivB?.vision || "(n/a)"}
+- Shared dreams: ${comparison ? JSON.stringify(comparison.commonalities) : "(n/a)"}
+- Divergent dreams: ${comparison ? JSON.stringify(comparison.differences) : "(n/a)"}
 - Overall health: ${ev.overall || "(n/a)"}/10
 - Greatest strengths: ${ev.strongest ? ev.strongest.join("; ") : "(n/a)"}
 - Areas most needing growth: ${ev.weakest ? ev.weakest.join("; ") : "(n/a)"}
-- Widest gaps between the two of them: ${ev.widestGaps ? ev.widestGaps.join("; ") : "(n/a)"}
-- Biggest tensions to navigate: ${ev.topTensions && ev.topTensions.length ? ev.topTensions.join("; ") : "(none surfaced)"}
-- Warning flags: ${ev.flags && ev.flags.length ? ev.flags.join("; ") : "(none)"}
-
-Per-domain summary: ${overallSummary}
+- Widest gaps: ${ev.widestGaps ? ev.widestGaps.join("; ") : "(n/a)"}
+- Biggest tensions: ${ev.topTensions && ev.topTensions.length ? ev.topTensions.join("; ") : "(none surfaced)"}
+- Per-domain summary: ${overallSummary}
 
 Rules:
-- Joint Vision: ONE sentence on who they are called to become TOGETHER. It must draw on their genuine shared dreams AND lean on their real strengths (named above), while honoring their differences.
-- Joint Mission: TWO or THREE sentences on how they will pursue it — and it MUST explicitly address their areas most needing growth and their biggest tension, turning the evaluation into concrete shared intent. Name the actual areas; do not be generic.
-- Christ-centered, covenantal, warm, hopeful, specific to THEIR data. No filler.
+- Keep every concrete point from the FOUNDATION — the named strengths, the named growth areas, and the tension it addresses must all still be present.
+- Do NOT add new strengths, weaknesses, tensions, or any assessment not already in the foundation or the explicit context above.
+- Joint Vision: ONE sentence. Joint Mission: TWO or THREE sentences. Christ-centered, covenantal, warm, specific. No filler.
+- If you cannot improve on the foundation without inventing, return it essentially as-is.
 
 Return JSON: {"vision":"...","mission":"..."}`;
     const out = await chat([{ role: "system", content: sys }, { role: "user", content: user }], { json: true });
-    return parseJSON(out);
+    const p = parseJSON(out);
+    if (!p || !p.vision || !p.mission) return null;
+    return { vision: p.vision, mission: p.mission };
   } catch (e) { return null; }
 }
 
@@ -340,7 +401,17 @@ STRICT RULES — these override tone:
 const OLLAMA_ROOT = "http://localhost:11434";
 
 // Is the local Ollama server reachable right now?
+// Is an AI backend live right now? On iOS this is the on-device Apple model;
+// everywhere else it's the local Ollama server. The app's orchestration uses
+// this single check to decide whether to enhance the deterministic foundation.
 export async function ollamaRunning() {
+  try {
+    const fm = await import("./foundationModel.js");
+    if (await fm.isAppleAIAvailable()) return true;
+  } catch (e) { /* not iOS / no plugin → fall through to Ollama check */ }
+  // On iOS, never probe localhost — Ollama can't run there. If the Apple model
+  // wasn't available above, report no AI backend (the app uses deterministic text).
+  if (isIOSPlatform()) return false;
   try {
     const res = await fetch(`${OLLAMA_ROOT}/api/tags`, { method: "GET" });
     return res.ok;

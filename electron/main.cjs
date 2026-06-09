@@ -76,9 +76,12 @@ function createWindow() {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
-      // Allow the renderer to reach the local Ollama server (localhost).
-      // No other network access is needed by the app.
-      sandbox: false,
+      // Chromium sandbox stays ON. The renderer talks to localhost:11434
+      // (Ollama) via the regular network stack, which is unaffected by the
+      // sandbox — the sandbox restricts filesystem/native API access, not
+      // outgoing HTTP. The preload uses only the `electron` module (allowed
+      // in sandboxed preloads); no Node built-ins are imported in the renderer.
+      sandbox: true,
     },
     show: false,
   });

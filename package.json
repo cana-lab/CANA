@@ -1,7 +1,7 @@
 {
   "name": "cana",
   "private": true,
-  "version": "4.26.0",
+  "version": "4.44.0",
   "type": "module",
   "description": "A private, local-first biblical life-planning tool for couples. Runs in a desktop browser and talks directly to a local Ollama LLM. No data leaves your machine.",
   "license": "MIT",
@@ -11,27 +11,41 @@
     "preview": "vite preview",
     "electron:dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173/cana/ && CANA_DEV_URL=http://localhost:5173/cana/ electron .\"",
     "build:electron": "BUILD_TARGET=electron vite build",
-    "predist:mac": "npm run build:electron && node scripts/prepare-electron.cjs",
+    "predist:mac": "node scripts/sync-versions.cjs && npm run build:electron && node scripts/prepare-electron.cjs",
     "dist:mac": "electron-builder --mac",
-    "pack:mac": "npm run predist:mac && npm run dist:mac"
+    "pack:mac": "npm run predist:mac && npm run dist:mac",
+    "prebuild:ios": "node scripts/sync-versions.cjs",
+    "build:ios": "BUILD_TARGET=ios vite build",
+    "ios:sync": "npm run build:ios && npx cap sync ios",
+    "ios:open": "npx cap open ios",
+    "ios:bump-build": "node scripts/sync-versions.cjs --bump-build",
+    "versions:check": "node scripts/sync-versions.cjs --check",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/ios": "^6.1.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.1.2",
+    "@electron/notarize": "^2.5.0",
     "@vitejs/plugin-react": "^4.3.1",
     "concurrently": "^8.2.2",
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3",
+    "jsdom": "^29.1.1",
     "vite": "^5.4.0",
+    "vitest": "^4.1.8",
     "wait-on": "^7.2.0"
   },
   "main": "electron/main.cjs",
   "build": {
     "appId": "com.cana.covenantlife",
     "productName": "CANA",
-    "copyright": "Copyright \u00a9 2026",
+    "copyright": "Copyright © 2026",
     "directories": {
       "buildResources": "build",
       "output": "release"
@@ -46,17 +60,19 @@
         {
           "target": "dmg",
           "arch": [
-            "arm64"
+            "universal"
           ]
         }
       ],
       "icon": "build/icon.icns",
-      "hardenedRuntime": false,
+      "hardenedRuntime": true,
       "gatekeeperAssess": false,
-      "darkModeSupport": false
+      "darkModeSupport": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "dmg": {
-      "title": "CANA \u2014 Covenant Life",
+      "title": "CANA — Covenant Life",
       "icon": "build/icon.icns",
       "window": {
         "width": 540,
@@ -76,6 +92,7 @@
           "path": "/Applications"
         }
       ]
-    }
+    },
+    "afterSign": "scripts/notarize.cjs"
   }
 }

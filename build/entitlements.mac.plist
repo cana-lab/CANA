@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- CANA runs entirely locally and only talks to localhost (Ollama) and
+       api.github.com (update check). It needs outgoing network (client) and,
+       because Electron uses a JIT JavaScript engine, the JIT entitlement.
+       No camera, mic, files-outside-sandbox, etc.
+       NOTE: com.apple.security.cs.allow-unsigned-executable-memory has been
+       intentionally removed. Modern Electron (≥20) only needs allow-jit; the
+       extra entitlement weakened the hardened runtime more than necessary and
+       was a common audit finding. -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.network.client</key>
+  <true/>
+  <!-- Electron loads helper processes whose code signature is not part of the
+       main app's; library validation must be disabled for them to load.
+       This is the standard Electron requirement and Apple accepts it during
+       notarization. -->
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+</dict>
+</plist>

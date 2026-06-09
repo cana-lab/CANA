@@ -1,0 +1,13 @@
+{
+  "appId": "com.cana.covenantlife",
+  "appName": "CANA",
+  "webDir": "dist-ios",
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#f6f2ea",
+    "limitsNavigationsToAppBoundDomains": true
+  },
+  "server": {
+    "iosScheme": "capacitor"
+  }
+}
