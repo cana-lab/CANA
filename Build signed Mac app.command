@@ -68,12 +68,27 @@ if ! security find-identity -v -p codesigning 2>/dev/null | grep -q "Developer I
   exit 1
 fi
 
+# --- Pre-authorize the signing key (prevents codesign hanging) --------------
+# codesign normally pops a GUI permission dialog the first time it uses the
+# certificate's private key. That dialog can open BEHIND other windows, and
+# codesign then waits forever — the build looks "stuck on signing".
+# set-key-partition-list is the canonical fix: it authorizes Apple's signing
+# tools up front, so no dialog is ever needed. It asks for your Mac login
+# password ONCE, right here in this window (input is hidden).
+echo ""
+echo "  Authorizing the signing key (enter your MAC LOGIN password if asked)…"
+security unlock-keychain ~/Library/Keychains/login.keychain-db || true
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s \
+  ~/Library/Keychains/login.keychain-db >/dev/null || \
+  echo "  (Pre-authorization skipped — if the build pauses at 'signing', look for a permission dialog and click 'Always Allow'.)"
+
 # --- Build, sign, notarize, staple (electron-builder does all of it) --------
 echo ""
 echo "  Installing dependencies (first run only, may take a minute)…"
 ELECTRON_SKIP_BINARY_DOWNLOAD=0 npm install --no-audit --no-fund >/dev/null 2>&1 || npm install
 
 echo "  Building, signing and notarizing… (notarization can take 2–15 min)"
+echo "  Do NOT close this window while it runs."
 npm run pack:mac
 
 echo ""
