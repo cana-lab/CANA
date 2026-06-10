@@ -70,6 +70,7 @@
     ],
     "mac": {
       "category": "public.app-category.lifestyle",
+      "notarize": false,
       "target": [
         {
           "target": "dmg",

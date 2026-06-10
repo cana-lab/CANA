@@ -1,6 +1,12 @@
 // electron-builder afterSign hook — notarizes the signed .app with Apple's
 // Notary service (notarytool). Runs automatically during `npm run pack:mac`.
 //
+// NOTE: package.json sets `build.mac.notarize: false`. That does NOT mean the
+// app isn't notarized — it disables electron-builder's BUILT-IN notarization,
+// which in 24.13.3 crashes ("Cannot destructure property 'appBundleId'") when
+// the APPLE_ID env vars are present without its own notarize config. THIS hook
+// is the single, working notarization path.
+//
 // Credentials come from environment variables, which the "Build signed Mac
 // app.command" launcher loads from the macOS Keychain (so they're never stored
 // in the repo). If they're absent, notarization is skipped with a clear notice
