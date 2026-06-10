@@ -4,9 +4,11 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Browser (the only runtime — there is no server)              │
+│ WebView / browser (no server — Electron on macOS,            │
+│ Capacitor/WKWebView on iOS, plain browser on the web)        │
 │                                                               │
-│  index.html  ──► strict CSP (connect-src 'none')              │
+│  index.html  ──► strict CSP (desktop: localhost Ollama +      │
+│                  api.github.com only; iOS: 'self' only)       │
 │      │                                                        │
 │      ▼                                                        │
 │  main.jsx ──► App.jsx  (React UI, all screens & state)        │
@@ -19,12 +21,14 @@
 │   ├─ computeAnalytics — scoring, gaps, flags, prioritization   │
 │   └─ generateLocalPlan— vision/mission/goals/tension language  │
 │                                                               │
+│  llm.js  ──► optional re-wording: Ollama (desktop, loopback   │
+│              only) / Apple Foundation Model (iOS, native)     │
+│  auth.js / transfer.js / crashLog.js — local-only services    │
 │  localStorage  ◄──► progress (device-only, never sent)        │
-│  Service Worker (Workbox) ──► offline app-shell cache          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-There is intentionally **no** network layer, API client, or backend. This is a design constraint, not an omission (see `PRIVACY.md`).
+There is intentionally **no** backend and no API client for user content. The only network access is the pinned CSP allowlist above (see `PRIVACY.md`); the iOS build makes zero network calls.
 
 ## Separation of concerns
 
@@ -49,13 +53,17 @@ Each question carries `{ id, text, type, rev? }`. `type` selects label vocabular
 
 Plain React with hooks (`useState`, `useEffect`, `useCallback`). No router (screens are state-driven), no global store (the tree is shallow). `localStorage` is synced on every answer change via an effect, enabling resume.
 
-## Build & PWA
+## Build
 
-- **Vite** bundles the app. `base` is set for the GitHub Pages sub-path.
-- **vite-plugin-pwa** (Workbox) generates the manifest and a service worker that precaches the app shell, making the app fully installable and usable offline.
-- `build.modulePreload.polyfill = false` removes the only `fetch` call Vite would otherwise inject, so the app bundle has provably zero network calls.
+- **Vite** bundles the app once per platform target: web (`dist/`, base
+  `/CANA/`), Electron renderer (`dist/`, relative base), iOS web layer
+  (`dist-ios/`, relative base). See `vite.config.js`.
+- `build.modulePreload.polyfill = false` removes the `fetch` call Vite would
+  otherwise inject into the bundle.
+- There is no service worker; offline capability comes from the apps being
+  packaged (Electron/Capacitor bundle all assets locally).
 
-## Why local-only synthesis instead of an AI model
+## Why deterministic synthesis first, AI only on top
 
 Earlier iterations called a hosted AI model to write the vision/mission/goal language. That was abandoned for three reasons, in priority order:
 
@@ -64,6 +72,8 @@ Earlier iterations called a hosted AI model to write the vision/mission/goal lan
 3. **Determinism.** Model output varies run-to-run; the user required consistent, reproducible results.
 
 The template-driven generator in `generateLocalPlan()` trades some linguistic flair for total privacy, reproducibility, and zero-dependency hosting — the right trade for this artifact. The templates are still **data-driven**: which template fires, and the slots filled into it, are determined by the couple's actual scores.
+
+Since then an **optional local AI layer** was added on top (`llm.js`): Ollama on the desktop (loopback only, enforced in code and CSP) or Apple's on-device Foundation Model on iOS. It is fed the deterministic text as a required foundation and may only re-express it — if it is unavailable or fails, the deterministic text ships as-is. The three reasons above still hold: nothing leaves the device, no hosted keys exist, and the substance of the plan remains deterministic.
 
 ## Extensibility
 

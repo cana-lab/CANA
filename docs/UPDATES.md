@@ -5,15 +5,23 @@ This guide gets that working end to end. It assumes nothing — follow it in ord
 
 ---
 
-## How the update check works (in one paragraph)
+## How updates work (in one paragraph each)
 
-When the user clicks **Check for updates**, CANA fetches one fixed URL —
-`https://api.github.com/repos/<owner>/<repo>/releases/latest` — reads the version
-number of your newest published GitHub Release, and compares it to the version
-baked into the app. Newer on GitHub → "Update available" with a Download button.
-Same → "You're up to date." That's the whole mechanism: one request, one
-comparison. (It does **not** auto-install — that would need Apple code-signing.
-The user downloads the new `.dmg` and drags it to Applications, as before.)
+**Packaged Mac app (current mechanism).** The app uses `electron-updater`:
+shortly after launch (and on "Check for updates") it reads `latest-mac.yml`
+from this repo's newest GitHub Release. If a newer version exists, the user
+sees a banner; the download starts only after they consent, and before
+installing, **Squirrel.Mac verifies that the new build is signed with the
+same Developer ID as the running app**. The user can install immediately
+("Restart & install") or defer to next quit. This is why every release must
+include `latest-mac.yml` *and* both `.dmg` files.
+
+**Web build (GitHub Pages demo).** No installer exists, so the web build only
+fetches `https://api.github.com/repos/<owner>/<repo>/releases/latest`,
+compares version numbers, and shows a download link.
+
+**iOS.** Updates ship through TestFlight / the App Store; the in-app update
+UI is hidden entirely on iOS.
 
 ---
 

@@ -1,138 +1,141 @@
-# Covenant Life Plan
+# CANA — Covenant Life
 
-A private, offline-first, biblically-grounded life-planning tool for couples. Two partners each complete a structured assessment across nine life domains; the application then synthesizes a **joint vision, mission, prioritized goals (1 / 5 / 10 year), top tensions, and pattern-based insights** — entirely on-device, with no data ever leaving the browser.
+A private, local-first, biblically-grounded life-planning tool for couples.
+Two partners each complete a structured self-assessment across **eleven life
+domains** (113 questions), optionally write a "letter from ten years in the
+future", and receive a deterministic plan — joint vision & mission, prioritized
+1/5/10-year goals, top tensions, and pattern-based flags — **computed entirely
+on the device**. An optional, strictly local AI layer re-expresses the
+deterministic text in warmer language; it never replaces the facts.
 
-A **desktop web app** with a refined, Apple-style interface. It runs in any modern browser on your Mac and connects **directly to a local Ollama model on the same machine** — so the AI features are free and fully private. Deployable locally or as a static site on **GitHub Pages**.
+**Platforms:** macOS desktop app (Electron, signed + notarized `.dmg`),
+iOS app (Capacitor, TestFlight/App Store), and a web build (GitHub Pages demo).
+One shared codebase.
+
+---
+
+## The three commitments
+
+1. **Determinism.** Identical answers always produce an identical plan.
+   Scoring, weighting, gap analysis, and prioritization are pure functions in
+   [`src/engine.js`](src/engine.js) — no randomness, no model variance. The AI
+   layer (when present) only re-words the deterministic foundation.
+   (See [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).)
+2. **Grounding.** Domain weights, gap-severity bands, reverse-scoring, and
+   pattern flags are anchored to published relationship and survey-methodology
+   research, cited inline — with honest "associated with" framing, never
+   overclaimed. This is a structured conversation tool, **not a clinical
+   instrument**. (See [`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md) and
+   [`docs/cana_foundation.md`](docs/cana_foundation.md).)
+3. **Privacy by architecture.** User content never leaves the device.
+   - There is **no server, no analytics, no telemetry, no tracking SDK**.
+   - The only network endpoints the desktop app can reach are a **local Ollama
+     on `localhost`** (optional AI) and **`api.github.com`** (version check for
+     updates — version numbers only, never user content), both enforced by the
+     Content-Security-Policy in [`index.html`](index.html).
+   - The **iOS app makes zero network calls**: the AI uses Apple's on-device
+     Foundation Model via a native plugin, the update check is desktop-only,
+     and `WKAppBoundDomains` locks the WebView to bundled content.
+   - Cross-device transfer is a passphrase-encrypted file (AES-GCM, PBKDF2)
+     the user carries themselves. (See [`docs/PRIVACY.md`](docs/PRIVACY.md).)
 
 ---
 
-## Why this exists
+## The eleven domains
 
-Most "life planning" frameworks for couples are either (a) analog workbooks that leave all the synthesis to you, or (b) productivity apps that track tasks but never engage values, calling, or the differences between two people. Neither does the one thing a couple actually needs on a planning retreat: take two independent sets of honest answers and turn them into a single, shared, prioritized picture — including an honest map of where the partners *disagree*.
+Faith & Calling · Marriage & Covenant · Intimacy & Sexual Union ·
+Children & Family · In-Laws & Extended Family · Vocation & Work ·
+Place & Home · Money & Stewardship · Body & Health ·
+Creative Life & Craft · Community & Legacy
 
-This tool was built to fill that gap, with three non-negotiable commitments:
-
-1. **Determinism.** Identical answers always produce an identical plan. Scoring, weighting, gap analysis, and prioritization are pure functions — no randomness, no model variance. (See [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).)
-2. **Scientific grounding.** Domain weights, gap-severity bands, reverse-scoring, and pattern flags are anchored to published relationship and survey-methodology research, cited inline. (See [`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md).)
-3. **Privacy by architecture.** The answers a couple gives are among the most sensitive data imaginable. This app is built so that the data **cannot** leave the device — enforced by a Content-Security-Policy of `connect-src 'none'` and a build with zero network calls in the application bundle. (See [`docs/PRIVACY.md`](docs/PRIVACY.md).)
-
----
+Each domain opens with a Scripture and contains typed questions (Agreement,
+Satisfaction, Frequency, Clarity, Urgency, Importance, Concern, Peace, Pull,
+Willingness) whose rating labels match the question's task. The 0–10 scale
+omits the exact midpoint (5) to force a directional lean while still allowing
+a mild one (4 or 6).
 
 ## What it produces
 
 | Output | How it is derived |
 | --- | --- |
-| **Joint Vision** (1 sentence) | Template selected by overall weighted health score + the two strongest and two weakest domains |
-| **Joint Mission** (1–2 sentences) | Template referencing strongest and weakest domains by name |
-| **Top 10 goals** for 1 yr / 5 yr / 10 yr | One goal per domain, ordered by a different deterministic priority rule per timeframe; phrasing chosen by each domain's score band |
+| **Joint Vision & Mission** | Templates selected by overall weighted health + strongest/weakest domains; optionally re-worded by local AI on top of the deterministic text |
+| **Individual Vision & Mission** (each partner) | Same mechanism, per-partner scores |
+| **1 / 5 / 10-year goals** | One goal per domain, ordered by a deterministic priority rule per timeframe |
 | **Top tensions** | Per-question score gaps, reverse-scoring corrected, ranked by `gap × domain-weight` |
-| **Pattern flags** | Deterministic rules over domain scores (e.g. faith × marriage interaction, financial-conflict threshold) |
-| **Domain health bars** | Normalized 0–10 averages per partner, with health band labels |
+| **Pattern flags** | Deterministic rules (e.g. Contempt Detected, Stonewalling Pattern, Sacred-Bond Buffer) |
+| **Letter comparison** | "Future Perfect" letters analyzed for shared dreams and genuine differences |
+| **Trends** | Every assessment is a timestamped local snapshot; the dashboard charts drift, alignment, and per-domain movement |
 
-
-
-## Future Perfect exercise + LLM-written statements
-
-The full assessment now includes a **Future Perfect** step: each partner writes a letter from ten years in the future and rates a set of structured "dream elements." The app extracts and compares them, surfacing the **top 5 shared dreams** and **top 5 differences** (differences are treated as potentially complementary, not automatic conflicts), and feeds them into the analysis.
-
-From the questionnaire **and** the letters, the app generates each partner's **individual vision & mission** and then a compiled **joint vision & mission** — all **editable** by the user. This generation uses a language model running **locally on your own machine via Ollama** (free, private; see [`docs/LLM_SETUP.md`](docs/LLM_SETUP.md)). The LLM is optional: with it off, letter comparison uses the structured dream-ratings and statements come from a deterministic writer. All scoring is deterministic and local in every case.
-
-## Re-testing & trend tracking
-
-Beyond the one-time retreat assessment, the app supports a **9-question quick check-in** (one anchor question per domain) that couples can retake weekly or monthly. Every assessment — full or check-in — is saved as a timestamped snapshot, and a **trend dashboard** charts:
-
-- **Mission drift** — how far the current life pattern has moved from the original baseline
-- **Value alignment** — whether the two partners are converging or diverging over time
-- **Overall health** and **per-domain movement** with up/down deltas
-
-See [`docs/TREND_ANALYSIS.md`](docs/TREND_ANALYSIS.md). All history is device-local; nothing is uploaded.
-
----
-
-## The nine domains
-
-Faith & Calling · Marriage & Covenant · Children & Family · Vocation & Work · Place & Home · Money & Stewardship · Body & Health · Creative Life & Craft · Community & Legacy
-
-Each opens with a Scripture and contains 7–14 questions. Each question is typed (Agreement, Satisfaction, Frequency, Clarity, Urgency, Importance, Concern, Peace, Pull, Willingness) and its rating labels are matched to that type. The scale omits 4/5/6 by design to force a directional commitment (see methodology).
-
----
-
-## Build a real Mac app (CANA.app)
-
-CANA can be packaged into a genuine macOS application — an icon in your Applications folder and Dock, launched like any other app, with no Terminal and no dev server. It uses **Electron**, so the app renders pixel-identically to what you see in the browser.
-
-**To build it:** double-click **`Build CANA app.command`**. It installs the build tools (the first run downloads Electron, ~150MB, so allow a few minutes), then produces installer disk images in a new `release/` folder:
-
-- `CANA-<version>-arm64.dmg` — Apple Silicon (M1/M2/M3…)
-- `CANA-<version>.dmg` — Intel Macs
-
-Open the `.dmg` for your Mac and drag **CANA** into Applications. Done — launch it from Launchpad or Applications from then on.
-
-**First-launch security step (one time).** Because the app is not signed with a paid Apple Developer certificate, the first launch shows "CANA can't be opened because Apple cannot check it for malicious software." This is expected for a self-built app. To allow it: **right-click** CANA in Applications → **Open** → **Open**. After that first time, it opens normally. (Signing it to remove this step entirely requires a paid Apple Developer account — out of scope here.)
-
-**The AI features are unchanged:** the packaged app talks to your local Ollama exactly as the browser version does, so make sure Ollama is running for the AI parts. Everything still stays on your machine.
-
-> Prefer not to build anything? The double-click **`Start CANA.command`** launcher (below) runs the app in your browser with no packaging step. The packaged app is purely a convenience upgrade — same app, nicer launch.
-
-## Quick start — the easy way (no Terminal typing)
-
-Two double-click launchers are included in the project folder:
-
-- **`Start CANA.command`** — installs everything the first time (if needed), starts the local server, and opens CANA in your browser automatically. Leave the window it opens running while you use the app.
-- **`Stop CANA.command`** — shuts the server down. (Closing the "Start CANA" window does the same thing.)
-
-**First time only — macOS security step.** Because these scripts are not signed by a registered developer, the first time you run one macOS will refuse with "cannot be opened because it is from an unidentified developer." This is expected. To allow it: **right-click** (or Control-click) `Start CANA.command` → **Open** → **Open** in the dialog. After that first time, a normal double-click works.
-
-If a double-click ever does nothing, the file may have lost its executable bit during download. Fix it once by running this in Terminal (drag the file in after typing `chmod +x `):
-
-```bash
-chmod +x "Start CANA.command" "Stop CANA.command"
-```
-
-You still need **Node.js** installed once (the launcher will tell you and link to nodejs.org if it is missing), and **Ollama** running if you want the AI features.
-
-## Quick start (manual / local development)
+## Quick start (development)
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173/cana/
-npm run build        # produces dist/
-npm run preview      # serve the production build locally
+npm run dev          # web dev server → http://localhost:5173/CANA/
+npm test             # unit tests (engine, auth, transfer)
+npm run build        # web build → dist/
 ```
 
-## Deploying to GitHub Pages
+## Building the apps
 
-See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the full step-by-step. In short: set `base` in `vite.config.js` to match your repo name, push to `main`, and the included GitHub Actions workflow builds and publishes automatically.
+| Target | Command | Output |
+| --- | --- | --- |
+| macOS (signed + notarized) | double-click **`Build signed Mac app.command`** | `release/CANA-<v>-arm64.dmg` + `release/CANA-<v>.dmg` + `latest-mac.yml` |
+| macOS (unsigned dev pack) | `npm run pack:mac` | same, unsigned — will not open on other Macs |
+| iOS | double-click **`Build iOS and open Xcode.command`**, then Archive in Xcode | App Store / TestFlight build |
+| Web | `npm run build` | static site in `dist/` (GitHub Pages deploys via Actions) |
 
----
+The Mac launcher stores your Apple credentials in the macOS Keychain on first
+run (never in the repo) — see
+[`SIGNING_AND_NOTARIZING.md`](SIGNING_AND_NOTARIZING.md). Before each
+TestFlight upload, bump the iOS build number once: `npm run ios:bump-build`.
+The user-facing version lives **only** in `package.json`; the build scripts
+sync it everywhere else (`scripts/sync-versions.cjs`).
+
+For local development in a browser there are also **`Start CANA.command`** /
+**`Stop CANA.command`** (dev server + auto-open, no Terminal typing). macOS
+will ask you to right-click → Open the first time, since the scripts aren't
+notarized.
+
+## Updates
+
+The packaged Mac app checks GitHub Releases via `electron-updater` and
+installs updates only after user consent; Squirrel.Mac verifies the new
+build's code signature against the running app before installing. The web
+demo only shows a download link. iOS updates ship through the App Store.
+(See [`docs/UPDATES.md`](docs/UPDATES.md).)
 
 ## Repository layout
 
 ```
-covenant-life-plan/
-├─ src/
-│  ├─ engine.js        # Deterministic core: taxonomy, scoring, flags, language
-│  ├─ App.jsx          # React UI (assessment flow, results)
-│  └─ main.jsx         # Entry point
-├─ public/             # Icons, favicon, robots.txt
-├─ docs/
-│  ├─ ARCHITECTURE.md  # How the system is structured
-│  ├─ METHODOLOGY.md   # How scoring & synthesis work, step by step
-│  ├─ ASSUMPTIONS.md   # Every assumption + its scientific basis & limits
-│  ├─ PRIVACY.md       # The data-never-leaves guarantee, explained
-│  └─ DEPLOYMENT.md    # GitHub Pages setup
-├─ .github/workflows/deploy.yml
-├─ index.html          # Contains the strict CSP
-├─ vite.config.js
-└─ package.json
+CANA/
+├─ src/                 # shared React app (all platforms)
+│  ├─ engine.js         #   deterministic core: scoring, flags, language
+│  ├─ App.jsx           #   UI (screens gated by `screen` state)
+│  ├─ llm.js            #   optional AI: Apple model (iOS) / Ollama (desktop)
+│  ├─ auth.js           #   local profiles (PBKDF2)
+│  ├─ transfer.js       #   encrypted device-to-device transfer (.cana)
+│  ├─ crashLog.js       #   local-only diagnostic log (no telemetry)
+│  └─ *.test.js         #   Vitest unit tests
+├─ electron/            # macOS main process + preload
+├─ ios/                 # Capacitor Xcode project (committed)
+├─ ios-plugin/          # Apple Foundation Model plugin source of truth
+├─ public/              # icons + GitHub-Pages-only help pages
+├─ scripts/             # build/version/notarization automation
+├─ docs/                # methodology, privacy, assumptions, research
+└─ .github/workflows/   # CI (tests + 3 builds) and Pages deploy
 ```
 
----
+## Honesty about scope
 
-## A word of honesty about scope
-
-This is a **structured conversation tool**, not a clinical instrument. The questions are not a validated psychometric scale, and the domain weights are a defensible heuristic, not a calibrated model. It is designed to provoke better, more honest conversations between two people — not to diagnose a relationship. [`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md) is candid about every limitation.
+The questions are not a validated psychometric scale and the domain weights
+are a defensible editorial heuristic, not a calibrated model. Scores are
+self-rated reflections. The app frames itself accordingly — a reflection
+tool to provoke better conversations, not a diagnosis.
 
 ## License
 
 MIT — see [`LICENSE`](LICENSE).
+
+> ⚠️ **Known open issue:** the tree artwork in `src/logo.js` is a placeholder
+> with unresolved copyright status and must be replaced with original artwork
+> before App Store submission. See [`ICON_SETUP.md`](ICON_SETUP.md).

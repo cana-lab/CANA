@@ -1,5 +1,28 @@
 # Changelog
 
+## 4.47.0
+- Pre-release audit pass: repository cleanup, security hardening, documentation truth-pass, and a render smoke test. No user-visible feature changes.
+- Removed (redundant/outdated):
+  - "Build CANA app.command" — the old UNSIGNED build launcher, superseded by "Build signed Mac app.command". Keeping both was a trap: running the old one produced .dmgs that won't open on other Macs (and it was the launcher behind the recent failed-build report).
+  - "Update repo from zip.command" — belonged to the abandoned chat/ZIP development workflow.
+  - A stray empty package-lock.json one folder above the repo, and local .DS_Store noise.
+- Security hardening:
+  - iOS bundle now ships a stricter CSP: `connect-src 'self'` only (desktop keeps localhost-Ollama + api.github.com). On iOS the AI is a native Apple-model call and updates come from the App Store, so the WebView needs no network origin at all. Implemented as a Vite per-target transform; verified in the built dist-ios/index.html.
+  - The remaining three unguarded Ollama fetchers in llm.js (listModels, installedModels, pullModel) now hard-stop on iOS, same as chat()/ollamaRunning(). "iOS makes zero localhost calls" no longer depends on UI gating — every network function in the module enforces it.
+  - Electron: window.open is now denied unconditionally (web links open in the system browser); previously popups to localhost were allowed, which nothing used. Top-level navigation is blocked except file:// (and the Vite dev server in dev runs).
+  - GitHub-Pages-only help pages (guide.html, update-guide.html) are no longer shipped inside the Electron and iOS app bundles — update instructions about downloading .dmgs don't belong in a packaged app, and guide.html loads Google Fonts, which only the public website should do.
+  - Audit greps came back clean: no hardcoded secrets, no eval/dangerouslySetInnerHTML/innerHTML in app code, no console.log leftovers, no non-localhost http:// references, no unsafe target="_blank", no postMessage surface. Import path reviewed: no deep-merge (no prototype-pollution vector), imported data lands only in namespaced localStorage keys, React escapes all rendered values.
+- Documentation truth-pass (docs previously described an older product):
+  - README.md rewritten: 11 domains (was "nine"), real network posture (the old text claimed `connect-src 'none'`), current platforms/launchers/build matrix, current scale design, honest-scope section retained.
+  - CONTRIBUTING.md: network non-negotiable updated to the real allowlist policy.
+  - docs/PRIVACY.md + ARCHITECTURE.md: CSP sections now show the actual policy incl. the stricter iOS variant; removed a service-worker/PWA description for a service worker that does not exist; documented the local-AI layer.
+  - docs/TREND_ANALYSIS.md (113 questions / 11 domains), docs/cana_foundation.md (eleven domains), docs/PACKAGING.md (signed launcher + latest-mac.yml), docs/UPDATES.md (electron-updater mechanism with Squirrel.Mac signature verification).
+- package.json: added author/homepage/repository (electron-builder warned "author is missed"); description updated to cover all three platforms.
+- V&V:
+  - New App render smoke test mounts the real App in jsdom — the class of render-order crash this repo shipped twice (CHANGELOG 4.37.0) is now caught by CI. Suite: 27/27 green.
+  - All three bundles build clean; verified in the artifacts: iOS CSP is 'self'-only, web CSP unchanged, guide pages present in web build and absent from iOS/Electron bundles; plugin copies (ios-plugin/ vs ios/App/App/) verified identical.
+- Not verifiable here (unchanged list): real notarized build, Squirrel.Mac update handoff, Xcode device build, App Store review outcome.
+
 ## 4.46.1
 - Mac packaging: switched from a single "universal" .dmg to two per-architecture .dmgs (arm64 + x64). The universal target was failing in `@electron/universal` with "Can't reconcile two non-macho files package.json" — a known mergeASARs limitation. The split also halves the download size for users (a Mac downloads only the .dmg for its CPU). `latest-mac.yml` lists both, so electron-updater on Apple Silicon picks `-arm64.dmg` and on Intel picks the unsuffixed `.dmg` automatically. Verified locally with an unsigned packaging run: both .dmgs build cleanly and `latest-mac.yml` is correctly populated with sha512 hashes for both files.
 - Welcome screen: the lead text said "Everything runs on your Mac" even when running as the iOS app. Now reads "your iPhone" on iOS and "your Mac" on desktop. (Settings, methodology, and the Ollama-setup screen were already platform-gated; this was the only Mac-specific line still showing on iOS.)

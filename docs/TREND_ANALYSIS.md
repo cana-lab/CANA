@@ -6,14 +6,14 @@ The app supports two assessment modes and tracks results over time so a couple c
 
 | Mode | Length | When to use |
 | --- | --- | --- |
-| **Full Assessment** | ~88 questions across 9 domains | Initial baseline (the retreat), and occasional deep re-checks (e.g. annually) |
-| **Quick Check-In** | 9 questions — one anchor per domain | Frequent re-tests (weekly / monthly) to track movement |
+| **Full Assessment** | 113 questions across 11 domains | Initial baseline (the retreat), and occasional deep re-checks (e.g. annually) |
+| **Quick Check-In** | 11 questions — one anchor per domain | Frequent re-tests (weekly / monthly) to track movement |
 
 Every completed assessment of either mode saves a timestamped **snapshot** to device-local storage and becomes a point on the trend charts.
 
 ## The check-in (short form)
 
-Each domain has exactly one question flagged `core: true` in `engine.js` — chosen as the single best summary indicator for that domain (e.g. Faith → "My daily life is consciously ordered around my faith in Christ"; Marriage → "I feel deeply known and loved by my spouse"). The check-in presents only those nine. Because the scoring engine simply averages whatever questions are present, a check-in produces a snapshot that is directly comparable to a full assessment on the same 0–10 normalized scale.
+Each domain has exactly one question flagged `core: true` in `engine.js` — chosen as the single best summary indicator for that domain (e.g. Faith → "My daily life is consciously ordered around my faith in Christ"; Marriage → "I feel deeply known and loved by my spouse"). The check-in presents only those eleven. Because the scoring engine simply averages whatever questions are present, a check-in produces a snapshot that is directly comparable to a full assessment on the same 0–10 normalized scale.
 
 > Note: a check-in is a lower-resolution probe by design. It tracks the *anchor* of each domain, not the full domain. Use occasional full assessments for depth.
 

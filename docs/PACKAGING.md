@@ -8,11 +8,16 @@ setup wizard handles the AI dependencies.
 
 ## 1. Build the installer
 
-On your Mac, double-click **`Build CANA app.command`** (or run `npm run pack:mac`).
-This produces, in a new `release/` folder:
+On your Mac, double-click **`Build signed Mac app.command`** — it builds,
+signs, notarizes, and staples in one step (Apple credentials are stored in
+your Keychain on first run; see `SIGNING_AND_NOTARIZING.md`). For a quick
+*unsigned* dev pack, run `npm run pack:mac` instead — that .dmg will not open
+cleanly on other Macs. Either way the output lands in `release/`:
 
 - `CANA-<version>-arm64.dmg` — Apple Silicon
 - `CANA-<version>.dmg` — Intel
+- `latest-mac.yml` — read by the in-app auto-updater; upload it to the GitHub
+  Release together with both .dmgs
 
 Each `.dmg`, when opened, shows the standard installer window: the **CANA icon
 on the left** and an **Applications shortcut on the right**, so the user drags

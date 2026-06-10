@@ -146,6 +146,9 @@ export async function testConnection() {
 // List installed Ollama models via the native /api/tags endpoint so the user
 // can pick from a dropdown instead of typing a model name.
 export async function listModels() {
+  // iOS never talks to Ollama — not even model listing. (The UI never calls
+  // this on iOS; this guard makes the guarantee hold regardless of the UI.)
+  if (isIOSPlatform()) return { ok: false, error: "Not available on iOS", models: [] };
   const cfg = getLLMConfig();
   // /api/tags lives at the server root, not under /v1
   const root = cfg.baseUrl.replace(/\/v1\/?$/, "").replace(/\/+$/, "");
@@ -422,6 +425,7 @@ export async function ollamaRunning() {
 
 // Which models are already pulled? Returns array of names (e.g. ["llama3.1:8b"]).
 export async function installedModels() {
+  if (isIOSPlatform()) return []; // iOS never probes localhost
   try {
     const res = await fetch(`${OLLAMA_ROOT}/api/tags`);
     if (!res.ok) return [];
@@ -436,6 +440,7 @@ export async function installedModels() {
 // Returns true on success. Ollama's /api/pull streams newline-delimited JSON
 // objects with `total` and `completed` byte counts.
 export async function pullModel(model, onProgress, signal) {
+  if (isIOSPlatform()) return false; // iOS never talks to Ollama
   try {
     const res = await fetch(`${OLLAMA_ROOT}/api/pull`, {
       method: "POST",

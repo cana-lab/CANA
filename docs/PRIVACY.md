@@ -29,19 +29,37 @@ grep -c "anthropic" dist/assets/*.js          # → 0
 
 (The Workbox **service worker** contains a `fetch` *event handler*, but that only intercepts same-origin requests for *your own* app files to enable offline use. It never originates a request to any third party, and Layer 3 would block it if it tried.)
 
-### Layer 3 — Content-Security-Policy `connect-src 'none'`
+### Layer 3 — Content-Security-Policy with a pinned allowlist
 `index.html` ships this policy in a `<meta http-equiv="Content-Security-Policy">` tag:
 
 ```
 default-src 'self';
-connect-src 'none';        ← blocks ALL outbound data connections
+connect-src 'self' http://localhost:11434 http://127.0.0.1:11434 https://api.github.com;
 img-src 'self' data:;
 style-src 'self' 'unsafe-inline';
 script-src 'self';
 base-uri 'self'; form-action 'none'; frame-ancestors 'none'; object-src 'none';
 ```
 
-`connect-src 'none'` is the keystone. It tells the browser to deny every script-initiated network connection. This is enforced by the browser itself, independent of the app code. It is the backstop that makes the guarantee hold even against bugs or supply-chain tampering in a dependency.
+`connect-src` is the keystone. The browser itself — independent of the app
+code — refuses every script-initiated connection except the three pinned
+origins:
+
+- **`localhost:11434` / `127.0.0.1:11434`** — a local Ollama on *your own
+  machine*, for the optional AI re-wording (desktop only). `src/llm.js`
+  additionally refuses to persist or use any non-loopback endpoint, so the
+  app cannot be reconfigured to send content elsewhere.
+- **`api.github.com`** — the desktop update check. It fetches the latest
+  release *version number* and sends nothing besides that request; user
+  content is never part of it.
+
+The **iOS build ships a stricter CSP with `connect-src 'self'` only** —
+no localhost, no GitHub. On iOS the AI runs through Apple's on-device
+Foundation Model (a native call, not HTTP) and updates come from the App
+Store, so the WebView has no reason to talk to any network origin at all.
+`WKAppBoundDomains` (empty) additionally locks navigation at the WebKit
+layer. This is the backstop that makes the guarantee hold even against bugs
+or supply-chain tampering in a dependency.
 
 > **Note on hardening:** a `<meta>` CSP is honored by all modern browsers. For defense in depth on a host that supports custom response headers, also send the CSP as an HTTP header. GitHub Pages does not allow custom headers, so the `<meta>` tag is the correct mechanism there. If you self-host behind a server or CDN (e.g. Netlify, Cloudflare Pages), add the header version too — see `DEPLOYMENT.md`.
 

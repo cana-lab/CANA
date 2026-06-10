@@ -48,7 +48,7 @@ The convergence is the foundation's core thesis. **Contempt** is, theologically,
 
 > The condensed form of each domain's rationale below is surfaced directly inside the application, in the **"About this Chapter"** panel shown at the top of each domain during the assessment. That panel presents the biblical principle (with references), any named books, and the peer-reviewed science, so couples can see *why* each set of questions is asked. This document remains the fuller canonical source.
 
-Each of the app's nine domains exists because *both* a theological tradition and an empirical literature identify it as load-bearing for marital health. The domain weights in the engine (Faith 1.30, Marriage 1.25, Money 1.10, Children 1.10, etc.) are set by the strength and consistency of the empirical predictive evidence, moderated by theological centrality.
+Each of the app's eleven domains exists because *both* a theological tradition and an empirical literature identify it as load-bearing for marital health. The domain weights in the engine (Faith 1.30, Marriage 1.25, Money 1.10, Children 1.10, etc.) are set by the strength and consistency of the empirical predictive evidence, moderated by theological centrality.
 
 ### Faith & Calling (weight 1.30 — highest)
 

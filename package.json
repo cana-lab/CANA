@@ -1,9 +1,15 @@
 {
   "name": "cana",
   "private": true,
-  "version": "4.46.1",
+  "version": "4.47.0",
   "type": "module",
-  "description": "A private, local-first biblical life-planning tool for couples. Runs in a desktop browser and talks directly to a local Ollama LLM. No data leaves your machine.",
+  "description": "CANA — Covenant Life. A private, local-first biblical life-planning app for couples. macOS (Electron), iOS (Capacitor), and web — all computation on-device, no server, no telemetry.",
+  "author": "CANA Lab",
+  "homepage": "https://github.com/cana-lab/CANA",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cana-lab/CANA.git"
+  },
   "license": "MIT",
   "scripts": {
     "dev": "vite",

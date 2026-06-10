@@ -140,20 +140,25 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "renderer", "index.html"));
   }
 
-  // Any external link (e.g. nodejs.org, ollama.com, the docs) opens in the
-  // user's real browser instead of inside the app window.
+  // The app never opens child windows. Deny every window.open; route web
+  // links to the user's real browser instead. (Previously localhost popups
+  // were allowed — nothing used that, and an allowed popup would be a new
+  // BrowserWindow inheriting renderer access, so it's denied on principle.)
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith("http://localhost") || url.startsWith("http://127.0.0.1")) {
-      return { action: "allow" };
-    }
-    shell.openExternal(url);
+    if (/^https?:/.test(url)) shell.openExternal(url);
     return { action: "deny" };
   });
+  // The renderer is a single-page app loaded from file:// — it never
+  // legitimately navigates the top-level frame. Block everything; send web
+  // URLs to the default browser.
   win.webContents.on("will-navigate", (e, url) => {
-    const isLocal = url.startsWith("file://") || url.startsWith("http://localhost") || url.startsWith("http://127.0.0.1");
-    if (!isLocal) {
+    const isOwnFile = url.startsWith("file://");
+    // In dev the app is served from the Vite dev server, so reloads navigate
+    // to localhost; that must stay allowed there (and only there).
+    const isDevServer = isDev && (url.startsWith("http://localhost") || url.startsWith("http://127.0.0.1"));
+    if (!isOwnFile && !isDevServer) {
       e.preventDefault();
-      shell.openExternal(url);
+      if (/^https?:/.test(url)) shell.openExternal(url);
     }
   });
 }
