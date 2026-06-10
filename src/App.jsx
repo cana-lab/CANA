@@ -1362,7 +1362,7 @@ export default function App() {
           </div>
           <p style={eyebrow} className="rise">A Biblical Life Plan for Couples</p>
           <h1 style={h1} className="rise-2">Where are you going,<br />and are you going there together?</h1>
-          <p style={{ ...lead, maxWidth: 560 }} className="rise-3">A calm, private space to discover where you are, where God is calling you, and how to get there — as one. Everything runs on your Mac. Nothing leaves it.</p>
+          <p style={{ ...lead, maxWidth: 560 }} className="rise-3">A calm, private space to discover where you are, where God is calling you, and how to get there — as one. Everything runs on {isIOS ? "your iPhone" : "your Mac"}. Nothing leaves it.</p>
           <div className="rise-4" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 28, alignItems: "center" }}>
             <Btn onClick={() => { setMode("full"); setScreen("prepare"); window.scrollTo({ top: 0 }); }}>Begin Full Assessment</Btn>
             <Btn kind="secondary" onClick={() => startAssessment("checkin")} disabled={!names.A && !hasHistory}>Quick Check-In</Btn>

@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.46.1
+- Mac packaging: switched from a single "universal" .dmg to two per-architecture .dmgs (arm64 + x64). The universal target was failing in `@electron/universal` with "Can't reconcile two non-macho files package.json" — a known mergeASARs limitation. The split also halves the download size for users (a Mac downloads only the .dmg for its CPU). `latest-mac.yml` lists both, so electron-updater on Apple Silicon picks `-arm64.dmg` and on Intel picks the unsuffixed `.dmg` automatically. Verified locally with an unsigned packaging run: both .dmgs build cleanly and `latest-mac.yml` is correctly populated with sha512 hashes for both files.
+- Welcome screen: the lead text said "Everything runs on your Mac" even when running as the iOS app. Now reads "your iPhone" on iOS and "your Mac" on desktop. (Settings, methodology, and the Ollama-setup screen were already platform-gated; this was the only Mac-specific line still showing on iOS.)
+
 ## 4.46.0
 - Electron upgraded from 32 → 42 (current stable). With this bump all 17 Electron-specific advisories that npm audit had flagged are gone — the remaining 8 advisories are entirely in dev-only build tooling (electron-builder transitive tar, vite/esbuild dev server), nothing that ships in the user-facing binary. The main.cjs / preload.cjs APIs we use (BrowserWindow, ipcMain.handle, Menu.buildFromTemplate, shell.openExternal, app lifecycle) are unchanged across this range, so no application code had to move.
 - Settings → update banner: native UX redesign for the electron-updater flow.
