@@ -42,6 +42,8 @@ export const QUESTION_HELP = {
   m16: "This asks whether you actively help each other become the people God is calling you to be — growth as a shared project.",
   m17: "This asks whether you've actually told your spouse what you expect — out loud — rather than assuming they should already know. Unspoken expectations are a common, quiet source of strain.",
   m18: "This asks whether, when arguments get intense, you shut down or go silent — withdrawing rather than staying engaged. It's often a sign of feeling overwhelmed. A higher answer lowers the score.",
+  m19: "This asks how much you treasure everything the two of you have built together — your shared history, family, faith, and home. It's about the weight of what you share, not whether things feel easy right now.",
+  m20: "This asks whether your picture of the future simply includes your spouse — whether 'my future' and 'our future' are the same thought. Answer with your honest gut sense, not what you feel you ought to say.",
 
   // ── Children & Family ──
   c1: "This asks how satisfied you are with your relationship with each of your children — its closeness and depth, child by child.",

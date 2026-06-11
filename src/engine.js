@@ -153,7 +153,13 @@ const DOMAINS_RAW = [
         info: "Experienced divine guidance in decisions — a marker of an active, lived faith rather than a nominal one." },
       { id: "f7",  text: "I am actively growing in the character of Christ — patience, humility, sacrificial love.",   type: T.AGREEMENT,
         info: "Growth in Christlike character (patience, humility, sacrificial love) — the virtues that most directly translate into marital behavior." },
-      { id: "f8",  text: "My spouse and I see our marriage as having a sacred, God-given character.",                  type: T.AGREEMENT,
+      // Proximal-sanctification tilt (v4.50): the three COUPLE-level spiritual
+      // items (f8, f12, f13) carry 70% of the Faith domain's internal mass,
+      // the eleven individual/congregational items share the remaining 30%.
+      // Mahoney et al.: marriage-specific ("proximal") religiousness predicts
+      // marital outcomes far better than distal markers like attendance.
+      // Math: w = (0.70/0.30) × (11 distal / 3 proximal) = 8.5556 → 8.56.
+      { id: "f8",  text: "My spouse and I see our marriage as having a sacred, God-given character.",                  type: T.AGREEMENT, w: 8.56,
         info: "Sanctification of marriage — viewing the marriage as sacred. In the research literature (Mahoney and colleagues) this perception is associated with higher reported marital satisfaction and commitment, though the relationship appears to run in both directions (satisfied couples also tend to view their marriage as sacred). A large gap between partners here is flagged as a tension." },
       { id: "f9",  text: "I am living out my faith in ways that are visible to my children.",                          type: T.FREQUENCY,
         info: "Whether faith is visibly modeled to children (Deuteronomy 6:6-7) — discipleship as a parenting responsibility." },
@@ -161,9 +167,9 @@ const DOMAINS_RAW = [
         info: "Use of spiritual gifts in service. Outward expression of faith, distinct from private devotion." },
       { id: "f11", text: "How urgent is deepening your personal faith life in the next 1–2 years?",                    type: T.URGENCY,
         info: "Urgency of deepening faith in the near term — surfaces felt priority, which helps rank goals." },
-      { id: "f12", text: "I sense God is calling our family to something significant we have not yet fully embraced.", type: T.AGREEMENT,
+      { id: "f12", text: "I sense God is calling our family to something significant we have not yet fully embraced.", type: T.AGREEMENT, w: 8.56,
         info: "Senses an unembraced calling for the family — designed to surface latent direction the couple may not have voiced." },
-      { id: "f13", text: "I feel safe sharing my deepest spiritual doubts and struggles with my spouse, without fear of judgment.", type: T.AGREEMENT,
+      { id: "f13", text: "I feel safe sharing my deepest spiritual doubts and struggles with my spouse, without fear of judgment.", type: T.AGREEMENT, w: 8.56,
         info: "Spiritual intimacy — the freedom to be spiritually honest and vulnerable with one's spouse. Associated in the literature with closeness and relationship quality." },
       { id: "f14", text: "I sometimes fear that God would withdraw His love from me if I failed Him.",                 type: T.FREQUENCY, rev: true,
         info: "A gentle measure of anxious attachment to God (Kirkpatrick & Shaver; Rowatt & Kirkpatrick). Reverse-scored: a higher rating reflects more anxiety. This is a sensitive, personal item, intended for individual reflection rather than comparison or judgement; it is not a diagnosis." },
@@ -196,7 +202,11 @@ const DOMAINS_RAW = [
         info: "Financial teamwork. Money is among the most robust divorce predictors, so financial partnership is a key marital signal." },
       { id: "m8",  text: "We pray together.",                                                                          type: T.FREQUENCY,
         info: "Praying together — shared spiritual practice, empirically tied to lower conflict and higher commitment." },
-      { id: "m9",  text: "I feel appreciated and respected by my spouse on a daily basis.",                            type: T.FREQUENCY,
+      // w:2 — perceived appreciation/respect is a top-tier predictor of
+      // relationship quality (Gottman's positivity ratio; Algoe's
+      // find-remind-and-bind gratitude research), so it carries double weight
+      // inside the Marriage mean (v4.50).
+      { id: "m9",  text: "I feel appreciated and respected by my spouse on a daily basis.",                            type: T.FREQUENCY, w: 2,
         info: "Daily appreciation and respect — feeds the 5:1 (and ~20:1 outside conflict) positivity ratio Gottman found in stable couples." },
       { id: "m10", text: "We have reliable, healthy patterns for resolving conflict and restoring connection.",         type: T.AGREEMENT,
         info: "Reliable repair and reconnection. The decisive protective skill: 84% of high-conflict newlyweds who repaired well were stable six years later." },
@@ -216,6 +226,17 @@ const DOMAINS_RAW = [
         info: "Drawn from Paul Tripp's 'What Did You Expect?' — marriages erode through unexamined, unspoken expectations and the slow accumulation of small unaddressed offenses. Unspoken expectations are independently one of the better-supported predictors of dissatisfaction in the secular literature. This measures whether expectations are made explicit, not merely held." },
       { id: "m18", text: "When we argue, I become so overwhelmed that I shut down or stop responding.",                 type: T.FREQUENCY, rev: true,
         info: "Stonewalling — withdrawing or shutting down during conflict, one of Gottman's \"Four Horsemen.\" It is often a response to physiological flooding (see Body & Health). Reverse-scored: a higher rating is a negative signal." },
+      // Investment Model (Rusbult) coverage, v4.50. m19 measures investment
+      // size; m20 measures commitment/future "we-ness" (the covenant-
+      // compatible inverse of "quality of alternatives" — a direct
+      // how-attractive-are-your-alternatives item was DELIBERATELY not added:
+      // it primes contract-thinking, which this instrument's covenant framing
+      // exists to counter, and the commitment construct carries the same
+      // predictive content positively framed).
+      { id: "m19", text: "We have built so much together — history, family, faith, home — that I deeply treasure what we share.", type: T.AGREEMENT,
+        info: "Investment size (Rusbult's Investment Model) — the intrinsic and extrinsic resources bound up in the relationship. Larger perceived investment is associated with stronger commitment and persistence." },
+      { id: "m20", text: "When I imagine my future, I cannot imagine it apart from my spouse.",                          type: T.AGREEMENT,
+        info: "Commitment / future orientation — in the Investment Model, commitment rises as satisfaction and investment rise and perceived alternatives recede. Phrased as covenant-style future intent rather than asking partners to rate their alternatives." },
     ],
   },
   {
@@ -558,6 +579,7 @@ export function computeAnalytics(answersA, answersB, nameA, nameB, weights) {
         rawA, rawB, normA, normB, gap,
         gapClass: classifyGap(gap), quad: quadrant(normA, normB),
         isReversed: !!q.rev,
+        w: q.w || 1,
         weightedGap: gap * (W[d.id] || 1),
       };
     }).filter(Boolean)
@@ -566,8 +588,12 @@ export function computeAnalytics(answersA, answersB, nameA, nameB, weights) {
   const domainScores = DOMAINS.map((d) => {
     const qs = allQuestions.filter((q) => q.domain === d.id);
     if (!qs.length) return null;
-    const avgNormA = qs.reduce((s, q) => s + q.normA, 0) / qs.length;
-    const avgNormB = qs.reduce((s, q) => s + q.normB, 0) / qs.length;
+    // Weighted within-domain mean. Most items carry weight 1; a few carry an
+    // explicit research-motivated `w` (appreciation m9; the proximal-
+    // sanctification tilt in Faith — see the question definitions).
+    const wSum = qs.reduce((s, q) => s + q.w, 0);
+    const avgNormA = qs.reduce((s, q) => s + q.normA * q.w, 0) / wSum;
+    const avgNormB = qs.reduce((s, q) => s + q.normB * q.w, 0) / wSum;
     const avgNorm = (avgNormA + avgNormB) / 2;
     const domainGap = Math.abs(avgNormA - avgNormB);
     const weight = W[d.id] || 1;
@@ -592,6 +618,47 @@ export function computeAnalytics(answersA, answersB, nameA, nameB, weights) {
       questionGaps,
     };
   }).filter(Boolean);
+
+  // ── Couple-level calibrations (v4.50) ──────────────────────────────────
+  // Two research-motivated adjustments. Both are TRANSPARENT: the unadjusted
+  // value is kept on the domain object and a flag explains every application
+  // in the report. Per-partner views (avgNormA/B) and gaps stay raw.
+  const dsById = Object.fromEntries(domainScores.map((x) => [x.id, x]));
+  const coupleMean = (id) => {
+    const a = answersA[id], b = answersB[id];
+    if (!isScorable(a) || !isScorable(b)) return null;
+    return (Number(a) + Number(b)) / 2; // f8/m8 are forward-scored
+  };
+
+  // "Threefold Cord" (Eccl. 4:12): when the couple jointly holds the marriage
+  // as sacred (f8) AND prays together (m8), shared sanctification acts as a
+  // documented buffer/repair motivator (Mahoney et al.; Fincham & Beach on
+  // couple prayer). Calibrated bonus: ×1.2 on the Marriage score, capped at 10.
+  const f8mean = coupleMean("f8"), m8mean = coupleMean("m8");
+  if (dsById.marriage && f8mean !== null && m8mean !== null && (f8mean + m8mean) / 2 >= 7.5) {
+    dsById.marriage.avgNormUnadjusted = dsById.marriage.avgNorm;
+    dsById.marriage.avgNorm = Math.min(10, dsById.marriage.avgNorm * 1.2);
+    dsById.marriage.cordMultiplier = true;
+  }
+
+  // Spiritual-divergence calibration: a Faith gap ≥ 3.0 marks meaningfully
+  // different spiritual experience — a specific, documented conflict risk in
+  // faith-active couples (Curtis & Ellison 2002; Mahoney 2005). The shared
+  // Faith score carries a 15% adjustment; the gap itself remains the finding
+  // and is disclosed in the report flag.
+  if (dsById.faith && dsById.faith.domainGap >= 3.0) {
+    dsById.faith.avgNormUnadjusted = dsById.faith.avgNorm;
+    dsById.faith.avgNorm = dsById.faith.avgNorm * 0.85;
+    dsById.faith.divergencePenalty = true;
+  }
+
+  // Re-derive the dependent fields for any adjusted domain.
+  for (const d of domainScores) {
+    if (d.cordMultiplier || d.divergencePenalty) {
+      d.weightedScore = d.avgNorm * d.weight;
+      d.health = classifyHealth(d.avgNorm);
+    }
+  }
 
   const totalWeight = domainScores.reduce((s, d) => s + d.weight, 0);
   const overallScore = totalWeight > 0
@@ -632,7 +699,33 @@ function detectFlags(domainScores, answersA, answersB, nameA, nameB) {
         text: `Both faith alignment and marriage health score below 5.0. These two domains are mutually reinforcing (Mahoney et al., 2001); low scores in both compound the risk to long-term family stability. This is your most urgent combined priority.` });
     if (ds.faith.domainGap >= 3)
       flags.push({ type: "TENSION", label: "Spiritual Misalignment",
-        text: `A ${ds.faith.domainGap.toFixed(1)}-point gap in Faith indicates meaningfully different spiritual experience between you. Shared spiritual practice is a documented predictor of marital satisfaction in faith-active couples.` });
+        text: `A ${ds.faith.domainGap.toFixed(1)}-point gap in Faith indicates meaningfully different spiritual experience between you. Spiritual divergence is a specific, documented conflict risk in faith-active couples, so the shared Faith score shown includes a 15% calibration for it — the gap itself is the finding, and it is an invitation to a conversation, not a verdict.` });
+  }
+
+  // Threefold Cord disclosure (Eccl. 4:12): whenever the calibrated marriage
+  // bonus was applied, say so — adjustments are never silent.
+  if (ds.marriage && ds.marriage.cordMultiplier)
+    flags.push({ type: "STRENGTH", label: "Threefold Cord",
+      text: `You both hold your marriage as sacred and you pray together — jointly, and strongly. In the research literature this shared sanctification acts as a buffer: it is associated with more repair attempts and dampened negativity during conflict. Your Marriage score includes a calibrated bonus (×1.2, capped at 10) reflecting this; the unadjusted value is ${ds.marriage.avgNormUnadjusted ? ds.marriage.avgNormUnadjusted.toFixed(1) : "—"}.` });
+
+  // "Oxygen Check" (Finkel's suffocation model): the couple holds high
+  // self-actualization expectations of the marriage while reporting depleted
+  // time/energy resources. High-altitude goals need oxygen.
+  {
+    const fwd = (id) => {
+      const a = answersA[id], b = answersB[id];
+      const ok = (v) => v !== undefined && v !== null && v !== "NA" && !isNaN(Number(v));
+      return ok(a) && ok(b) ? (Number(a) + Number(b)) / 2 : null;
+    };
+    const expItems = ["f12", "m16", "m5"].map(fwd).filter((v) => v !== null);
+    const resItems = ["v3", "b7", "m4"].map(fwd).filter((v) => v !== null);
+    if (expItems.length === 3 && resItems.length === 3) {
+      const expMean = expItems.reduce((s, v) => s + v, 0) / 3;
+      const resMean = resItems.reduce((s, v) => s + v, 0) / 3;
+      if (expMean >= 8.0 && resMean <= 4.0)
+        flags.push({ type: "TENSION", label: "Resource/Expectation Imbalance",
+          text: `You are asking your marriage to carry high callings — shared vision, mutual growth, a sense of significant purpose — while reporting little of the time and energy those callings need. Research on modern marriage (Finkel's "suffocation model") finds exactly this pattern strains couples: high-altitude expectations without enough oxygen. The remedy is not lowering the calling but deliberately budgeting unhurried time together before adding anything new.` });
+    }
   }
 
   const mo5A = answersA.mo5, mo5B = answersB.mo5;
@@ -904,6 +997,7 @@ export function generateLocalPlan(analytics) {
       vision: emptyVM.vision, mission: emptyVM.mission,
       goals1yr: [], goals5yr: [], goals10yr: [],
       indivA: { ...emptyVM }, indivB: { ...emptyVM },
+      recommendedPractice: null,
       tensions: [], flags, domainScores, overallScore, nameA, nameB,
     };
   }
@@ -958,9 +1052,42 @@ export function generateLocalPlan(analytics) {
   const indivA = buildIndividualVM(analytics, "A");
   const indivB = buildIndividualVM(analytics, "B");
 
+  // ── A practice for this season (v4.50) ──────────────────────────────────
+  // One deterministic, research-anchored recommendation chosen by the overall
+  // band. Safety comes first: severe self-reported contempt responds poorly
+  // to self-help and well to skilled outside help, so it overrides the band
+  // practices entirely.
+  const contemptSevere = flags.some((f) => f.label === "Contempt Detected");
+  let recommendedPractice;
+  if (contemptSevere) {
+    recommendedPractice = {
+      id: "referral",
+      title: "First step: a wise third party",
+      body: `At least one of you reports frequent contempt during conflict. In the research this pattern is the single strongest warning sign — and it responds poorly to self-help alone, and well to skilled outside help. Before any of the practices this report could suggest, we encourage you to sit down together with a pastor or a licensed marriage counselor, soon. Seeking help early is an act of covenant, not an admission of failure.`,
+    };
+  } else if (overallScore >= 8.0) {
+    recommendedPractice = {
+      id: "reappraisal",
+      title: "The reappraisal practice — 7 minutes, three times a year",
+      body: `Every four months, each of you writes for seven minutes about your most recent disagreement from the perspective of a neutral third party who wants the best for both of you — then share what you wrote. In a multi-year study (Finkel and colleagues, 2013), this small exercise preserved marital quality where it otherwise gradually declined. You are building from strength; this protects it.`,
+    };
+  } else if (overallScore >= 5.0) {
+    recommendedPractice = {
+      id: "novelty-prayer",
+      title: "Novelty together, and prayer for each other",
+      body: `Two practices for this season. First: set aside about 90 minutes a week for a genuinely NEW shared activity — a hobby neither of you has tried, a place neither of you knows. Research on self-expansion (Aron and colleagues) links novel, mildly exciting joint activities with renewed closeness where comfortable routines plateau. Second: each day, briefly pray FOR your spouse — specifically for their good, not about your frustrations. Partner-focused "benevolent" prayer is associated with greater selfless concern and a readier heart to forgive (Fincham & Beach).`,
+    };
+  } else {
+    recommendedPractice = {
+      id: "watch-talk",
+      title: "Watch, then talk",
+      body: `Once or twice a month, watch a film about a marriage together — and afterwards talk honestly about what felt familiar, what you each recognized of yourselves, and what you would want to do differently. In a randomized trial (Rogge and colleagues, 2013), this simple "relationship awareness" practice cut early divorce and separation rates in half, performing on par with intensive skills programs. It is a gentle way back into real conversation — alongside, not instead of, the conversations this report flags.`,
+    };
+  }
+
   return {
     vision, mission, goals1yr, goals5yr, goals10yr,
-    indivA, indivB,
+    indivA, indivB, recommendedPractice,
     tensions: tensionItems, flags, domainScores, overallScore, nameA, nameB,
   };
 }

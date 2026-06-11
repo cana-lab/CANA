@@ -1,5 +1,22 @@
 # Changelog
 
+## 4.50.0
+- Core-engine calibration: research-anchored weighting and pattern logic (Investment Model, suffocation model, sanctification research). Every adjustment is TRANSPARENT — unadjusted values are kept and a report flag discloses each application. Per-partner views and gaps always stay raw.
+- New scoring mechanics:
+  - **Per-item weights** inside domain means. Appreciation (m9) carries w=2 in Marriage (top-tier predictor: Gottman positivity ratio, gratitude research). Faith is tilted **70/30 toward proximal sanctification**: the three couple-level items (f8 sacred marriage, f12 family calling, f13 spiritual intimacy) carry 70% of the domain's internal mass vs. the eleven individual/congregational items (Mahoney: marriage-specific religiousness outpredicts distal markers like attendance). NOTE — the instruction listed m8/m16 as faith-proximal items; they live in Marriage and already feed it (and the Cord trigger), so counting them in Faith too would double-count. The faith-internal trio is the faithful implementation.
+  - **"Threefold Cord" bonus** (Eccl. 4:12): couple-mean of f8+m8 ≥ 7.5 → Marriage score ×1.2, capped at 10, disclosed via a STRENGTH flag carrying the unadjusted value.
+  - **Spiritual-divergence calibration**: Faith gap ≥ 3.0 → 15% adjustment to the shared Faith score, disclosed inside the existing "Spiritual Misalignment" flag ("the gap itself is the finding — an invitation to a conversation, not a verdict").
+  - **"Oxygen Check"** (Finkel's suffocation model): couple-mean expectations (f12, m16, m5) ≥ 8.0 AND couple-mean resources (v3, b7, m4) ≤ 4.0 → new "Resource/Expectation Imbalance" flag. Flag only, no score impact.
+- **"A practice for this season"** — one deterministic, band-based recommendation on the report:
+  - Thriving (≥8.0): the 7-minute conflict-reappraisal writing exercise, three times a year (Finkel et al. 2013).
+  - Healthy/Developing (5.0–7.9): ~90 min/week of genuinely novel shared activity (Aron's self-expansion research) plus daily benevolent prayer for the partner (Fincham & Beach).
+  - At-Risk (<5.0): relationship-movie-and-talk, 1–2×/month (Rogge et al. 2013 RCT — halved early divorce/separation rates, on par with intensive programs).
+  - **Safety trigger**: severe self-reported contempt (raw m15 ≥ 7, either partner) REPLACES all self-help with a calm pastor/licensed-counselor referral recommendation. Correction to the instruction: m15 measures *expressed* contempt by self-report ("I feel contempt…"), not received contempt; the trigger fires on either partner's report.
+- **Investment Model coverage — with one deliberate deviation**: two new Marriage items, m19 (investment size: "We have built so much together…") and m20 (commitment/future we-ness: "I cannot imagine my future apart from my spouse"). A direct "quality of alternatives" item was **NOT** added: asking partners to rate the attractiveness of alternatives primes exactly the contract-thinking the instruction's own guardrail #4 (covenant over contract) forbids, and Rusbult's commitment construct carries the same predictive content positively framed. 113 → 115 questions; plain-language help added for both.
+- Honest-framing guardrail on the report: "CANA measures your *perception* of the relationship, not necessarily your behavior. Gaps are an invitation to a conversation, not a verdict."
+- Methodology export updated (weight column, calibration steps 11–16) and regenerated.
+- Verified: 34/34 tests (8 new calibration tests: weight effects, cord trigger+cap+disclosure, divergence penalty math+disclosure, oxygen on/off, band→practice mapping, contempt referral override); all three bundles build clean. Old archived reports without the new fields render unchanged (practice card simply absent).
+
 ## 4.49.1
 - iOS polish round from first on-device TestFlight feedback:
   - **Sign out is now visible**: a header button on the home screen (it previously existed only as a 12.5px text link buried at the very bottom of the page — technically present, practically undiscoverable on a phone).

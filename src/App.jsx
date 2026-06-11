@@ -2935,6 +2935,18 @@ export default function App() {
               </div>
             )) : <p style={{ ...body, color: "var(--ink3)" }}>No critical flags — broad alignment.</p>}
 
+            {R.recommendedPractice ? (
+              <Card style={{ marginTop: 28, padding: 22, borderLeft: `3px solid ${R.recommendedPractice.id === "referral" ? "var(--red)" : "var(--accent)"}` }}>
+                <p style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 600, margin: "0 0 6px" }}>A practice for this season</p>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: "0 0 8px" }}>{R.recommendedPractice.title}</p>
+                <p style={{ fontSize: 14.5, color: "var(--ink2)", lineHeight: 1.6, margin: 0 }}>{R.recommendedPractice.body}</p>
+              </Card>
+            ) : null}
+
+            <p style={{ fontSize: 12.5, color: "var(--ink3)", lineHeight: 1.6, marginTop: 20 }}>
+              CANA measures your <em>perception</em> of the relationship, not necessarily your behavior. Gaps are an invitation to a conversation, not a verdict.
+            </p>
+
             <Card style={{ marginTop: 24, background: "var(--bg2)", boxShadow: "none", textAlign: "center" }}>
               <p style={{ fontSize: 15, fontStyle: "italic", color: "var(--ink)", margin: "0 0 4px" }}>"{SCRIPTURES.synthesis.text}"</p>
               <p style={{ fontSize: 12, color: "var(--gold)", fontWeight: 600, margin: 0 }}>{SCRIPTURES.synthesis.ref}</p>

@@ -123,3 +123,78 @@ describe("generateLocalPlan edge cases", () => {
     expect(plan.vision).toMatch(/Bo/);
   });
 });
+
+// Healthy-direction answers that respect reverse-scored items: a "good"
+// couple answers rev items LOW. value = the normalized health level.
+function goodAnswers(v) {
+  const out = {};
+  for (const d of DOMAINS) for (const q of d.questions) out[q.id] = q.rev ? 10 - v : v;
+  return out;
+}
+
+describe("v4.50 calibrations", () => {
+  it("instrument now has 115 questions (m19/m20 added)", () => {
+    expect(DOMAINS.flatMap((d) => d.questions).length).toBe(115);
+  });
+
+  it("per-item weights: appreciation (m9, w=2) moves Marriage more than a w=1 item", () => {
+    const base = uniformAnswers(6);
+    const viaM9 = { ...base, m9: 10 };
+    const viaM10 = { ...base, m10: 10 };
+    const m = (ans) => computeAnalytics(ans, ans, "A", "B").domainScores.find((d) => d.id === "marriage").avgNorm;
+    expect(m(viaM9)).toBeGreaterThan(m(viaM10));
+  });
+
+  it("Threefold Cord: joint f8+m8 ≥ 7.5 boosts Marriage ×1.2 (capped), transparently", () => {
+    const a = goodAnswers(7); // f8/m8 couple mean 7 → below trigger
+    const r1 = computeAnalytics(a, a, "A", "B");
+    expect(r1.domainScores.find((d) => d.id === "marriage").cordMultiplier).toBeUndefined();
+
+    const b = { ...goodAnswers(7), f8: 9, m8: 9 };
+    const r2 = computeAnalytics(b, b, "A", "B");
+    const mar = r2.domainScores.find((d) => d.id === "marriage");
+    expect(mar.cordMultiplier).toBe(true);
+    expect(mar.avgNorm).toBeGreaterThan(mar.avgNormUnadjusted);
+    expect(mar.avgNorm).toBeLessThanOrEqual(10);
+    expect(r2.flags.some((f) => f.label === "Threefold Cord")).toBe(true);
+  });
+
+  it("Faith divergence: gap ≥ 3.0 applies a disclosed 15% calibration", () => {
+    const A = uniformAnswers(6), B = uniformAnswers(6);
+    for (const q of DOMAINS.find((d) => d.id === "faith").questions) { A[q.id] = 9; B[q.id] = 3; }
+    const r = computeAnalytics(A, B, "A", "B");
+    const faith = r.domainScores.find((d) => d.id === "faith");
+    expect(faith.divergencePenalty).toBe(true);
+    expect(faith.avgNorm).toBeCloseTo(faith.avgNormUnadjusted * 0.85, 6);
+    const flag = r.flags.find((f) => f.label === "Spiritual Misalignment");
+    expect(flag).toBeTruthy();
+    expect(flag.text).toMatch(/15%/);
+  });
+
+  it("Oxygen Check: high expectations + depleted resources fires the imbalance flag", () => {
+    const a = { ...uniformAnswers(6), f12: 9, m16: 9, m5: 9, v3: 2, b7: 2, m4: 2 };
+    const r = computeAnalytics(a, a, "A", "B");
+    expect(r.flags.some((f) => f.label === "Resource/Expectation Imbalance")).toBe(true);
+    // and NOT with balanced answers
+    const r2 = computeAnalytics(uniformAnswers(6), uniformAnswers(6), "A", "B");
+    expect(r2.flags.some((f) => f.label === "Resource/Expectation Imbalance")).toBe(false);
+  });
+
+  it("practice recommendation follows the band", () => {
+    const thriving = generateLocalPlan(computeAnalytics(goodAnswers(9), goodAnswers(9), "A", "B"));
+    expect(thriving.recommendedPractice.id).toBe("reappraisal");
+
+    const developing = generateLocalPlan(computeAnalytics(uniformAnswers(6), uniformAnswers(6), "A", "B"));
+    expect(developing.recommendedPractice.id).toBe("novelty-prayer");
+
+    const atRisk = generateLocalPlan(computeAnalytics(goodAnswers(4), goodAnswers(4), "A", "B"));
+    expect(atRisk.recommendedPractice.id).toBe("watch-talk");
+  });
+
+  it("safety trigger: severe contempt (raw m15 ≥ 7) overrides self-help with referral", () => {
+    const a = { ...goodAnswers(8), m15: 8 }; // otherwise-healthy couple, severe contempt
+    const plan = generateLocalPlan(computeAnalytics(a, goodAnswers(8), "A", "B"));
+    expect(plan.recommendedPractice.id).toBe("referral");
+    expect(plan.recommendedPractice.body).toMatch(/pastor|counselor/i);
+  });
+});
