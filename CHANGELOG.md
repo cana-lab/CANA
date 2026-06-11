@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.49.1
+- iOS polish round from first on-device TestFlight feedback:
+  - **Sign out is now visible**: a header button on the home screen (it previously existed only as a 12.5px text link buried at the very bottom of the page — technically present, practically undiscoverable on a phone).
+  - **No more sideways wiggle**: the app could be dragged slightly left/right (an off-screen overflow let WKWebView pan horizontally). `overflow-x: hidden` + `overscroll-behavior-x: none` on html/body kill horizontal panning on every platform.
+  - **No pinch-zoom rubber-banding**: the iOS bundle now ships a fixed viewport (`maximum-scale=1, user-scalable=no`) for a native-app feel. Deliberately iOS-only via the per-target build transform — the web build keeps a zoomable viewport for accessibility.
+  - **Top spacing fixed**: the gap between the status-bar header and the headline was the desktop padding (60px) on a phone; iOS now uses 20px.
+  - **Diagnostic log card hidden on iOS**: a save-a-file flow has no natural home on iPhone and TestFlight carries its own crash reporting. The local log still records silently (support can still ask for it later); Mac/web keep the card.
+- New scripts/export-methodology.mjs: generates a single self-contained methodology reference (all 113 questions, 10 response scales, weights, scripture anchors, scoring math step by step, the four research docs verbatim, and the scoring source as ground truth) — extracted LIVE from engine.js so it cannot drift from shipped code. Written for external deep-review tools (NotebookLM).
+- Verified: 27/27 tests; web/iOS bundles build; per-target checks pass (iOS bundle has fixed viewport + connect-src 'self'; web bundle unchanged). On-device verification of the four UI fixes: TestFlight build 14.
+
 ## 4.49.0
 - iOS: "Remember password" now works on the iPhone, stored in the **iOS Keychain**.
   - Honest background: WKWebView apps never get Safari's "save this password?" sheet — the app runs on capacitor://localhost, not a real domain, so iCloud-Keychain autofill cannot attach. The only proper way is native Keychain storage, which this release adds via a small Capacitor plugin (ios-plugin/CredentialsPlugin.swift): kSecClassGenericPassword, WhenUnlockedThisDeviceOnly (device-only, never synced — matching the app's "stays on this device" model).

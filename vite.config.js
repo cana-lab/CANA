@@ -33,10 +33,17 @@ function canaPerTargetPlugin() {
     name: "cana-per-target",
     transformIndexHtml(html) {
       if (!isIOS) return html;
-      return html.replace(
-        /connect-src[^;]*;/,
-        "connect-src 'self';"
-      );
+      return html
+        .replace(
+          /connect-src[^;]*;/,
+          "connect-src 'self';"
+        )
+        // Native-app feel: fixed viewport, no pinch-zoom rubber-banding.
+        // Web keeps the zoomable viewport for accessibility.
+        .replace(
+          /<meta name="viewport"[^>]*\/>/,
+          '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />'
+        );
     },
     closeBundle() {
       if (!(isIOS || isElectron)) return;

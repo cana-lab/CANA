@@ -1473,9 +1473,16 @@ export default function App() {
           </div>
         );
       })() : null}
-      <Chrome title="CANA" right={llmBadge} />
+      <Chrome title="CANA" right={
+        isIOS ? (
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {llmBadge}
+            <Btn kind="ghost" onClick={logout} style={{ padding: "6px 10px", fontSize: 13 }}>Sign out</Btn>
+          </div>
+        ) : llmBadge
+      } />
       <Wrap>
-        <div style={{ padding: "60px 0 80px" }}>
+        <div style={{ padding: isIOS ? "20px 0 80px" : "60px 0 80px" }}>
           <div className="rise" style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 22 }}>
             <Logo size={64} />
             <div>
@@ -1621,7 +1628,10 @@ export default function App() {
             </p>
           </Card>
 
-          <Card style={{ marginTop: 14, padding: 22 }}>
+          {/* Diagnostic log: desktop/web only. On iOS the saved-file flow has
+              no natural home (no Finder) and TestFlight already carries crash
+              reporting; the log still records silently for future support. */}
+          {!isIOS ? <Card style={{ marginTop: 14, padding: 22 }}>
             <h2 style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-.015em", color: "var(--ink)", margin: "0 0 6px" }}>Diagnostic log</h2>
             <p style={{ fontSize: 12.5, color: "var(--ink3)", margin: "0 0 14px", lineHeight: 1.55 }}>
               If the app ever crashes or misbehaves, the last {25} errors are kept on this device. You can save them as a file and send it to support if you'd like help. <strong>Nothing is sent automatically.</strong> No data ever leaves your machine without your action.
@@ -1641,7 +1651,7 @@ export default function App() {
               </button>
               <span style={{ fontSize: 11.5, color: "var(--ink3)" }}>{readCrashLog().length} entries recorded</span>
             </div>
-          </Card>
+          </Card> : null}
 
           {(update.checking || update.result) ? (() => {
             const r = update.result || {};

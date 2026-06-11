@@ -11,7 +11,9 @@
   --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;
 }
 *{box-sizing:border-box;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
-html,body{margin:0;padding:0;}
+/* No horizontal panning, ever: any element peeking past the viewport
+   otherwise lets iOS (and trackpads) drag the whole app sideways. */
+html,body{margin:0;padding:0;max-width:100vw;overflow-x:hidden;overscroll-behavior-x:none;}
 body{
   font-family:var(--font); color:var(--ink); background:var(--bg);
   background-image:
