@@ -4,9 +4,6 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>CANA — How to Download, Install &amp; Use</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Newsreader:wght@400;500&display=swap" rel="stylesheet" />
 <style>
   :root{
     --ink:#211d18; --ink2:#4a443c; --ink3:#8b8275;
@@ -85,6 +82,16 @@
   footer .mono{font-family:ui-monospace,monospace;font-size:12.5px;}
   a.link{color:var(--accent);font-weight:500;}
 
+  /* Download buttons (Part Two) — match the page's warm palette */
+  .dlgrid{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 14px;}
+  .dlbtn{flex:1 1 240px;display:block;text-decoration:none;border-radius:14px;
+    padding:16px 20px;background:var(--accent);color:#fff;box-shadow:var(--shadow);}
+  .dlbtn .t{display:block;font-family:"Fraunces",serif;font-weight:600;font-size:19px;letter-spacing:-.01em;}
+  .dlbtn .s{display:block;font-size:14px;opacity:.85;margin-top:3px;}
+  .dlbtn.alt{background:var(--ink2);}
+  .dlbtn:hover{filter:brightness(1.07);}
+  .dlstatus{font-size:14px;color:var(--accent);font-weight:600;margin:0 0 6px;min-height:1em;}
+
   @media (max-width:560px){
     body{font-size:17px;}
     .step{gap:14px;} .dot{width:34px;height:34px;font-size:16px;}
@@ -139,35 +146,48 @@
   <section class="part" id="download">
     <p class="part-num">Part Two</p>
     <h2>Downloading the app</h2>
-    <p class="intro">CANA is downloaded from its releases page on GitHub — think of it as the official shelf where each version of the app is kept.</p>
+    <p class="intro">One click — pick the button that matches your Mac. The download is the official installer from CANA's releases page on GitHub (~120&nbsp;MB, one time).</p>
 
-    <div class="step">
-      <div class="dot">1</div>
-      <div class="step-body">
-        <p class="step-title">Open the releases page</p>
-        <p>Click this link to go to the downloads page: <a class="link" href="https://github.com/cana-lab/CANA/releases/latest" target="_blank" rel="noopener">CANA Releases</a>. It opens in your web browser (Safari or Chrome).</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The GitHub releases page, with the latest "CANA" release shown at the top and the green "Latest" tag visible.</p></div>
-      </div>
+    <div class="dlgrid">
+      <a id="dl-arm" class="dlbtn" href="https://github.com/cana-lab/CANA/releases/latest" target="_blank" rel="noopener">
+        <span class="t">Download for Apple&nbsp;Silicon</span>
+        <span class="s">M1, M2, M3, M4 … (Macs from late 2020 on)</span>
+      </a>
+      <a id="dl-x64" class="dlbtn alt" href="https://github.com/cana-lab/CANA/releases/latest" target="_blank" rel="noopener">
+        <span class="t">Download for Intel</span>
+        <span class="s">Older, Intel-based Macs</span>
+      </a>
     </div>
+    <p id="dl-status" class="dlstatus"></p>
 
-    <div class="step">
-      <div class="dot">2</div>
-      <div class="step-body">
-        <p class="step-title">Find the download file</p>
-        <p>Under the latest release, look for a section called <strong>Assets</strong>. Inside it you'll see a file whose name ends in <kbd>.dmg</kbd> — for example <kbd>CANA-4.23.0-arm64.dmg</kbd>. That <span class="pill">.dmg</span> file is the app installer.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The expanded "Assets" list with the .dmg file highlighted (the one ending in -arm64.dmg).</p></div>
-      </div>
-    </div>
+    <div class="note"><span class="ic">🖥️</span><p><strong>Not sure which Mac you have?</strong> Click the <strong>&#63743; Apple menu → About This Mac</strong>. Under "Chip", <em>Apple M…</em> means Apple&nbsp;Silicon; <em>Intel</em> means Intel. Every version is also listed on the <a class="link" href="https://github.com/cana-lab/CANA/releases/latest" target="_blank" rel="noopener">releases page</a>.</p></div>
+    <div class="note"><span class="ic">✓</span><p><strong>Signed &amp; notarized:</strong> the app is signed with an Apple Developer&nbsp;ID and notarized by Apple, so it installs and opens without warnings.</p></div>
 
-    <div class="step">
-      <div class="dot">3</div>
-      <div class="step-body">
-        <p class="step-title">Click it to download</p>
-        <p>Click the <kbd>.dmg</kbd> file name. Your browser will download it — this takes a moment, as the file is around 90&nbsp;MB. When it's done, you'll usually find it in your <strong>Downloads</strong> folder.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The browser's download bar/area showing the .dmg finishing downloading.</p></div>
-      </div>
-    </div>
-    <div class="note"><span class="ic">🖥️</span><p><strong>About "arm64":</strong> CANA is built for Apple-silicon Macs (M1, M2, M3, M4 — any Mac from late 2020 onward). If you have a much older Intel Mac, let the developer know.</p></div>
+    <script>
+      (function () {
+        // Resolve the two buttons to DIRECT .dmg downloads from the latest
+        // release. If GitHub can't be reached, the buttons keep their fallback
+        // href (the releases page) — nothing breaks.
+        fetch("https://api.github.com/repos/cana-lab/CANA/releases/latest", {
+          headers: { Accept: "application/vnd.github+json" }
+        }).then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (data) {
+          var assets = Array.isArray(data.assets) ? data.assets : [];
+          var arm = null, x64 = null;
+          assets.forEach(function (a) {
+            var n = a.name || "";
+            if (!/\.dmg$/i.test(n)) return;
+            if (/arm64/i.test(n)) { arm = arm || a; } else { x64 = x64 || a; }
+          });
+          if (arm) { var b = document.getElementById("dl-arm"); b.href = arm.browser_download_url; b.removeAttribute("target"); }
+          if (x64) { var c = document.getElementById("dl-x64"); c.href = x64.browser_download_url; c.removeAttribute("target"); }
+          if (arm || x64) {
+            var v = (data.tag_name || "").replace(/^v/, "");
+            document.getElementById("dl-status").textContent = v ? ("Latest version: " + v + " — clicking starts the download directly.") : "Clicking starts the download directly.";
+          }
+        }).catch(function () { /* fallback hrefs stay */ });
+      })();
+    </script>
   </section>
 
   <!-- 3 -->
@@ -181,7 +201,6 @@
       <div class="step-body">
         <p class="step-title">Open the downloaded file</p>
         <p>Double-click the <kbd>.dmg</kbd> file in your Downloads. A small window opens showing the <strong>CANA</strong> app icon next to a shortcut to your <strong>Applications</strong> folder.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The opened .dmg window showing the CANA icon and the Applications folder shortcut side by side.</p></div>
       </div>
     </div>
 
@@ -190,7 +209,6 @@
       <div class="step-body">
         <p class="step-title">Drag CANA into Applications</p>
         <p>Click and hold the <strong>CANA</strong> icon, drag it on top of the <strong>Applications</strong> folder, and let go. That copies the app onto your Mac.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">Mid-drag: the CANA icon being dragged toward the Applications folder, with the arrow between them.</p></div>
       </div>
     </div>
 
@@ -199,7 +217,6 @@
       <div class="step-body">
         <p class="step-title">Eject the installer</p>
         <p>You can now close the little window. In a Finder window, find <strong>CANA</strong> in the sidebar (under Locations) and click the small <strong>⏏ eject</strong> symbol next to it. You can also drag the original <kbd>.dmg</kbd> from Downloads to the Bin — you don't need it anymore.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">A Finder sidebar showing the CANA disk with the eject (⏏) symbol next to it.</p></div>
       </div>
     </div>
   </section>
@@ -215,7 +232,6 @@
       <div class="step-body">
         <p class="step-title">Open your Applications folder</p>
         <p>In Finder, click <strong>Applications</strong> in the left sidebar, then find <strong>CANA</strong> in the list.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The Applications folder with the CANA app visible in the list.</p></div>
       </div>
     </div>
 
@@ -224,7 +240,6 @@
       <div class="step-body">
         <p class="step-title">Double-click CANA</p>
         <p>Double-click the icon. The app opens to a welcome screen. The very first time, macOS may briefly ask <em>"CANA is an app downloaded from the internet. Are you sure you want to open it?"</em> — click <strong>Open</strong>. This only happens once.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">Either the one-time "downloaded from the internet — Open?" dialog, OR the CANA welcome/sign-in screen once it opens.</p></div>
       </div>
     </div>
 
@@ -233,7 +248,6 @@
       <div class="step-body">
         <p class="step-title">Create your profile</p>
         <p>On the welcome screen, enter both partners' first names, an email address, and a password, then continue. (The email is just a label for your profile on this computer — it isn't sent anywhere.)</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The CANA sign-up / create-profile screen with the name, email, and password fields.</p></div>
       </div>
     </div>
     <div class="note"><span class="ic">🔁</span><p><strong>Keep it in your Dock:</strong> once CANA is open, you can right-click its icon in the Dock → <strong>Options</strong> → <strong>Keep in Dock</strong>, so it's one click to open next time.</p></div>
@@ -250,7 +264,6 @@
       <div class="step-body">
         <p class="step-title">Choose Full Assessment</p>
         <p>From the home screen, start a <strong>Full Assessment</strong>. (A <strong>Quick Check-In</strong> is a shorter version for revisiting things later.)</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The CANA home screen showing the Full Assessment and Quick Check-In options.</p></div>
       </div>
     </div>
 
@@ -260,7 +273,6 @@
         <p class="step-title">Answer the questions, one chapter at a time</p>
         <p>Questions come a few at a time, grouped into eleven chapters. For each, slide to where you honestly land. Not sure what a question means? Tap the small <strong>ⓘ</strong> beside it for a plain-language explanation.</p>
         <p>If a question genuinely doesn't apply to your season of life, switch on <strong>Not applicable</strong> — it'll be left out of your results.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">A question screen showing the answer scale, the ⓘ info button, and the "Not applicable" toggle.</p></div>
       </div>
     </div>
 
@@ -269,7 +281,6 @@
       <div class="step-body">
         <p class="step-title">Write your letter from the future</p>
         <p>After the questions, you'll each write a short letter as if it's ten years from now and life has gone well. There are gentle sentence-starters if you're not sure how to begin. Write naturally — a few honest sentences is plenty.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The "letter from the future" writing screen with the sentence-starter prompts.</p></div>
       </div>
     </div>
 
@@ -278,7 +289,6 @@
       <div class="step-body">
         <p class="step-title">Hand the Mac to your partner</p>
         <p>When the first partner finishes their questions and letter, the second partner does the same. Once <em>both</em> are done, CANA can generate your shared plan.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The progress screen showing one partner complete and the other still to go.</p></div>
       </div>
     </div>
   </section>
@@ -296,7 +306,6 @@
       <div class="step-body">
         <p class="step-title">Install Ollama (the local AI engine)</p>
         <p>Go to <a class="link" href="https://ollama.com" target="_blank" rel="noopener">ollama.com</a>, download it for Mac, and install it like any app. Ollama is a free, well-known tool for running AI models privately on your own computer.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The ollama.com download page for macOS.</p></div>
       </div>
     </div>
 
@@ -305,7 +314,6 @@
       <div class="step-body">
         <p class="step-title">Let CANA download the model for you</p>
         <p>In CANA, open <strong>Settings → Local AI</strong>. If Ollama is running, you can tap <strong>Download model</strong> and CANA fetches the recommended model with a progress bar — no Terminal needed. (It's a one-time download of a few gigabytes, so use good Wi-Fi.)</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">CANA's Settings → Local AI screen with the "Download model" button and progress bar.</p></div>
       </div>
     </div>
 
@@ -314,7 +322,6 @@
       <div class="step-body">
         <p class="step-title">Refresh a report whenever the AI improves</p>
         <p>On any current report there's a <strong>↻ Refresh AI output</strong> button. Tap it to re-write the vision, mission, and goals with the AI — your scores and answers stay exactly the same. Handy if you set up the AI <em>after</em> first generating a report.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">A report screen with the "↻ Refresh AI output" button visible at the top.</p></div>
       </div>
     </div>
   </section>
@@ -330,7 +337,6 @@
       <div class="step-body">
         <p class="step-title">Read it together, slowly</p>
         <p>This is the heart of CANA — not the numbers, but the conversation they open. The "Top Tensions" are simply the places where your answers differ most; they're starting points for talking, not verdicts.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The CANA report screen showing the joint vision and the domain-health chart.</p></div>
       </div>
     </div>
 
@@ -339,7 +345,6 @@
       <div class="step-body">
         <p class="step-title">Save a PDF to keep</p>
         <p>Tap <strong>Save as PDF</strong> on the report. macOS opens a print window — choose <strong>Save as PDF</strong> at the bottom and pick where to keep it. This PDF is your permanent keepsake, and the safest way to back up a report.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The macOS print dialog with the "Save as PDF" option highlighted at the bottom-left.</p></div>
       </div>
     </div>
     <div class="note"><span class="ic">📄</span><p><strong>The PDF is neatly laid out</strong> with one section per page — vision, future letters, differences, health, goals for each horizon, tensions, and insights.</p></div>
@@ -355,7 +360,6 @@
       <div class="step-body">
         <p class="step-title">Check for updates</p>
         <p>On the home screen, use <strong>Check for updates</strong>. If a newer version exists, CANA opens a simple step-by-step guide in your browser that downloads it and walks you through replacing the old version. Your saved data is never touched by updating.</p>
-        <div class="shot"><span class="cam">📷</span><p class="label">Screenshot needed</p><p class="desc">The "Check for updates" control on the CANA home screen, ideally showing an available update.</p></div>
       </div>
     </div>
   </section>

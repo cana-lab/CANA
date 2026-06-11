@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.47.2
+- Ollama / AI setup documentation pass (the in-app wizard was already current; the written guides around it were not):
+  - docs/LLM_SETUP.md: removed an outdated claim that pointing the app at a non-localhost endpoint merely requires editing the CSP — in reality `src/llm.js` hard-refuses any non-loopback endpoint and there is no supported way to use a remote AI service. The privacy note now describes both enforcement layers (code + CSP, incl. the stricter iOS CSP). Model recommendations now match the in-app wizard (llama3.1:8b / llama3.2:3b / gemma2:2b instead of stale qwen suggestions); pointed readers to the no-Terminal in-app wizard first; added the iOS note (Apple on-device model, nothing to set up).
+  - public/guide.html (the "How to install & use" page on the website):
+    - Download section rebuilt: two direct download buttons (Apple Silicon / Intel) that resolve the latest .dmg from the GitHub API — replacing the manual "open releases page, find Assets, look for .dmg" walkthrough, its stale 4.23.0 example filename, and the WRONG claim that CANA only ships for Apple Silicon ("if you have an Intel Mac, let the developer know" — Intel builds ship since 4.46.1). Buttons fall back to the releases page if GitHub is unreachable.
+    - Removed all 19 "📷 Screenshot needed" placeholder boxes — an unfinished look on a public page. (Real screenshots can be added later; the steps stand on their own.)
+    - Removed the Google Fonts embed (the only third-party request on a page whose core message is "nothing leaves your device"); typography falls back to the system serif stack.
+    - Added a "signed & notarized" note in the download section. The Ollama part (Part Six) was checked and left as-is — it matches the current in-app flow.
+- Verified: 27/27 tests pass; web build clean; guide.html ships in the web build with both buttons and zero placeholders/Google-Fonts references. Live Pages deployment verified after push.
+
 ## 4.47.1
 - Update guide page (the one the in-app "Download & install →" opens in the browser) rebuilt:
   - Two explicit download buttons — **Apple Silicon** and **Intel** — instead of one generic link, with an "About This Mac" hint for choosing. Clicking a button starts the download directly.
