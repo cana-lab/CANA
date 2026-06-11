@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.51.0
+- New "Oxygen check" card on the report (Apple/SpaceX-instrument style): a vertical tank whose fill level is the couple's **Supply** (couple-mean of time together m4, rest/sabbath b7, work-life balance v3) with a **dashed marker line showing where the oxygen level needs to be** — the **Demand** (couple-mean of shared vision m5, mutual growth m16, family calling f12). Telemetry row shows Supply / Demand / signed Margin plus a state pill: Breathable (green), Narrow margin (amber, demand exceeds supply by ≥ 3), Thin air (red — exactly the 4.50 imbalance-flag threshold). State color appears only in the fill and the pill; the rest of the instrument stays quiet.
+- Engine: new exported `computeOxygen(answersA, answersB)` — ONE source of truth for both the card and the "Resource/Expectation Imbalance" flag (the flag's previous inline computation was refactored onto it; thresholds unchanged and covered by the existing tests). The oxygen telemetry is part of analytics and of the saved report, so archived reports render their own historical state; pre-4.51 archives simply omit the card.
+- The card renders whenever all six items were answered by both partners (always-on instrument, not only an alarm) — calm confirmation is also information.
+- Verified: 39/39 tests (5 new: thin-air exactly at threshold, narrow/nominal boundaries, incomplete-data handling, analytics→plan flow equals flag data); all three bundles build clean.
+
 ## 4.50.0
 - Core-engine calibration: research-anchored weighting and pattern logic (Investment Model, suffocation model, sanctification research). Every adjustment is TRANSPARENT — unadjusted values are kept and a report flag discloses each application. Per-partner views and gaps always stay raw.
 - New scoring mechanics:

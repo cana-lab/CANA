@@ -367,6 +367,68 @@ function RichText({ text, style }) {
 
 /* SVG line chart */
 /* Circular gauge — the dashboard hero (Apple-rings / Oura-score style) */
+/* Oxygen tank — Finkel "suffocation model" telemetry on the report.
+   Fill = Supply (couple-mean of time/rest/balance items). The dashed marker
+   is the LINE THE OXYGEN NEEDS TO REACH: Demand (couple-mean of the calling/
+   vision/growth items). State colors only on the fill and the pill. */
+function OxygenTank({ oxygen }) {
+  if (!oxygen || !oxygen.complete) return null;
+  const { supply, demand, margin, state } = oxygen;
+  const stateColor = state === "thinair" ? "var(--red)" : state === "narrow" ? "var(--amber)" : "var(--green)";
+  const stateTint = state === "thinair" ? "rgba(255,59,48,0.10)" : state === "narrow" ? "rgba(255,159,10,0.12)" : "rgba(52,199,89,0.12)";
+  const stateLabel = state === "thinair" ? "Thin air" : state === "narrow" ? "Narrow margin" : "Breathable";
+  const stateText = state === "thinair"
+    ? "High callings on low reserves. Refill before you climb — the goal is more oxygen, not a lower calling."
+    : state === "narrow"
+    ? "Your hopes sit above your supply line. Budget unhurried time together before adding anything new."
+    : "Your time and energy reach the altitude your callings ask for. Keep the tank filled.";
+  const H = 180, W = 64;
+  const fillH = Math.max(0, Math.min(H, (supply / 10) * H));
+  const demandY = H - Math.max(0, Math.min(H, (demand / 10) * H));
+  const fmt = (v) => v.toFixed(1);
+  return (
+    <Card style={{ marginTop: 28, padding: 22 }}>
+      <p style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 600, margin: "0 0 14px" }}>Oxygen check</p>
+      <div style={{ display: "flex", gap: 28, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: H, padding: "2px 0", textAlign: "right" }}>
+            {[10, 5, 0].map((n) => <span key={n} style={{ fontSize: 10.5, color: "var(--ink3)", fontVariantNumeric: "tabular-nums" }}>{n}</span>)}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+            <div style={{ width: 20, height: 8, border: "1px solid var(--hair)", borderBottom: "none", borderRadius: "4px 4px 0 0" }} />
+            <div style={{ position: "relative", width: W, height: H, border: "1px solid var(--hair)", borderRadius: W / 2, overflow: "hidden", background: "var(--bg2)", marginTop: -5 }}>
+              <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: fillH, background: stateColor, opacity: 0.8 }} />
+              <div style={{ position: "absolute", left: 5, right: 5, top: demandY, borderTop: "2px dashed var(--ink)", opacity: 0.7 }} />
+            </div>
+            <span style={{ fontSize: 11, color: "var(--ink3)", letterSpacing: ".03em" }}>O₂ — time &amp; energy</span>
+          </div>
+        </div>
+        <div style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", gap: 26, flexWrap: "wrap" }}>
+            <div>
+              <p style={{ fontSize: 11.5, color: "var(--ink3)", margin: "0 0 1px" }}>Supply</p>
+              <p style={{ margin: 0, fontSize: 22, fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}>{fmt(supply)}<span style={{ fontSize: 12, fontWeight: 400, color: "var(--ink3)" }}> / 10</span></p>
+            </div>
+            <div>
+              <p style={{ fontSize: 11.5, color: "var(--ink3)", margin: "0 0 1px" }}>Demand <span style={{ opacity: 0.8 }}>— — needed</span></p>
+              <p style={{ margin: 0, fontSize: 22, fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}>{fmt(demand)}<span style={{ fontSize: 12, fontWeight: 400, color: "var(--ink3)" }}> / 10</span></p>
+            </div>
+            <div>
+              <p style={{ fontSize: 11.5, color: "var(--ink3)", margin: "0 0 1px" }}>Margin</p>
+              <p style={{ margin: 0, fontSize: 22, fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}>{margin > 0 ? "+" : margin < 0 ? "−" : ""}{fmt(Math.abs(margin))}</p>
+            </div>
+          </div>
+          <div>
+            <span style={{ display: "inline-block", fontSize: 12.5, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: stateTint, color: stateColor }}>{stateLabel}</span>
+            <p style={{ fontSize: 13, color: "var(--ink2)", lineHeight: 1.55, margin: "8px 0 0" }}>{stateText}</p>
+            <p style={{ fontSize: 11.5, color: "var(--ink3)", lineHeight: 1.5, margin: "6px 0 0" }}>Supply: your shared time, rest, and balance. Demand: what your shared vision, growth, and sense of calling ask of you. The dashed line marks where the oxygen needs to be.</p>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function RingGauge({ value, max = 10, size = 184, stroke = 16, color = "var(--accent)", label, sub }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
@@ -2934,6 +2996,8 @@ export default function App() {
                 <p style={{ fontSize: 15, color: "var(--ink)", margin: 0, lineHeight: 1.55 }}>{f.text}</p>
               </div>
             )) : <p style={{ ...body, color: "var(--ink3)" }}>No critical flags — broad alignment.</p>}
+
+            <OxygenTank oxygen={R.oxygen} />
 
             {R.recommendedPractice ? (
               <Card style={{ marginTop: 28, padding: 22, borderLeft: `3px solid ${R.recommendedPractice.id === "referral" ? "var(--red)" : "var(--accent)"}` }}>

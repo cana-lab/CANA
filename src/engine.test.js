@@ -10,6 +10,7 @@ import {
   classifyGap,
   classifyHealth,
   computeAnalytics,
+  computeOxygen,
   generateLocalPlan,
 } from "./engine.js";
 
@@ -196,5 +197,38 @@ describe("v4.50 calibrations", () => {
     const plan = generateLocalPlan(computeAnalytics(a, goodAnswers(8), "A", "B"));
     expect(plan.recommendedPractice.id).toBe("referral");
     expect(plan.recommendedPractice.body).toMatch(/pastor|counselor/i);
+  });
+});
+
+describe("computeOxygen (tank-card telemetry)", () => {
+  const six = (exp, res) => ({ f12: exp, m16: exp, m5: exp, v3: res, b7: res, m4: res });
+
+  it("reports thin air exactly at the flag threshold (demand ≥ 8, supply ≤ 4)", () => {
+    const o = computeOxygen(six(8, 4), six(8, 4));
+    expect(o).toMatchObject({ complete: true, demand: 8, supply: 4, state: "thinair" });
+    expect(o.margin).toBe(-4);
+  });
+
+  it("reports narrow margin when demand exceeds supply by ≥ 3 below the flag zone", () => {
+    expect(computeOxygen(six(7, 4), six(7, 4)).state).toBe("narrow");
+  });
+
+  it("reports nominal when supply covers demand", () => {
+    expect(computeOxygen(six(6, 6), six(6, 6)).state).toBe("nominal");
+  });
+
+  it("is incomplete when any of the six items is unanswered or N/A", () => {
+    const a = six(8, 3); delete a.b7;
+    expect(computeOxygen(a, six(8, 3)).complete).toBe(false);
+    expect(computeOxygen({ ...six(8, 3), m4: "NA" }, six(8, 3)).complete).toBe(false);
+  });
+
+  it("flows into analytics and the saved plan (card data = flag data)", () => {
+    const a = { ...uniformAnswers(6), ...six(9, 2) };
+    const analytics = computeAnalytics(a, a, "A", "B");
+    expect(analytics.oxygen.state).toBe("thinair");
+    expect(analytics.flags.some((f) => f.label === "Resource/Expectation Imbalance")).toBe(true);
+    const plan = generateLocalPlan(analytics);
+    expect(plan.oxygen).toEqual(analytics.oxygen);
   });
 });

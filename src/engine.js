@@ -561,6 +561,30 @@ export function quadrant(normA, normB) {
 // Pure function. Given both answer maps and names, returns the full analytic
 // structure. Deterministic; no randomness, no I/O.
 
+// "Oxygen" telemetry (Finkel's suffocation model), computed once and used by
+// both the report card and the imbalance flag. Demand = couple-mean of the
+// expectation items (f12 family calling, m16 mutual growth, m5 shared
+// vision); Supply = couple-mean of the resource items (v3 work-life balance,
+// b7 rest/sabbath, m4 time together). All six are forward-scored.
+export function computeOxygen(answersA, answersB) {
+  const ok = (v) => v !== undefined && v !== null && v !== "NA" && !isNaN(Number(v));
+  const mean = (ids) => {
+    const vals = [];
+    for (const id of ids) {
+      if (!ok(answersA[id]) || !ok(answersB[id])) return null;
+      vals.push((Number(answersA[id]) + Number(answersB[id])) / 2);
+    }
+    return vals.reduce((s, v) => s + v, 0) / vals.length;
+  };
+  const demand = mean(["f12", "m16", "m5"]);
+  const supply = mean(["v3", "b7", "m4"]);
+  if (demand === null || supply === null) return { complete: false };
+  const state = demand >= 8.0 && supply <= 4.0 ? "thinair"
+    : demand - supply >= 3.0 ? "narrow"
+    : "nominal";
+  return { complete: true, demand, supply, margin: supply - demand, state };
+}
+
 export function computeAnalytics(answersA, answersB, nameA, nameB, weights) {
   const W = weights || DOMAIN_WEIGHTS;
   // A question is scored only if BOTH partners gave a numeric answer. A value of
@@ -673,7 +697,8 @@ export function computeAnalytics(answersA, answersB, nameA, nameB, weights) {
     a.id.localeCompare(b.id)
   ).slice(0, 10);
 
-  const flags = detectFlags(domainScores, answersA, answersB, nameA, nameB);
+  const oxygen = computeOxygen(answersA, answersB);
+  const flags = detectFlags(domainScores, answersA, answersB, nameA, nameB, oxygen);
 
   const goalPriority1yr = [...domainScores].sort((a, b) =>
     (a.avgNorm * a.weight) - (b.avgNorm * b.weight) || a.id.localeCompare(b.id));
@@ -683,13 +708,13 @@ export function computeAnalytics(answersA, answersB, nameA, nameB, weights) {
     b.weight - a.weight || a.id.localeCompare(b.id));
 
   return {
-    allQuestions, domainScores, overallScore, tensions, flags,
+    allQuestions, domainScores, overallScore, tensions, flags, oxygen,
     goalPriority1yr, goalPriority5yr, goalPriority10yr, nameA, nameB,
   };
 }
 
 // ─── PATTERN FLAGS (deterministic rules) ────────────────────────────────────
-function detectFlags(domainScores, answersA, answersB, nameA, nameB) {
+function detectFlags(domainScores, answersA, answersB, nameA, nameB, oxygen) {
   const flags = [];
   const ds = Object.fromEntries(domainScores.map((d) => [d.id, d]));
 
@@ -710,23 +735,11 @@ function detectFlags(domainScores, answersA, answersB, nameA, nameB) {
 
   // "Oxygen Check" (Finkel's suffocation model): the couple holds high
   // self-actualization expectations of the marriage while reporting depleted
-  // time/energy resources. High-altitude goals need oxygen.
-  {
-    const fwd = (id) => {
-      const a = answersA[id], b = answersB[id];
-      const ok = (v) => v !== undefined && v !== null && v !== "NA" && !isNaN(Number(v));
-      return ok(a) && ok(b) ? (Number(a) + Number(b)) / 2 : null;
-    };
-    const expItems = ["f12", "m16", "m5"].map(fwd).filter((v) => v !== null);
-    const resItems = ["v3", "b7", "m4"].map(fwd).filter((v) => v !== null);
-    if (expItems.length === 3 && resItems.length === 3) {
-      const expMean = expItems.reduce((s, v) => s + v, 0) / 3;
-      const resMean = resItems.reduce((s, v) => s + v, 0) / 3;
-      if (expMean >= 8.0 && resMean <= 4.0)
-        flags.push({ type: "TENSION", label: "Resource/Expectation Imbalance",
-          text: `You are asking your marriage to carry high callings — shared vision, mutual growth, a sense of significant purpose — while reporting little of the time and energy those callings need. Research on modern marriage (Finkel's "suffocation model") finds exactly this pattern strains couples: high-altitude expectations without enough oxygen. The remedy is not lowering the calling but deliberately budgeting unhurried time together before adding anything new.` });
-    }
-  }
+  // time/energy resources. Telemetry comes from computeOxygen — one source
+  // of truth shared with the report's oxygen-tank card.
+  if (oxygen && oxygen.complete && oxygen.state === "thinair")
+    flags.push({ type: "TENSION", label: "Resource/Expectation Imbalance",
+      text: `You are asking your marriage to carry high callings — shared vision, mutual growth, a sense of significant purpose — while reporting little of the time and energy those callings need. Research on modern marriage (Finkel's "suffocation model") finds exactly this pattern strains couples: high-altitude expectations without enough oxygen. The remedy is not lowering the calling but deliberately budgeting unhurried time together before adding anything new.` });
 
   const mo5A = answersA.mo5, mo5B = answersB.mo5;
   if ((mo5A >= 7) || (mo5B >= 7))
@@ -997,7 +1010,7 @@ export function generateLocalPlan(analytics) {
       vision: emptyVM.vision, mission: emptyVM.mission,
       goals1yr: [], goals5yr: [], goals10yr: [],
       indivA: { ...emptyVM }, indivB: { ...emptyVM },
-      recommendedPractice: null,
+      recommendedPractice: null, oxygen: analytics.oxygen || null,
       tensions: [], flags, domainScores, overallScore, nameA, nameB,
     };
   }
@@ -1087,7 +1100,7 @@ export function generateLocalPlan(analytics) {
 
   return {
     vision, mission, goals1yr, goals5yr, goals10yr,
-    indivA, indivB, recommendedPractice,
+    indivA, indivB, recommendedPractice, oxygen: analytics.oxygen || null,
     tensions: tensionItems, flags, domainScores, overallScore, nameA, nameB,
   };
 }
