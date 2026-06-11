@@ -75,8 +75,11 @@ export function readCrashLog() { return safeGet(); }
 
 export function clearCrashLog() { safeSet([]); }
 
-// Build a downloadable JSON document and trigger a browser download. The file
-// stays on the user's machine. They choose whether to share it.
+// Build a downloadable JSON document and save it. The file stays on the
+// user's machine; they choose whether to share it.
+// - Packaged Mac app: native save panel via IPC (an <a download> blob click
+//   silently does nothing in a file://-loaded Electron window).
+// - Web: classic blob anchor download.
 export function exportCrashLog() {
   const doc = {
     kind: "cana-crash-log",
@@ -85,12 +88,20 @@ export function exportCrashLog() {
     platform: platform(),
     entries: readCrashLog(),
   };
-  const blob = new Blob([JSON.stringify(doc, null, 2)], { type: "application/json" });
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  const fname = `cana-diagnostic-${stamp}.json`;
+  const text = JSON.stringify(doc, null, 2);
+  try {
+    if (typeof window !== "undefined" && window.cana && typeof window.cana.saveFile === "function") {
+      window.cana.saveFile(fname, text); // fire-and-forget; the dialog takes over
+      return doc.entries.length;
+    }
+  } catch (e) { /* fall through to the anchor path */ }
+  const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
   a.href = url;
-  a.download = `cana-diagnostic-${stamp}.json`;
+  a.download = fname;
   document.body.appendChild(a);
   a.click();
   setTimeout(() => { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) {} }, 100);

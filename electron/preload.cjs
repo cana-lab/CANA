@@ -16,6 +16,9 @@ contextBridge.exposeInMainWorld("cana", {
   whichBinary: (name) => ipcRenderer.invoke("cana:which", name),
   // Open a URL in the user's default browser (for download pages).
   openExternal: (url) => ipcRenderer.invoke("cana:open-external", url),
+  // Native save panel for text exports (.cana transfer file, diagnostic log).
+  // Returns { ok, path? , canceled?, error? }.
+  saveFile: (defaultName, content) => ipcRenderer.invoke("cana:save-file", { defaultName, content }),
   // Auto-update (electron-updater). All three are best-effort; they resolve
   // to { ok: false } in dev or when the updater isn't initialized.
   updater: {

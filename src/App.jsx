@@ -1135,14 +1135,23 @@ export default function App() {
       const fileText = await encryptPayload(payload, pass);
       const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
       const fname = `CANA-data-${(profile && profile.nameA) || "export"}-${stamp}.cana`;
-      const blob = new Blob([fileText], { type: "application/octet-stream" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = fname;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
       const n = payload.counts;
-      setToast(`Exported ${n.reports} report${n.reports === 1 ? "" : "s"} — keep your passphrase safe`);
+      if (isDesktop && window.cana && window.cana.saveFile) {
+        // Packaged Mac app: the <a download> blob trick silently does nothing
+        // in a file://-loaded window — use the native save panel instead.
+        const res = await window.cana.saveFile(fname, fileText);
+        if (res && res.ok) setToast(`Exported ${n.reports} report${n.reports === 1 ? "" : "s"} — keep your passphrase safe`);
+        else if (res && res.canceled) { /* user closed the dialog — no toast */ }
+        else setToast((res && res.error) || "Export failed");
+      } else {
+        const blob = new Blob([fileText], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = fname;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setToast(`Exported ${n.reports} report${n.reports === 1 ? "" : "s"} — keep your passphrase safe`);
+      }
     } catch (e) {
       setToast(e.message || "Export failed");
     } finally {

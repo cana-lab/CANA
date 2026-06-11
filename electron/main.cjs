@@ -4,7 +4,7 @@
 // React app from the local filesystem. The app talks to a locally-running
 // Ollama server exactly as the web version does; nothing else leaves the machine.
 
-const { app, BrowserWindow, shell, Menu, ipcMain } = require("electron");
+const { app, BrowserWindow, shell, Menu, ipcMain, dialog } = require("electron");
 const path = require("path");
 const { execFile } = require("child_process");
 const fs = require("fs");
@@ -76,6 +76,30 @@ ipcMain.handle("cana:which", async (_e, name) => {
       resolve(out ? { found: true, path: out } : { found: false });
     });
   });
+});
+
+// Save a text file via the native macOS save panel. The renderer's old
+// <a download> blob trick silently does nothing in a packaged file://-loaded
+// window, so exports (.cana transfer, diagnostic log) go through this instead.
+// Content is written exactly as provided; size-capped as a sanity bound.
+ipcMain.handle("cana:save-file", async (event, args) => {
+  const { defaultName, content } = args || {};
+  if (typeof content !== "string" || content.length > 50 * 1024 * 1024) {
+    return { ok: false, error: "Invalid export content." };
+  }
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const safeName = String(defaultName || "export.txt").replace(/[/\\:]/g, "-").slice(0, 120);
+  const { canceled, filePath } = await dialog.showSaveDialog(win, {
+    defaultPath: path.join(app.getPath("downloads"), safeName),
+    buttonLabel: "Save",
+  });
+  if (canceled || !filePath) return { ok: false, canceled: true };
+  try {
+    fs.writeFileSync(filePath, content, "utf8");
+    return { ok: true, path: filePath };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
 });
 
 ipcMain.handle("cana:open-external", async (_e, url) => {

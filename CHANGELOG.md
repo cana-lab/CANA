@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.47.3
+- Fixed "Export to share" doing nothing in the packaged Mac app. The export (and the diagnostic-log save) used the browser's invisible-`<a download>` blob trick, which a packaged, file://-loaded Electron window silently swallows. Both now use a **native macOS save panel** (new `cana:save-file` IPC: main process shows `dialog.showSaveDialog` and writes the file; renderer falls back to the blob anchor on the web). Cancelling the dialog is treated as a no-op, success shows the usual toast.
+- Honest scope note: the same `<a download>` mechanism is what the iOS app uses for "Export to share" — it is likely equally inert inside WKWebView on a real iPhone (listed since 4.37 as "not verifiable in sandbox"). To be verified in TestFlight; if confirmed, the iOS fix is a native share-sheet via the Capacitor Filesystem/Share plugins, tracked as the next iOS item.
+- Verified: 27/27 tests pass; electron renderer + main/preload build and parse clean. NOT verified from this environment: the actual save dialog interaction (needs a human click in the packaged app — please test after updating).
+
 ## 4.47.2
 - Ollama / AI setup documentation pass (the in-app wizard was already current; the written guides around it were not):
   - docs/LLM_SETUP.md: removed an outdated claim that pointing the app at a non-localhost endpoint merely requires editing the CSP — in reality `src/llm.js` hard-refuses any non-loopback endpoint and there is no supported way to use a remote AI service. The privacy note now describes both enforcement layers (code + CSP, incl. the stricter iOS CSP). Model recommendations now match the in-app wizard (llama3.1:8b / llama3.2:3b / gemma2:2b instead of stale qwen suggestions); pointed readers to the no-Terminal in-app wizard first; added the iOS note (Apple on-device model, nothing to set up).
