@@ -1428,6 +1428,7 @@ export default function App() {
   /* ── WELCOME ── */
   if (screen === "welcome") return (
     <div>
+      {passModal}
       <Toast message={toast} />
       {chapterInfo ? (() => {
         const d = DOMAINS.find((x) => x.id === chapterInfo);

@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.48.2
+- Export/import, third and final round. 4.48.1's passphrase dialog was correct but mounted on the wrong screens: it rendered on the sign-in and Settings screens, while the "Move your data to another device" card (with the Export/Import buttons) lives in the WELCOME screen's footer. Clicking Export set the dialog state and then waited forever for a dialog that was never rendered — silently, with zero errors (which is exactly what the user's empty diagnostic log showed: the 4.48.1 fix had stopped the throwing, but nothing appeared). The dialog is now mounted on all three screens that can trigger a transfer: welcome, sign-in, Settings.
+- Verified: 27/27 tests, all three bundles build clean. The remaining proof is the human click test on this build.
+
 ## 4.48.1
 - The REAL fix for "Export to share" doing nothing on Mac. 4.47.3 fixed the file-save layer, but execution never got there: both transfer flows started with `window.prompt()` for the passphrase — **and Electron does not implement `window.prompt`** (it throws immediately; the throw happened outside the try/catch, so the button appeared dead). The diagnostic log's recorded entries on the affected Mac were exactly these throws — the local crash log did its job.
 - Export AND import now use a proper in-app passphrase dialog (modal, masked input, Enter/Escape, Cancel) on every platform — web, Mac, iOS behave identically, and the modal replaces the ugly native prompt on the web too.
