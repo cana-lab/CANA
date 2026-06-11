@@ -489,6 +489,12 @@ export default function App() {
   // Login/profile state
   const [authMode, setAuthMode] = useState("signin"); // "signin" | "signup"
   const [authForm, setAuthForm] = useState({ nameA: "", nameB: "", email: "", password: "" });
+  // Opt-in "Remember password in macOS Keychain" (desktop only). keychainHas
+  // marks that the current password field was auto-filled from the Keychain,
+  // so a failed sign-in can discard the stale entry instead of dead-ending.
+  const [rememberPw, setRememberPw] = useState(false);
+  const [credAvailable, setCredAvailable] = useState(false);
+  const [keychainFilled, setKeychainFilled] = useState(false);
   const [authError, setAuthError] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
   // First-launch setup wizard state
@@ -760,11 +766,66 @@ export default function App() {
     setScreen("welcome");
     window.scrollTo({ top: 0 });
   };
+  // Is the Keychain-backed credential store available? (Packaged Mac app only.)
+  useEffect(() => {
+    if (!isDesktop || !window.cana || !window.cana.credentials) return;
+    window.cana.credentials.available().then((ok) => setCredAvailable(!!ok)).catch(() => {});
+  }, [isDesktop]);
+
+  // Single-account convenience: prefill the email on the sign-in screen and
+  // ask the Keychain for its remembered password right away.
+  useEffect(() => {
+    if (profile || !credAvailable || authMode !== "signin") return;
+    const list = listProfiles();
+    if (list.length === 1) {
+      const email = list[0].email;
+      setAuthForm((f) => (f.email ? f : { ...f, email }));
+      tryKeychainFill(email);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [credAvailable, profile, authMode]);
+
+  // When a known email is entered on the sign-in screen, offer the remembered
+  // password automatically. Only fills an EMPTY password field — it never
+  // overwrites something the user typed.
+  const tryKeychainFill = async (email) => {
+    if (!credAvailable || !email || authMode !== "signin") return;
+    try {
+      const res = await window.cana.credentials.get(email);
+      if (res && res.ok && typeof res.password === "string") {
+        setAuthForm((f) => (f.password ? f : { ...f, password: res.password }));
+        setKeychainFilled(true);
+        setRememberPw(true); // reflects reality: a credential exists
+      }
+    } catch (e) { /* best-effort */ }
+  };
+
+  const afterAuthSuccess = async (email, password) => {
+    if (credAvailable) {
+      try {
+        if (rememberPw) await window.cana.credentials.save(email, password);
+        else await window.cana.credentials.remove(email); // unchecked = explicit opt-out
+      } catch (e) { /* convenience only — never block sign-in */ }
+    }
+  };
+
   const handleSignIn = async () => {
     setAuthBusy(true); setAuthError("");
     const res = await signIn({ email: authForm.email, password: authForm.password });
     setAuthBusy(false);
-    if (!res.ok) { setAuthError(res.error); return; }
+    if (!res.ok) {
+      // A stale remembered password (e.g. changed via import on another
+      // device) shouldn't dead-end the user: discard it and let them type.
+      if (keychainFilled && credAvailable) {
+        try { await window.cana.credentials.remove(authForm.email); } catch (e) {}
+        setAuthForm((f) => ({ ...f, password: "" }));
+        setKeychainFilled(false);
+        setAuthError("The password saved in your Keychain no longer matches — it was removed. Please type your password.");
+        return;
+      }
+      setAuthError(res.error); return;
+    }
+    await afterAuthSuccess(authForm.email, authForm.password);
     enterApp(res.profile);
   };
   const handleSignUp = async () => {
@@ -772,6 +833,7 @@ export default function App() {
     const res = await createProfile(authForm);
     setAuthBusy(false);
     if (!res.ok) { setAuthError(res.error); return; }
+    await afterAuthSuccess(authForm.email, authForm.password);
     enterApp(res.profile);
   };
   const logout = () => {
@@ -1280,9 +1342,20 @@ export default function App() {
                 </>
               ) : null}
               <p style={labelStyle}>Email</p>
-              <input style={inputStyle} type="email" autoComplete="username" value={authForm.email} onChange={set("email")} onKeyDown={onKey} placeholder="you@example.com" />
+              <input style={inputStyle} type="email" autoComplete="username" value={authForm.email} onChange={set("email")} onBlur={() => tryKeychainFill(authForm.email)} onKeyDown={onKey} placeholder="you@example.com" />
               <p style={labelStyle}>Password</p>
-              <input style={inputStyle} type="password" autoComplete={authMode === "signup" ? "new-password" : "current-password"} value={authForm.password} onChange={set("password")} onKeyDown={onKey} placeholder={authMode === "signup" ? "At least 6 characters" : "Your password"} />
+              <input style={inputStyle} type="password" autoComplete={authMode === "signup" ? "new-password" : "current-password"} value={authForm.password}
+                onChange={(e) => { setKeychainFilled(false); setAuthForm((f) => ({ ...f, password: e.target.value })); }}
+                onKeyDown={onKey} placeholder={authMode === "signup" ? "At least 6 characters" : "Your password"} />
+              {keychainFilled ? (
+                <p style={{ fontSize: 11.5, color: "var(--green)", margin: "-6px 0 10px" }}>✓ Filled from your macOS Keychain</p>
+              ) : null}
+              {credAvailable ? (
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--ink2)", margin: "2px 0 12px", cursor: "pointer", userSelect: "none" }}>
+                  <input type="checkbox" checked={rememberPw} onChange={(e) => setRememberPw(e.target.checked)} style={{ accentColor: "var(--accent)" }} />
+                  Remember password in this Mac's Keychain
+                </label>
+              ) : null}
 
               {authError ? <p style={{ fontSize: 13, color: "var(--red)", margin: "2px 0 12px", lineHeight: 1.4 }}>{authError}</p> : null}
 
@@ -1311,6 +1384,7 @@ export default function App() {
 
             <p style={{ fontSize: 11.5, color: "var(--ink3)", lineHeight: 1.6, marginTop: 18, textAlign: "center" }}>
               Accounts are stored only on this device to keep couples' data separate. This is local privacy separation, not a secure server login — your password is saved as a one-way hash, never in plain text, but anyone with full access to this Mac could reach the underlying data. Don't reuse an important password here.
+              {credAvailable ? " If you choose “Remember password”, it is stored encrypted, protected by your macOS Keychain, and anyone using this Mac session can then open CANA without typing it." : ""}
             </p>
           </div>
         </Wrap>

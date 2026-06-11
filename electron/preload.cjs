@@ -19,6 +19,14 @@ contextBridge.exposeInMainWorld("cana", {
   // Native save panel for text exports (.cana transfer file, diagnostic log).
   // Returns { ok, path? , canceled?, error? }.
   saveFile: (defaultName, content) => ipcRenderer.invoke("cana:save-file", { defaultName, content }),
+  // Opt-in remembered profile passwords, encrypted via macOS-Keychain-backed
+  // safeStorage in the main process. All best-effort: { ok, password? }.
+  credentials: {
+    available: () => ipcRenderer.invoke("cana:cred-available"),
+    save: (email, password) => ipcRenderer.invoke("cana:cred-save", { email, password }),
+    get: (email) => ipcRenderer.invoke("cana:cred-get", { email }),
+    remove: (email) => ipcRenderer.invoke("cana:cred-delete", { email }),
+  },
   // Auto-update (electron-updater). All three are best-effort; they resolve
   // to { ok: false } in dev or when the updater isn't initialized.
   updater: {

@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.48.0
+- Mac: optional "Remember password in this Mac's Keychain" on the sign-in screen.
+  - Opt-in checkbox (deliberately unchecked by default — CANA is a couples' product that may live on a shared Mac). When checked, the profile password is encrypted with Electron's safeStorage, whose key lives in the **macOS Keychain** — only this macOS user session can decrypt it. Unchecking the box and signing in removes the stored password again.
+  - When a known email is entered (or there is exactly one account on the device), the password field fills itself from the Keychain, marked with "✓ Filled from your macOS Keychain".
+  - A remembered password that no longer matches (e.g. changed via transfer/import on another device) is discarded automatically on the failed attempt, with a clear message — no dead end.
+  - The honest-scope note on the sign-in screen now states the consequence: with a remembered password, anyone in this macOS session can open CANA without typing it.
+  - Storage: encrypted blobs in the app's user-data folder (mode 0600), keyed per account email; never in the repo, never synced, never transmitted. The PBKDF2 verification hash in localStorage is unchanged and unrelated.
+- Web and iOS are unchanged (the checkbox appears only where the Keychain-backed store exists — the packaged Mac app). iOS gets its native equivalent together with the planned share-sheet export fix, pending TestFlight verification.
+- Verified: 27/27 tests pass; web + electron + iOS bundles build clean; main/preload parse clean. NOT verified from this environment: the actual Keychain round-trip in the packaged app (needs a human: tick the box, quit, relaunch, see the field fill itself).
+
 ## 4.47.3
 - Fixed "Export to share" doing nothing in the packaged Mac app. The export (and the diagnostic-log save) used the browser's invisible-`<a download>` blob trick, which a packaged, file://-loaded Electron window silently swallows. Both now use a **native macOS save panel** (new `cana:save-file` IPC: main process shows `dialog.showSaveDialog` and writes the file; renderer falls back to the blob anchor on the web). Cancelling the dialog is treated as a no-op, success shows the usual toast.
 - Honest scope note: the same `<a download>` mechanism is what the iOS app uses for "Export to share" — it is likely equally inert inside WKWebView on a real iPhone (listed since 4.37 as "not verifiable in sandbox"). To be verified in TestFlight; if confirmed, the iOS fix is a native share-sheet via the Capacitor Filesystem/Share plugins, tracked as the next iOS item.

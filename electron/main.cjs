@@ -4,7 +4,7 @@
 // React app from the local filesystem. The app talks to a locally-running
 // Ollama server exactly as the web version does; nothing else leaves the machine.
 
-const { app, BrowserWindow, shell, Menu, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, shell, Menu, ipcMain, dialog, safeStorage } = require("electron");
 const path = require("path");
 const { execFile } = require("child_process");
 const fs = require("fs");
@@ -76,6 +76,51 @@ ipcMain.handle("cana:which", async (_e, name) => {
       resolve(out ? { found: true, path: out } : { found: false });
     });
   });
+});
+
+// ── Remembered profile passwords (opt-in) ──────────────────────────────────
+// Electron's safeStorage encrypts with a key held in the user's macOS
+// Keychain — only this macOS user session can decrypt. The encrypted blobs
+// live in userData/credentials.json keyed by the profile email. This is an
+// OPT-IN convenience ("Remember password" on the sign-in screen); CANA's
+// stored verification hash in localStorage stays PBKDF2 and is unrelated.
+const CRED_FILE = () => path.join(app.getPath("userData"), "credentials.json");
+
+function readCreds() {
+  try { return JSON.parse(fs.readFileSync(CRED_FILE(), "utf8")) || {}; } catch (e) { return {}; }
+}
+function writeCreds(map) {
+  try { fs.writeFileSync(CRED_FILE(), JSON.stringify(map), { mode: 0o600 }); } catch (e) {}
+}
+const credKey = (email) => String(email || "").trim().toLowerCase();
+
+ipcMain.handle("cana:cred-available", () => {
+  try { return safeStorage.isEncryptionAvailable(); } catch (e) { return false; }
+});
+ipcMain.handle("cana:cred-save", (_e, { email, password }) => {
+  try {
+    if (!email || typeof password !== "string" || !safeStorage.isEncryptionAvailable()) return { ok: false };
+    const map = readCreds();
+    map[credKey(email)] = safeStorage.encryptString(password).toString("base64");
+    writeCreds(map);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+});
+ipcMain.handle("cana:cred-get", (_e, { email }) => {
+  try {
+    const blob = readCreds()[credKey(email)];
+    if (!blob || !safeStorage.isEncryptionAvailable()) return { ok: false };
+    const password = safeStorage.decryptString(Buffer.from(blob, "base64"));
+    return { ok: true, password };
+  } catch (e) { return { ok: false }; }
+});
+ipcMain.handle("cana:cred-delete", (_e, { email }) => {
+  try {
+    const map = readCreds();
+    delete map[credKey(email)];
+    writeCreds(map);
+    return { ok: true };
+  } catch (e) { return { ok: false }; }
 });
 
 // Save a text file via the native macOS save panel. The renderer's old
