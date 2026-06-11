@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.48.1
+- The REAL fix for "Export to share" doing nothing on Mac. 4.47.3 fixed the file-save layer, but execution never got there: both transfer flows started with `window.prompt()` for the passphrase — **and Electron does not implement `window.prompt`** (it throws immediately; the throw happened outside the try/catch, so the button appeared dead). The diagnostic log's recorded entries on the affected Mac were exactly these throws — the local crash log did its job.
+- Export AND import now use a proper in-app passphrase dialog (modal, masked input, Enter/Escape, Cancel) on every platform — web, Mac, iOS behave identically, and the modal replaces the ugly native prompt on the web too.
+- Settings screen now renders toasts. Previously the success/error toasts after export/import were only mounted on the welcome screen, so even a working export gave no feedback where you clicked it.
+- Verified: 27/27 tests pass; all three bundles build clean. The dialog + native save panel round-trip needs the human click test in the packaged app (this build).
+
 ## 4.48.0
 - Mac: optional "Remember password in this Mac's Keychain" on the sign-in screen.
   - Opt-in checkbox (deliberately unchecked by default — CANA is a couples' product that may live on a shared Mac). When checked, the profile password is encrypted with Electron's safeStorage, whose key lives in the **macOS Keychain** — only this macOS user session can decrypt it. Unchecking the box and signing in removes the stored password again.

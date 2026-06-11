@@ -143,6 +143,28 @@ function Toast({ message }) {
   );
 }
 
+/* Modal passphrase dialog. window.prompt() is not implemented in Electron
+   (it throws), so transfer export/import use this on every platform. */
+function PassphraseDialog({ message, onSubmit, onCancel }) {
+  const [val, setVal] = useState("");
+  return (
+    <div className="no-print" style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.38)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ background: "var(--panel-solid)", borderRadius: 16, boxShadow: "0 18px 50px rgba(0,0,0,0.3)", padding: 24, width: "100%", maxWidth: 420 }}>
+        <p style={{ fontSize: 15.5, fontWeight: 700, color: "var(--ink)", margin: "0 0 8px" }}>Passphrase</p>
+        <p style={{ fontSize: 13.5, color: "var(--ink2)", lineHeight: 1.55, margin: "0 0 14px" }}>{message}</p>
+        <input autoFocus type="password" value={val} onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") onSubmit(val); if (e.key === "Escape") onCancel(); }}
+          style={{ width: "100%", padding: "11px 13px", borderRadius: 10, border: "1px solid var(--hair)", fontSize: 15, boxSizing: "border-box", marginBottom: 16, background: "var(--panel-solid)", color: "var(--ink)", fontFamily: "var(--font)" }}
+          placeholder="Passphrase" />
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <Btn kind="secondary" onClick={onCancel}>Cancel</Btn>
+          <Btn onClick={() => onSubmit(val)}>Continue</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* Scale chip — segmented pill that fits the response type */
 function ScaleChip({ value, opt, onClick }) {
   const on = value === opt.v;
@@ -495,6 +517,15 @@ export default function App() {
   const [rememberPw, setRememberPw] = useState(false);
   const [credAvailable, setCredAvailable] = useState(false);
   const [keychainFilled, setKeychainFilled] = useState(false);
+  // Pending in-app passphrase request: { message, resolve }. Promise-based so
+  // the transfer flows read like the old window.prompt code.
+  const [passPrompt, setPassPrompt] = useState(null);
+  const askPassphrase = (message) => new Promise((resolve) => setPassPrompt({ message, resolve }));
+  const passModal = passPrompt ? (
+    <PassphraseDialog message={passPrompt.message}
+      onSubmit={(v) => { const r = passPrompt.resolve; setPassPrompt(null); r(v); }}
+      onCancel={() => { const r = passPrompt.resolve; setPassPrompt(null); r(null); }} />
+  ) : null;
   const [authError, setAuthError] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
   // First-launch setup wizard state
@@ -1183,8 +1214,8 @@ export default function App() {
 
   const exportData = async () => {
     if (transferBusy) return;
-    const pass = window.prompt(
-      "Choose a passphrase to protect this export (you'll need the same one to import on the other device). At least 6 characters:"
+    const pass = await askPassphrase(
+      "Choose a passphrase to protect this export — you'll need the same one to import on the other device. At least 6 characters."
     );
     if (pass == null) return; // cancelled
     setTransferBusy(true);
@@ -1229,7 +1260,7 @@ export default function App() {
     if (!file) return;
     let text;
     try { text = await file.text(); } catch (e) { setToast("Couldn't read that file"); return; }
-    const pass = window.prompt("Enter the passphrase used when this file was exported:");
+    const pass = await askPassphrase("Enter the passphrase used when this file was exported:");
     if (pass == null) return;
     setTransferBusy(true);
     try {
@@ -1319,6 +1350,8 @@ export default function App() {
     return (
       <div>
         <Chrome title="CANA" right={null} />
+        {passModal}
+        <Toast message={toast} />
         <Wrap narrow>
           <div style={{ padding: "56px 0 90px", maxWidth: 440, margin: "0 auto" }} className="rise">
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 28 }}>
@@ -1898,6 +1931,8 @@ export default function App() {
   if (screen === "settings") return (
     <div>
       <Chrome title="CANA — Settings" right={<div style={{ display: "flex", gap: 8 }}><Btn kind="ghost" onClick={() => setScreen(results ? "results" : "welcome")}>Back</Btn><Btn kind="ghost" onClick={() => { setScreen("welcome"); window.scrollTo({ top: 0 }); }}>Home</Btn></div>} />
+      {passModal}
+      <Toast message={toast} />
       <Wrap narrow>
         <div style={{ padding: "44px 0 80px" }}>
           <p style={eyebrow}>Settings</p>
