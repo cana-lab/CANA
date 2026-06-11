@@ -18,12 +18,17 @@
   .sub { color:var(--ink3); font-size:14px; margin:0 0 28px; }
   .card { background:var(--panel); border:1px solid var(--hair); border-radius:16px;
     padding:22px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
-  .dl-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-  .btn { border:none; border-radius:10px; padding:12px 20px; font-size:15px; font-weight:600;
-    color:#fff; background:var(--accent); cursor:pointer; text-decoration:none; display:inline-block; }
-  .btn.secondary { background:transparent; color:var(--accent); border:1px solid var(--hair); }
-  .status { font-size:13px; color:var(--ink3); }
+  .dl-grid { display:flex; gap:12px; flex-wrap:wrap; }
+  .dlbtn { flex:1 1 220px; border:none; border-radius:12px; padding:14px 18px;
+    color:#fff; background:var(--accent); cursor:pointer; text-decoration:none;
+    display:block; text-align:left; }
+  .dlbtn .t { font-size:15px; font-weight:700; display:block; }
+  .dlbtn .s { font-size:12px; opacity:.85; display:block; margin-top:2px; }
+  .dlbtn.alt { background:#3a3a3c; }
+  .dlbtn[aria-disabled="true"] { opacity:.45; pointer-events:none; }
+  .status { font-size:13px; color:var(--ink3); margin-top:12px; }
   .status.ok { color:var(--green); font-weight:600; }
+  .chip-hint { font-size:12.5px; color:var(--ink3); line-height:1.55; margin:14px 0 0; }
   ol.steps { list-style:none; counter-reset:step; margin:0; padding:0; }
   ol.steps li { counter-increment:step; display:flex; gap:14px; padding:16px 0;
     border-bottom:1px solid #ececec; align-items:flex-start; }
@@ -41,29 +46,41 @@
   .note { font-size:12.5px; color:var(--ink3); line-height:1.55; margin-top:18px; }
   .warn { background:rgba(255,159,10,.1); border-left:3px solid var(--amber);
     padding:12px 16px; border-radius:8px; font-size:13px; color:var(--ink2); margin-bottom:16px; }
+  .sealed { background:rgba(52,199,89,.1); border-left:3px solid var(--green);
+    padding:12px 16px; border-radius:8px; font-size:13px; color:var(--ink2); margin-bottom:16px; }
+  a { color:var(--accent); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <svg class="logo" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="none" stroke="#0a84ff" stroke-width="3"/><path d="M50 24 L50 76 M36 40 Q50 30 64 40 M34 56 Q50 46 66 56" fill="none" stroke="#0a84ff" stroke-width="3" stroke-linecap="round"/></svg>
-  <h1>Update CANA <span id="ver"></span></h1>
+  <h1>Get CANA <span id="ver"></span></h1>
   <p class="sub">Keep this browser tab open — it stays with you while CANA closes and the new version takes its place.</p>
 
   <div class="card">
-    <div class="dl-row">
-      <a id="dlbtn" class="btn" href="#" download>Download the update</a>
-      <span id="status" class="status">Preparing your download…</span>
+    <div class="dl-grid">
+      <a id="dl-arm" class="dlbtn" href="#" aria-disabled="true">
+        <span class="t">Download for Apple&nbsp;Silicon</span>
+        <span class="s">M1, M2, M3, M4 … Macs</span>
+      </a>
+      <a id="dl-x64" class="dlbtn alt" href="#" aria-disabled="true">
+        <span class="t">Download for Intel</span>
+        <span class="s">Intel-based Macs</span>
+      </a>
     </div>
-    <p class="note" id="nodl" style="display:none">Couldn't find a direct download link. <a id="relpage" href="#" target="_blank" rel="noopener">Open the releases page</a> and download the <code>.dmg</code> manually.</p>
+    <p id="status" class="status">Looking up the latest release…</p>
+    <p class="chip-hint">Not sure which? Click the <strong>&#63743; Apple menu → About This Mac</strong>: under "Chip", <em>Apple M…</em> means Apple&nbsp;Silicon; <em>Intel</em> means Intel. You can also always find every version on the
+      <a id="relpage" href="https://github.com/cana-lab/CANA/releases/latest" target="_blank" rel="noopener">releases page</a>.</p>
   </div>
 
+  <div class="sealed">This build is <strong>signed and notarized by Apple</strong> — it opens with a normal double-click. No warnings, no Terminal.</div>
   <div class="warn">Your saved data is <strong>not</strong> touched by updating — it stays on your Mac. You won't lose anything.</div>
 
   <div class="card">
     <ol class="steps" id="steps">
       <li id="s1"><span class="num">1</span><div class="step-body">
         <p class="step-title">Wait for the download to finish</p>
-        <p class="step-desc">Look for <code id="fname">the .dmg file</code> in your Downloads. It's a one-time ~100–150&nbsp;MB download.</p>
+        <p class="step-desc">Look for the <code>.dmg</code> file in your Downloads. It's a one-time ~120&nbsp;MB download.</p>
         <button class="check" data-step="s1">Mark done ✓</button>
       </div></li>
       <li id="s2"><span class="num">2</span><div class="step-body">
@@ -72,7 +89,7 @@
         <button class="check" data-step="s2">Mark done ✓</button>
       </div></li>
       <li id="s3"><span class="num">3</span><div class="step-body">
-        <p class="step-title">Quit the current CANA</p>
+        <p class="step-title">Quit the current CANA (if it's running)</p>
         <p class="step-desc">Switch to CANA and press <kbd>⌘ Q</kbd> (or CANA → Quit). This tab stays open — it's in your browser, not the app, so it can't be closed by quitting CANA.</p>
         <button class="check" data-step="s3">Mark done ✓</button>
       </div></li>
@@ -83,59 +100,96 @@
       </div></li>
       <li id="s5"><span class="num">5</span><div class="step-body">
         <p class="step-title">Open the new CANA</p>
-        <p class="step-desc">Launch CANA from Applications. The first time, macOS may say it's from an unidentified developer — right-click the app, choose <strong>Open</strong>, then <strong>Open</strong> again. Your data and the new version will be there.</p>
+        <p class="step-desc">Launch CANA from Applications — it opens with a normal double-click. The app is signed with a Developer&nbsp;ID and notarized by Apple, so macOS shows no warnings. Your data and the new version will be there.</p>
         <button class="check" data-step="s5">Mark done ✓</button>
       </div></li>
     </ol>
   </div>
 
-  <p class="note">Tip: you can eject the .dmg afterward (drag it to the Trash / eject in Finder). The "unidentified developer" step only happens because the app isn't yet code-signed; it's normal and safe for an app you built yourself.</p>
+  <p class="note">Tip: you can eject the .dmg afterward (drag it to the Trash / eject in Finder). Newer versions of CANA also update themselves from inside the app — Settings → Check for updates — so you may never need this page again.</p>
 </div>
 
 <script>
   (function () {
+    var REPO = "cana-lab/CANA";
+    var RELEASES_PAGE = "https://github.com/" + REPO + "/releases/latest";
+
     var qs = new URLSearchParams(location.search);
-    var dmg = qs.get("dmg");        // direct .dmg download URL
-    var ver = qs.get("v") || "";    // target version
-    var rel = qs.get("rel") || "";  // releases page fallback
-    var fname = qs.get("name") || "";
+    var ver = qs.get("v") || "";
+    // Optional fast-path params (passed by older in-app flows). The page no
+    // longer DEPENDS on them — it can look everything up itself.
+    var paramArm = qs.get("arm") || "";
+    var paramX64 = qs.get("x64") || "";
+    var legacyDmg = qs.get("dmg") || "";
+    var rel = qs.get("rel") || "";
+
+    var armBtn = document.getElementById("dl-arm");
+    var x64Btn = document.getElementById("dl-x64");
+    var status = document.getElementById("status");
+    var relpage = document.getElementById("relpage");
+    if (rel) relpage.href = rel; // otherwise keeps the hardcoded /releases/latest
 
     if (ver) document.getElementById("ver").textContent = ver;
-    if (fname) document.getElementById("fname").textContent = fname;
 
-    var dlbtn = document.getElementById("dlbtn");
-    var status = document.getElementById("status");
-
-    function startDownload() {
-      if (!dmg) {
-        dlbtn.style.display = "none";
-        status.style.display = "none";
-        var nodl = document.getElementById("nodl");
-        nodl.style.display = "block";
-        var rp = document.getElementById("relpage");
-        rp.href = rel || "#";
-        return;
-      }
-      dlbtn.href = dmg;
-      if (fname) dlbtn.setAttribute("download", fname);
-      // Auto-start: programmatically click the download link once, so the user
-      // doesn't have to press anything. The button remains for manual retry.
-      try {
-        dlbtn.click();
-        status.textContent = "Download started — check your Downloads folder.";
-        status.className = "status ok";
-      } catch (e) {
-        status.textContent = "Tap “Download the update” to begin.";
-      }
+    function arm(url) { armBtn.href = url; armBtn.removeAttribute("aria-disabled"); }
+    function x64(url) { x64Btn.href = url; x64Btn.removeAttribute("aria-disabled"); }
+    function ready(version) {
+      if (version && !ver) document.getElementById("ver").textContent = version;
+      status.textContent = "Ready — pick the build for your Mac.";
+      status.className = "status ok";
+    }
+    function fallback(msg) {
+      status.innerHTML = (msg || "Couldn't reach GitHub.") +
+        ' Use the <a href="' + RELEASES_PAGE + '" target="_blank" rel="noopener">releases page</a> and download the .dmg for your Mac manually.';
     }
 
-    // Small delay so the page paints before the download prompt appears.
-    setTimeout(startDownload, 600);
+    // Fast path: explicit per-arch URLs from the app.
+    if (paramArm || paramX64) {
+      if (paramArm) arm(paramArm);
+      if (paramX64) x64(paramX64);
+      ready(ver);
+      if (!paramArm || !paramX64) lookup(); // fill the missing one
+    } else if (legacyDmg) {
+      // Legacy single-dmg param (old app versions): wire it to the matching
+      // button by filename, then look up the other one.
+      if (/arm64/i.test(legacyDmg)) arm(legacyDmg); else x64(legacyDmg);
+      lookup();
+    } else {
+      lookup();
+    }
 
-    // Manual click also works (and re-triggers if the auto attempt was blocked).
-    dlbtn.addEventListener("click", function () {
-      status.textContent = "Download started — check your Downloads folder.";
-      status.className = "status ok";
+    function lookup() {
+      fetch("https://api.github.com/repos/" + REPO + "/releases/latest", {
+        headers: { Accept: "application/vnd.github+json" }
+      }).then(function (r) {
+        if (!r.ok) throw new Error("GitHub returned " + r.status);
+        return r.json();
+      }).then(function (data) {
+        var assets = Array.isArray(data.assets) ? data.assets : [];
+        var armAsset = null, x64Asset = null;
+        assets.forEach(function (a) {
+          var n = (a.name || "");
+          if (!/\.dmg$/i.test(n)) return;
+          if (/arm64/i.test(n)) { if (!armAsset) armAsset = a; }
+          else { if (!x64Asset) x64Asset = a; }
+        });
+        if (armAsset && armBtn.getAttribute("aria-disabled")) arm(armAsset.browser_download_url);
+        if (x64Asset && x64Btn.getAttribute("aria-disabled")) x64(x64Asset.browser_download_url);
+        if (data.html_url && !rel) relpage.href = data.html_url;
+        if (armAsset || x64Asset) ready((data.tag_name || "").replace(/^v/, ""));
+        else fallback("No .dmg found in the latest release.");
+      }).catch(function () {
+        fallback("Couldn't reach GitHub (are you online?).");
+      });
+    }
+
+    // Confirmation when a download is started.
+    [armBtn, x64Btn].forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (b.getAttribute("aria-disabled")) return;
+        status.textContent = "Download started — check your Downloads folder.";
+        status.className = "status ok";
+      });
     });
 
     // Step check-off (purely local visual progress).

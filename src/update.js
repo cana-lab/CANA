@@ -84,16 +84,23 @@ export async function checkForUpdate() {
     if (!latest) return { state: "error", message: "Could not read the latest version." };
     const cmp = compareVersions(latest, APP_VERSION);
     if (cmp > 0) {
-      // Find the .dmg asset so we can offer a direct, one-click download.
+      // Releases ship one .dmg per architecture. Pick BOTH so the guide page
+      // can offer the right one — `find()` alone would hand Intel users the
+      // arm64 build (whichever was uploaded first).
       const assets = Array.isArray(data.assets) ? data.assets : [];
-      const dmg = assets.find((a) => /\.dmg$/i.test(a.name || ""));
+      const dmgs = assets.filter((a) => /\.dmg$/i.test(a.name || ""));
+      const arm = dmgs.find((a) => /arm64/i.test(a.name));
+      const x64 = dmgs.find((a) => !/arm64/i.test(a.name));
+      const first = arm || x64 || null; // legacy single-link fallback
       return {
         state: "update",
         current: APP_VERSION,
         latest,
         url: data.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
-        dmgUrl: dmg ? dmg.browser_download_url : null,
-        dmgName: dmg ? dmg.name : null,
+        dmgArm64Url: arm ? arm.browser_download_url : null,
+        dmgX64Url: x64 ? x64.browser_download_url : null,
+        dmgUrl: first ? first.browser_download_url : null,
+        dmgName: first ? first.name : null,
         notes: data.body || "",
       };
     }

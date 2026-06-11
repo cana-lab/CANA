@@ -717,8 +717,11 @@ export default function App() {
       // use the guide shipped alongside this page (same origin).
       const baseHref = (isDesktop && GUIDE_BASE) ? GUIDE_BASE : new URL("update-guide.html", window.location.href).toString();
       const base = new URL(baseHref);
+      // Per-arch links (the guide shows one button per architecture). The
+      // legacy `dmg` param stays for older deployed guide pages.
+      if (result.dmgArm64Url) base.searchParams.set("arm", result.dmgArm64Url);
+      if (result.dmgX64Url) base.searchParams.set("x64", result.dmgX64Url);
       if (result.dmgUrl) base.searchParams.set("dmg", result.dmgUrl);
-      if (result.dmgName) base.searchParams.set("name", result.dmgName);
       if (result.latest) base.searchParams.set("v", result.latest);
       if (result.url) base.searchParams.set("rel", result.url);
       const guideUrl = base.toString();

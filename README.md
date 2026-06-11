@@ -1,5 +1,9 @@
 # CANA — Covenant Life
 
+[![CI](https://github.com/cana-lab/CANA/actions/workflows/ci.yml/badge.svg)](https://github.com/cana-lab/CANA/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/cana-lab/CANA?label=release)](https://github.com/cana-lab/CANA/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 A private, local-first, biblically-grounded life-planning tool for couples.
 Two partners each complete a structured self-assessment across **eleven life
 domains** (113 questions), optionally write a "letter from ten years in the

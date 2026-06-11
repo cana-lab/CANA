@@ -1,5 +1,18 @@
 # Changelog
 
+## 4.47.1
+- Update guide page (the one the in-app "Download & install →" opens in the browser) rebuilt:
+  - Two explicit download buttons — **Apple Silicon** and **Intel** — instead of one generic link, with an "About This Mac" hint for choosing. Clicking a button starts the download directly.
+  - The page is now self-sufficient: if it isn't handed download links by the app, it looks up the latest release on the GitHub API itself. Previously it depended entirely on query parameters; opened without them it showed "Couldn't find a direct download link" and the "releases page" link pointed at `#` (a dead link). The releases link is now hardcoded as a real URL and always works.
+  - Copy updated for the app's signed + notarized status: the old "macOS may say it's from an unidentified developer — right-click → Open" instructions are gone (that flow no longer happens); replaced with a "signed and notarized — opens with a normal double-click" note.
+- update.js: a release now ships one .dmg per architecture, but the update check picked the FIRST .dmg it found — handing Intel users the arm64 build. It now extracts both (`dmgArm64Url` / `dmgX64Url`) and the app passes both to the guide page (`arm` / `x64` params; the legacy `dmg` param remains for older deployed pages).
+- GitHub repository cleanup:
+  - Deleted the 8 obsolete releases from the ZIP-development era (v4.3.2 … v4.26.0) and their tags — they carried unsigned .dmgs that would not open on other Macs and predate the signed release line. The repo now shows exactly one release: v4.47.0 (signed + notarized). Code history is untouched.
+  - Deleted the stray typo tag `Type_V4.3.2`.
+  - Repo profile: description updated, homepage set to the GitHub Pages demo, unused Projects tab disabled.
+  - README: CI / latest-release / license badges added.
+- Verified: all unit tests pass; web build clean and the rebuilt guide page ships in it (app bundles continue to exclude it). NOT verified from here: the live GitHub Pages deployment (happens via Actions on push — checked after pushing).
+
 ## 4.47.0
 - Pre-release audit pass: repository cleanup, security hardening, documentation truth-pass, and a render smoke test. No user-visible feature changes.
 - Removed (redundant/outdated):
