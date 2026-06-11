@@ -19,6 +19,7 @@ import {
 import { createProfile, signIn, listProfiles, registerProfileRecord } from "./auth.js";
 import { encryptPayload, decryptPayload, buildTransferPayload, validateTransfer } from "./transfer.js";
 import { exportCrashLog, readCrashLog, clearCrashLog } from "./crashLog.js";
+import { credAvailable as credStoreAvailable, credSave, credGet, credRemove } from "./credentials.js";
 import { METRIC_INFO, scaleText, SCORE_BANDS, bandFor } from "./metrics.js";
 import { QUESTION_HELP } from "./questionHelp.js";
 
@@ -511,10 +512,12 @@ export default function App() {
   // Login/profile state
   const [authMode, setAuthMode] = useState("signin"); // "signin" | "signup"
   const [authForm, setAuthForm] = useState({ nameA: "", nameB: "", email: "", password: "" });
-  // Opt-in "Remember password in macOS Keychain" (desktop only). keychainHas
-  // marks that the current password field was auto-filled from the Keychain,
+  // Opt-in "Remember password" (Keychain-backed: safeStorage on Mac, iOS
+  // Keychain via native plugin on iPhone). Defaults ON on iOS — a phone is a
+  // personal device — and OFF on the Mac, which may be a shared family
+  // machine. keychainFilled marks that the password field was auto-filled,
   // so a failed sign-in can discard the stale entry instead of dead-ending.
-  const [rememberPw, setRememberPw] = useState(false);
+  const [rememberPw, setRememberPw] = useState(() => (typeof window !== "undefined" && window.Capacitor && typeof window.Capacitor.getPlatform === "function" && window.Capacitor.getPlatform() === "ios"));
   const [credAvailable, setCredAvailable] = useState(false);
   const [keychainFilled, setKeychainFilled] = useState(false);
   // Pending in-app passphrase request: { message, resolve }. Promise-based so
@@ -797,11 +800,11 @@ export default function App() {
     setScreen("welcome");
     window.scrollTo({ top: 0 });
   };
-  // Is the Keychain-backed credential store available? (Packaged Mac app only.)
+  // Is a Keychain-backed credential store available? (Packaged Mac app via
+  // safeStorage, or native iOS app via the Credentials plugin — never web.)
   useEffect(() => {
-    if (!isDesktop || !window.cana || !window.cana.credentials) return;
-    window.cana.credentials.available().then((ok) => setCredAvailable(!!ok)).catch(() => {});
-  }, [isDesktop]);
+    credStoreAvailable().then((ok) => setCredAvailable(!!ok)).catch(() => {});
+  }, []);
 
   // Single-account convenience: prefill the email on the sign-in screen and
   // ask the Keychain for its remembered password right away.
@@ -822,7 +825,7 @@ export default function App() {
   const tryKeychainFill = async (email) => {
     if (!credAvailable || !email || authMode !== "signin") return;
     try {
-      const res = await window.cana.credentials.get(email);
+      const res = await credGet(email);
       if (res && res.ok && typeof res.password === "string") {
         setAuthForm((f) => (f.password ? f : { ...f, password: res.password }));
         setKeychainFilled(true);
@@ -834,8 +837,8 @@ export default function App() {
   const afterAuthSuccess = async (email, password) => {
     if (credAvailable) {
       try {
-        if (rememberPw) await window.cana.credentials.save(email, password);
-        else await window.cana.credentials.remove(email); // unchecked = explicit opt-out
+        if (rememberPw) await credSave(email, password);
+        else await credRemove(email); // unchecked = explicit opt-out
       } catch (e) { /* convenience only — never block sign-in */ }
     }
   };
@@ -848,7 +851,7 @@ export default function App() {
       // A stale remembered password (e.g. changed via import on another
       // device) shouldn't dead-end the user: discard it and let them type.
       if (keychainFilled && credAvailable) {
-        try { await window.cana.credentials.remove(authForm.email); } catch (e) {}
+        try { await credRemove(authForm.email); } catch (e) {}
         setAuthForm((f) => ({ ...f, password: "" }));
         setKeychainFilled(false);
         setAuthError("The password saved in your Keychain no longer matches — it was removed. Please type your password.");
@@ -1381,12 +1384,12 @@ export default function App() {
                 onChange={(e) => { setKeychainFilled(false); setAuthForm((f) => ({ ...f, password: e.target.value })); }}
                 onKeyDown={onKey} placeholder={authMode === "signup" ? "At least 6 characters" : "Your password"} />
               {keychainFilled ? (
-                <p style={{ fontSize: 11.5, color: "var(--green)", margin: "-6px 0 10px" }}>✓ Filled from your macOS Keychain</p>
+                <p style={{ fontSize: 11.5, color: "var(--green)", margin: "-6px 0 10px" }}>✓ Filled from your {isIOS ? "iOS" : "macOS"} Keychain</p>
               ) : null}
               {credAvailable ? (
                 <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--ink2)", margin: "2px 0 12px", cursor: "pointer", userSelect: "none" }}>
                   <input type="checkbox" checked={rememberPw} onChange={(e) => setRememberPw(e.target.checked)} style={{ accentColor: "var(--accent)" }} />
-                  Remember password in this Mac's Keychain
+                  Remember password in this {isIOS ? "iPhone's" : "Mac's"} Keychain
                 </label>
               ) : null}
 
@@ -1417,7 +1420,7 @@ export default function App() {
 
             <p style={{ fontSize: 11.5, color: "var(--ink3)", lineHeight: 1.6, marginTop: 18, textAlign: "center" }}>
               Accounts are stored only on this device to keep couples' data separate. This is local privacy separation, not a secure server login — your password is saved as a one-way hash, never in plain text, but anyone with full access to this Mac could reach the underlying data. Don't reuse an important password here.
-              {credAvailable ? " If you choose “Remember password”, it is stored encrypted, protected by your macOS Keychain, and anyone using this Mac session can then open CANA without typing it." : ""}
+              {credAvailable ? ` If you choose “Remember password”, it is stored encrypted in this ${isIOS ? "iPhone's" : "Mac's"} Keychain — and anyone using this unlocked device can then open CANA without typing it.` : ""}
             </p>
           </div>
         </Wrap>

@@ -17,6 +17,8 @@
 		A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; };
 		E12BBF152FD894330043F950 /* FoundationAIPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12BBF142FD894330043F950 /* FoundationAIPlugin.swift */; };
 		E12BBF162FD894330043F950 /* FoundationAIPlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = E12BBF132FD894330043F950 /* FoundationAIPlugin.m */; };
+		CA9A0003FEDCBA9876543210 /* CredentialsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9A0005FEDCBA9876543210 /* CredentialsPlugin.swift */; };
+		CA9A0004FEDCBA9876543210 /* CredentialsPlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = CA9A0006FEDCBA9876543210 /* CredentialsPlugin.m */; };
 		CA9A0001FEDCBA9876543210 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CA9A0002FEDCBA9876543210 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
@@ -34,6 +36,8 @@
 		AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
 		E12BBF132FD894330043F950 /* FoundationAIPlugin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FoundationAIPlugin.m; sourceTree = "<group>"; };
 		E12BBF142FD894330043F950 /* FoundationAIPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationAIPlugin.swift; sourceTree = "<group>"; };
+		CA9A0005FEDCBA9876543210 /* CredentialsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialsPlugin.swift; sourceTree = "<group>"; };
+		CA9A0006FEDCBA9876543210 /* CredentialsPlugin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CredentialsPlugin.m; sourceTree = "<group>"; };
 		E12BBF172FD894340043F950 /* App-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "App-Bridging-Header.h"; sourceTree = "<group>"; };
 		FC68EB0AF532CFC21C3344DD /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
 		CA9A0002FEDCBA9876543210 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -82,6 +86,8 @@
 			children = (
 				E12BBF132FD894330043F950 /* FoundationAIPlugin.m */,
 				E12BBF142FD894330043F950 /* FoundationAIPlugin.swift */,
+				CA9A0005FEDCBA9876543210 /* CredentialsPlugin.swift */,
+				CA9A0006FEDCBA9876543210 /* CredentialsPlugin.m */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -222,6 +228,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				E12BBF152FD894330043F950 /* FoundationAIPlugin.swift in Sources */,
+				CA9A0003FEDCBA9876543210 /* CredentialsPlugin.swift in Sources */,
+				CA9A0004FEDCBA9876543210 /* CredentialsPlugin.m in Sources */,
 				E12BBF162FD894330043F950 /* FoundationAIPlugin.m in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 			);
@@ -368,7 +376,7 @@
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 4.48.2;
+				MARKETING_VERSION = 4.49.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.cana.covenantlife;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -392,7 +400,7 @@
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 4.48.2;
+				MARKETING_VERSION = 4.49.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cana.covenantlife;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";

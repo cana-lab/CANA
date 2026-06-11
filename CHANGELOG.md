@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.49.0
+- iOS: "Remember password" now works on the iPhone, stored in the **iOS Keychain**.
+  - Honest background: WKWebView apps never get Safari's "save this password?" sheet — the app runs on capacitor://localhost, not a real domain, so iCloud-Keychain autofill cannot attach. The only proper way is native Keychain storage, which this release adds via a small Capacitor plugin (ios-plugin/CredentialsPlugin.swift): kSecClassGenericPassword, WhenUnlockedThisDeviceOnly (device-only, never synced — matching the app's "stays on this device" model).
+  - Same UX as the Mac: checkbox on the sign-in screen, autofill with a "✓ Filled from your iOS Keychain" note, stale entries discarded on failed sign-in, unchecking forgets. **Defaults ON on iOS** (a phone is a personal device) and stays OFF by default on the Mac (possibly a shared family machine).
+  - New src/credentials.js unifies the two backends (Electron safeStorage on Mac, the native plugin on iOS); the web build shows no option since neither exists there. Sign-in screen copy is now platform-aware.
+- Verified: 27/27 tests pass; web + electron bundles build; Capacitor sync clean; **full Xcode simulator build of the new Swift plugin succeeds** (registered in the pbxproj alongside FoundationAIPlugin). NOT verified from this environment: the actual Keychain round-trip on a physical iPhone — test in TestFlight build 12: sign in with the box checked, kill the app, reopen → the password field should fill itself.
+
 ## 4.48.2
 - Export/import, third and final round. 4.48.1's passphrase dialog was correct but mounted on the wrong screens: it rendered on the sign-in and Settings screens, while the "Move your data to another device" card (with the Export/Import buttons) lives in the WELCOME screen's footer. Clicking Export set the dialog state and then waited forever for a dialog that was never rendered — silently, with zero errors (which is exactly what the user's empty diagnostic log showed: the 4.48.1 fix had stopped the throwing, but nothing appeared). The dialog is now mounted on all three screens that can trigger a transfer: welcome, sign-in, Settings.
 - Verified: 27/27 tests, all three bundles build clean. The remaining proof is the human click test on this build.
