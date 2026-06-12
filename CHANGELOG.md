@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.56.0
+- **The home-screen metric tiles are now tappable** — Overall, Alignment, Drift, and Oxygen, each a chrome-less press target with a small ⓘ. Tapping opens an explanation modal in the same style as the oxygen science panel: what the number means, how it is computed, and how to read your current value (band + plain-language guidance). Content comes from METRIC_INFO — the same single source the existing inline ⓘ panels use, including the honesty footer (self-rated, not clinical, not compared to other couples). The Oxygen tile opens the full Finkel science panel.
+- **The oxygen tank card now also lives on the dashboard**, above the supply/demand trend chart — current state next to its history. Tappable there too.
+- Fixed an invisible-bug-in-waiting: the rise/pop animations kept a final `transform` (fill-mode both), which turns a card into a containing block — any `position: fixed` modal inside it would have pinned to the card instead of the screen. Keyframes now end on `transform: none`.
+- Verified: 41/41 tests; web, electron, and iOS bundles build; simulator runtime check green.
+
 ## 4.55.2
 - **The real root cause of every dead native feature on iOS, found and proven at runtime.** "ShareFile plugin is not implemented on ios" survived 4.54.2 (JS registerPlugin) and 4.54.3 (CAPBridgedPlugin) because neither actually registers an app-local plugin with the bridge: Capacitor 6 instantiates plugins only from the npm-generated packageClassList — classes living inside the app target must be registered explicitly. New MainViewController (CAPBridgeViewController subclass) does exactly that in capacitorDidLoad via registerPluginInstance; Main.storyboard now instantiates it. This makes ALL THREE native plugins live for the first time on device: PDF/share sheet, Keychain "remember password", and Apple-Intelligence detection.
 - Why three rounds compiled green and still failed on the phone: registration is pure runtime behavior. This release was therefore verified at RUNTIME in the simulator before shipping — the new local console diagnostic prints `[CANA] native plugins: ShareFile=true Credentials=true FoundationAI=true` at startup (device-local console only, no telemetry; readable via Safari web inspector).

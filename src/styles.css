@@ -43,8 +43,11 @@ input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radi
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.25),0 0 0 0.5px rgba(0,0,0,0.04);cursor:pointer;transition:transform .12s;}
 input[type=range]::-webkit-slider-thumb:active{transform:scale(1.15);}
 input[type=range]::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.25);cursor:pointer;}
-@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pop{0%{transform:scale(.96)}60%{transform:scale(1.01)}100%{transform:scale(1)}}
+/* Both end on transform:none — a retained transform (fill-mode both) would
+   turn the element into a containing block and pin position:fixed modals
+   inside it to the card instead of the viewport. */
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.96)}60%{transform:scale(1.01)}100%{transform:none}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .rise{animation:rise .5s cubic-bezier(.22,.61,.36,1) both;}

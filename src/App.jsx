@@ -279,16 +279,19 @@ function MetricInfoPanel({ metricKey, value }) {
 // three headline metrics compactly; tapping opens the full dashboard.
 /* Rich home-screen preview of the trend dashboard — ring + radar + sparkline tiles */
 function DashboardPreview({ trends, onOpen }) {
+  // Which info modal is open: "overall" | "alignment" | "drift" | "oxygen".
+  const [info, setInfo] = useState(null);
   if (!trends) return null;
   const HD = trends.headline;
   const ov = trends.latest.overall;
   const ringColor = ov >= 8 ? "var(--green)" : ov >= 6.5 ? "var(--accent)" : ov >= 5 ? "var(--gold)" : ov >= 3.5 ? "var(--amber)" : "var(--red)";
   const radarAxes = trends.domainTrends.map((d) => ({ icon: d.icon, label: d.label, value: d.last }));
   const tiles = [
-    { label: "Overall", value: ov, color: ringColor, spark: trends.overallSeries, delta: HD.overallDelta, invert: false },
-    { label: "Alignment", value: HD.alignmentNow, color: "var(--accent)", spark: (trends.alignmentSeries || []).map((p) => ({ ts: p.ts, value: p.score })), delta: HD.alignmentDelta, invert: false },
-    { label: "Drift", value: HD.driftNow, color: "#FF9F0A", spark: trends.driftSeries, delta: null, invert: true },
+    { key: "overall", label: "Overall", value: ov, color: ringColor, spark: trends.overallSeries, delta: HD.overallDelta, invert: false },
+    { key: "alignment", label: "Alignment", value: HD.alignmentNow, color: "var(--accent)", spark: (trends.alignmentSeries || []).map((p) => ({ ts: p.ts, value: p.score })), delta: HD.alignmentDelta, invert: false },
+    { key: "drift", label: "Drift", value: HD.driftNow, color: "#FF9F0A", spark: trends.driftSeries, delta: null, invert: true },
   ];
+  const tileValue = { overall: ov, alignment: HD.alignmentNow, drift: HD.driftNow };
   const dchip = (delta, invert) => {
     if (delta === 0 || delta == null) return <span style={{ fontSize: 11.5, color: "var(--ink3)", fontWeight: 600 }}>→ steady</span>;
     const good = invert ? delta < 0 : delta > 0;
@@ -296,6 +299,8 @@ function DashboardPreview({ trends, onOpen }) {
   };
   return (
     <Card className="rise" style={{ marginTop: 40, padding: 24 }}>
+      {info === "oxygen" ? <OxygenInfoModal onClose={() => setInfo(null)} />
+        : info ? <MetricInfoModal metricKey={info} value={tileValue[info]} onClose={() => setInfo(null)} /> : null}
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
         <p style={{ ...eyebrow, margin: 0 }}>Your journey · {HD.sessions} session{HD.sessions > 1 ? "s" : ""}{HD.spanDays > 0 ? ` · ${HD.spanDays} days` : ""}</p>
         <button onClick={onOpen} style={{ border: "none", background: "none", color: "var(--accent)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0 }}>Open full dashboard →</button>
@@ -313,14 +318,20 @@ function DashboardPreview({ trends, onOpen }) {
       </div>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
         {tiles.map((it) => (
-          <div key={it.label} style={{ flex: 1, minWidth: 150, padding: "12px 14px", border: "1px solid var(--hair)", borderRadius: 12, background: "var(--panel-solid)" }}>
-            <div style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600, marginBottom: 4 }}>{it.label}</div>
+          <button key={it.key} type="button" onClick={() => setInfo(it.key)} aria-label={`Explain ${it.label}`}
+            style={{ ...pressable, flex: 1, minWidth: 150, width: "auto" }}>
+          <div style={{ padding: "12px 14px", border: "1px solid var(--hair)", borderRadius: 12, background: "var(--panel-solid)", height: "100%", boxSizing: "border-box" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{it.label}</span>
+              <span style={{ fontSize: 13, color: "var(--ink3)", lineHeight: 1, flexShrink: 0 }}>ⓘ</span>
+            </div>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 6 }}>
               <span style={{ fontSize: 26, fontWeight: 700, color: it.color, letterSpacing: "-.02em", lineHeight: 1 }}>{it.value}<span style={{ fontSize: 12, color: "var(--ink3)" }}>/10</span></span>
               {it.spark && it.spark.length > 1 ? <Sparkline series={it.spark} color={it.color} w={70} h={24} /> : null}
             </div>
             <div style={{ marginTop: 6 }}>{dchip(it.delta, it.invert)}</div>
           </div>
+          </button>
         ))}
         {(() => {
           const ox = (trends.oxygenSeries && trends.oxygenSeries.length) ? trends.oxygenSeries[trends.oxygenSeries.length - 1] : null;
@@ -328,8 +339,13 @@ function DashboardPreview({ trends, onOpen }) {
           const c = ox.state === "thinair" ? "var(--red)" : ox.state === "narrow" ? "var(--amber)" : "var(--green)";
           const lbl = ox.state === "thinair" ? "Thin air" : ox.state === "narrow" ? "Narrow margin" : "Breathable";
           return (
-            <div style={{ flex: 1, minWidth: 150, padding: "12px 14px", border: "1px solid var(--hair)", borderRadius: 12, background: "var(--panel-solid)" }}>
-              <div style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600, marginBottom: 4 }}>Oxygen</div>
+            <button type="button" onClick={() => setInfo("oxygen")} aria-label="About the Oxygen check"
+              style={{ ...pressable, flex: 1, minWidth: 150, width: "auto" }}>
+            <div style={{ padding: "12px 14px", border: "1px solid var(--hair)", borderRadius: 12, background: "var(--panel-solid)", height: "100%", boxSizing: "border-box" }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Oxygen</span>
+                <span style={{ fontSize: 13, color: "var(--ink3)", lineHeight: 1, flexShrink: 0 }}>ⓘ</span>
+              </div>
               <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 6 }}>
                 <span style={{ fontSize: 26, fontWeight: 700, color: c, letterSpacing: "-.02em", lineHeight: 1 }}>{ox.supply.toFixed(1)}<span style={{ fontSize: 12, color: "var(--ink3)" }}>/10</span></span>
                 <div style={{ position: "relative", width: 16, height: 40, border: "1px solid var(--hair)", borderRadius: 8, overflow: "hidden", background: "var(--bg2)" }}>
@@ -339,6 +355,7 @@ function DashboardPreview({ trends, onOpen }) {
               </div>
               <div style={{ marginTop: 6 }}><span style={{ fontSize: 11.5, color: c, fontWeight: 700 }}>{lbl}</span></div>
             </div>
+            </button>
           );
         })()}
       </div>
@@ -391,22 +408,67 @@ function RichText({ text, style }) {
    Fill = Supply (couple-mean of time/rest/balance items). The dashed marker
    is the LINE THE OXYGEN NEEDS TO REACH: Demand (couple-mean of the calling/
    vision/growth items). State colors only on the fill and the pill. */
-// Science background shown when the oxygen card is tapped. Kept honest:
-// named source, named items, thresholds labeled editorial.
-function OxygenInfoModal({ onClose }) {
-  const sec = { fontSize: 11.5, color: "var(--gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 6px" };
-  const body = { fontSize: 14, color: "var(--ink2)", lineHeight: 1.6, margin: "0 0 16px" };
+// Chrome-less press target — tiles/cards that open an info modal without any
+// button frame of their own.
+const pressable = { display: "block", width: "100%", textAlign: "left", cursor: "pointer",
+  font: "inherit", color: "inherit", background: "none", border: "none",
+  padding: 0, margin: 0, appearance: "none", WebkitAppearance: "none",
+  WebkitTapHighlightColor: "transparent", outline: "none" };
+
+// Shared shell for the tap-to-learn-more modals (oxygen science, metric
+// explanations). Backdrop closes; inner clicks don't.
+function InfoModal({ title, onClose, children }) {
   return (
     <div onClick={onClose} className="no-print"
       style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)",
         display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label="About the Oxygen check"
+      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label={title}
         style={{ background: "var(--panel-solid)", borderRadius: 16, maxWidth: 540, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.35)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-          <h2 style={{ fontSize: 21, fontWeight: 700, color: "var(--ink)", margin: 0, letterSpacing: "-.01em" }}>The Oxygen check</h2>
+          <h2 style={{ fontSize: 21, fontWeight: 700, color: "var(--ink)", margin: 0, letterSpacing: "-.01em" }}>{title}</h2>
           <button onClick={onClose} aria-label="Close"
             style={{ border: "none", background: "var(--bg2)", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", color: "var(--ink2)", fontSize: 16, lineHeight: 1 }}>✕</button>
         </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const infoSec = { fontSize: 11.5, color: "var(--gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 6px" };
+const infoBody = { fontSize: 14, color: "var(--ink2)", lineHeight: 1.6, margin: "0 0 16px" };
+
+// Tapping a metric tile opens this: what the number means, how it is computed,
+// and how to read the current value. Content comes from METRIC_INFO — the same
+// single source the inline ⓘ panels use.
+function MetricInfoModal({ metricKey, value, onClose }) {
+  const info = METRIC_INFO[metricKey];
+  if (!info) return null;
+  const sc = scaleText(metricKey, value);
+  return (
+    <InfoModal title={info.title} onClose={onClose}>
+      <p style={infoSec}>What it means</p>
+      <p style={infoBody}>{info.what}</p>
+      <p style={infoSec}>How it's measured</p>
+      <p style={infoBody}>{info.how}</p>
+      {sc ? (<>
+        <p style={infoSec}>Your value</p>
+        <p style={infoBody}>{value != null && !isNaN(value) ? <strong>{Number(value).toFixed(1)} — {sc.band}. </strong> : null}{sc.blurb}</p>
+      </>) : null}
+      <p style={{ fontSize: 11.5, color: "var(--ink3)", lineHeight: 1.5, margin: 0, paddingTop: 12, borderTop: "1px solid var(--hair2)" }}>
+        These are self-rated reflections. They are not clinical measurements. They are not compared against other couples.
+      </p>
+    </InfoModal>
+  );
+}
+
+// Science background shown when the oxygen card is tapped. Kept honest:
+// named source, named items, thresholds labeled editorial.
+function OxygenInfoModal({ onClose }) {
+  const sec = infoSec;
+  const body = infoBody;
+  return (
+    <InfoModal title="The Oxygen check" onClose={onClose}>
         <p style={sec}>Where this comes from</p>
         <p style={body}>
           Psychologist Eli Finkel studies modern marriage. His team found a pattern: couples expect more from marriage
@@ -432,12 +494,11 @@ function OxygenInfoModal({ onClose }) {
           CANA measures how you both <em>perceive</em> your time, energy, and calling. It is not a stopwatch.
           If the margin is negative, don't lower the calling. Add oxygen: protected, unhurried time together.
         </p>
-      </div>
-    </div>
+    </InfoModal>
   );
 }
 
-function OxygenTank({ oxygen }) {
+function OxygenTank({ oxygen, style }) {
   const [info, setInfo] = useState(false);
   if (!oxygen || !oxygen.complete) return null;
   const { supply, demand, margin, state } = oxygen;
@@ -456,12 +517,8 @@ function OxygenTank({ oxygen }) {
   return (
     <>
     {info ? <OxygenInfoModal onClose={() => setInfo(false)} /> : null}
-    <button type="button" onClick={() => setInfo(true)} aria-label="About the Oxygen check"
-      style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer",
-        font: "inherit", color: "inherit", background: "none", border: "none",
-        padding: 0, margin: 0, appearance: "none", WebkitAppearance: "none",
-        WebkitTapHighlightColor: "transparent", outline: "none" }}>
-    <Card style={{ marginTop: 28, padding: 22 }}>
+    <button type="button" onClick={() => setInfo(true)} aria-label="About the Oxygen check" style={pressable}>
+    <Card style={{ marginTop: 28, padding: 22, ...style }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", margin: "0 0 14px" }}>
         <p style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 600, margin: 0 }}>Oxygen check</p>
         <span style={{ fontSize: 15, color: "var(--ink3)", lineHeight: 1, flexShrink: 0 }}>ⓘ</span>
@@ -3302,6 +3359,7 @@ export default function App() {
               <div style={{ marginBottom: 26 }}>
                 <p style={eyebrow}>Oxygen</p>
                 <p style={{ ...body, fontSize: 13 }}>Solid line: your supply of time, rest, and balance. Dashed line: what your shared callings ask. Breathing room is the space between them.</p>
+                <OxygenTank oxygen={trends.latest.oxygen} style={{ marginTop: 0, marginBottom: 14 }} />
                 <Card style={{ padding: 16 }}>
                   <OxygenTrendChart series={trends.oxygenSeries} />
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>{trends.oxygenSeries.map((p, i) => <span key={i} style={{ fontSize: 10, color: "var(--ink3)" }}>{fmtDate(p.ts)}</span>)}</div>
