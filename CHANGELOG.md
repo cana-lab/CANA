@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.56.1
+- Full release-readiness audit pass (UI/UX, security, speed, methodology, layout, V&V). Findings fixed:
+  - **Factual error in two user-facing texts**: the Overall and Drift explanations said "nine domains" — the engine has eleven. The texts are now number-free ("across all domains"), so they can never drift again. README corrected (115 questions, not 113).
+  - **Escape now closes every modal** (metric/oxygen info panels and the chapter modal); the passphrase dialog already had it.
+  - **Dependency audit**: all six high-severity advisories (node-tar, reached only through electron-builder's build chain — never shipped in the app) fixed via a `tar >= 7.5.11` override. The four remaining moderates live in dev-only tooling (vite dev server / wait-on) and would each require a major-version migration; deliberately deferred — documented here, not hidden.
+  - **GitHub cleanup**: superseded releases removed — the repo shows only the current release (the in-app updater only ever reads the latest). Local stale build artifacts pruned (~1 GB).
+  - **Doc drift**: CLAUDE.md source map updated (current line counts, nativePlugins/credentials/crashLog modules, the three-part Capacitor plugin registration lesson with its runtime-verification recipe). Methodology export regenerated from the live engine (11 domains, 115 questions, 17 check-in items).
+- Deliberately unchanged, with reasons: React 18 / Vite 5 / Capacitor 6 / electron-builder 24 stay pinned (each newer major is a migration project; the pipeline is proven on these versions). The ~512 KB main bundle warning is cosmetic — the app loads from disk (file:// / capacitor://), not over a network. App.jsx split remains deferred until UI tests exist.
+- Verified: 41/41 tests; web, electron, and iOS bundles build; simulator runtime check green; Electron hardening flags re-confirmed (sandbox, contextIsolation, navigation guards).
+
 ## 4.56.0
 - **The home-screen metric tiles are now tappable** — Overall, Alignment, Drift, and Oxygen, each a chrome-less press target with a small ⓘ. Tapping opens an explanation modal in the same style as the oxygen science panel: what the number means, how it is computed, and how to read your current value (band + plain-language guidance). Content comes from METRIC_INFO — the same single source the existing inline ⓘ panels use, including the honesty footer (self-rated, not clinical, not compared to other couples). The Oxygen tile opens the full Finkel science panel.
 - **The oxygen tank card now also lives on the dashboard**, above the supply/demand trend chart — current state next to its history. Tappable there too.

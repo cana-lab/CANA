@@ -1,7 +1,7 @@
 {
   "name": "cana",
   "private": true,
-  "version": "4.56.0",
+  "version": "4.56.1",
   "type": "module",
   "description": "CANA — Covenant Life. A private, local-first biblical life-planning app for couples. macOS (Electron), iOS (Capacitor), and web — all computation on-device, no server, no telemetry.",
   "author": "CANA Lab",
@@ -117,5 +117,8 @@
       ]
     },
     "afterSign": "scripts/notarize.cjs"
+  },
+  "overrides": {
+    "tar": "^7.5.11"
   }
 }

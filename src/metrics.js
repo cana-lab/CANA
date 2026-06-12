@@ -53,7 +53,7 @@ export const METRIC_INFO = {
   },
   overall: {
     title: "Overall health",
-    what: "A single 0–10 summary of how the whole picture looks across all nine domains.",
+    what: "A single 0–10 summary of how the whole picture looks across all domains.",
     how: "Each domain's couple-average is combined using the domain weights (Faith and Marriage count for more by default; you can adjust these). It's a weighted average, so it reflects your priorities, not a neutral mean. Because the weights are yours, this number is for your own reflection — it is not comparable across different couples.",
     scale: "interpretive",
   },
@@ -66,7 +66,7 @@ export const METRIC_INFO = {
   drift: {
     title: "Mission drift",
     what: "How far your life has moved from the very first assessment you took (your baseline). Lower is closer to where you started.",
-    how: "The straight-line (Euclidean) distance between this session's nine domain-averages and your baseline session's, scaled to 0–10. It only exists once you have more than one assessment. Rising drift isn't automatically bad — it can mean healthy change — but it's a prompt to ask whether you're still heading where you intended.",
+    how: "The straight-line (Euclidean) distance between this session's domain-averages and your baseline session's, scaled to 0–10. It only exists once you have more than one assessment. Rising drift isn't automatically bad — it can mean healthy change — but it's a prompt to ask whether you're still heading where you intended.",
     scale: "driftScale",
   },
 };

@@ -416,8 +416,13 @@ const pressable = { display: "block", width: "100%", textAlign: "left", cursor: 
   WebkitTapHighlightColor: "transparent", outline: "none" };
 
 // Shared shell for the tap-to-learn-more modals (oxygen science, metric
-// explanations). Backdrop closes; inner clicks don't.
+// explanations). Backdrop and Escape close; inner clicks don't.
 function InfoModal({ title, onClose, children }) {
+  useEffect(() => {
+    const h = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
   return (
     <div onClick={onClose} className="no-print"
       style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)",
@@ -724,6 +729,13 @@ export default function App() {
   const [editStmts, setEditStmts] = useState(null);
   const [openInfo, setOpenInfo] = useState(null);   // which question's info is expanded
   const [chapterInfo, setChapterInfo] = useState(null); // which domain's summary modal is open (domain id)
+  // Escape closes the chapter modal (InfoModal-based modals handle this themselves).
+  useEffect(() => {
+    if (!chapterInfo) return;
+    const h = (e) => { if (e.key === "Escape") setChapterInfo(null); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [chapterInfo]);
   const [showAbout, setShowAbout] = useState(false); // "About this Chapter" panel toggle
   const [weights, setWeights] = useState(null);     // custom domain weights override (null = defaults)
   const [showWeights, setShowWeights] = useState(false);

@@ -6,7 +6,7 @@
 
 A private, local-first, biblically-grounded life-planning tool for couples.
 Two partners each complete a structured self-assessment across **eleven life
-domains** (113 questions), optionally write a "letter from ten years in the
+domains** (115 questions), optionally write a "letter from ten years in the
 future", and receive a deterministic plan — joint vision & mission, prioritized
 1/5/10-year goals, top tensions, and pattern-based flags — **computed entirely
 on the device**. An optional, strictly local AI layer re-expresses the
