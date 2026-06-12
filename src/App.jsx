@@ -132,13 +132,13 @@ function Toast({ message }) {
   if (!message) return null;
   return (
     <div className="no-print" style={{
-      position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", zIndex: 100,
+      position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", zIndex: 100, maxWidth: "calc(100vw - 40px)", boxSizing: "border-box",
       display: "flex", alignItems: "center", gap: 9, padding: "11px 18px", borderRadius: 12,
       background: "rgba(30,30,32,0.92)", color: "#fff", fontSize: 14, fontWeight: 500,
       boxShadow: "0 8px 28px rgba(0,0,0,0.28)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
       animation: "rise .35s cubic-bezier(.22,.61,.36,1) both",
     }}>
-      <span style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--green)", color: "#fff", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</span>
+      <span style={{ width: 18, height: 18, minWidth: 18, flexShrink: 0, borderRadius: "50%", background: "var(--green)", color: "#fff", fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</span>
       {message}
     </div>
   );
@@ -1641,7 +1641,11 @@ export default function App() {
             const ansA = Object.keys(answers.A).length, ansB = Object.keys(answers.B).length;
             const anyProgress = names.A && (dA > 0 || dB > 0 || ansA > 0 || ansB > 0);
             const bothComplete = dA === N && dB === N && (mode === "full" ? (letters.A.trim().length > 20 && letters.B.trim().length > 20) : true);
-            if (!anyProgress || results) return null;
+            // Show whenever a draft is in progress. Only hide the just-finished
+            // state (draft complete AND a report exists) — previously `|| results`
+            // hid the resume card for ANYONE with an older report, making a
+            // saved check-in unreachable.
+            if (!anyProgress || (results && bothComplete)) return null;
             return (
             <Card className="rise" style={{ marginTop: 24, padding: 20 }}>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>

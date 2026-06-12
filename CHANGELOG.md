@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.54.1
+- The "Continue where you left off" card was invisible for anyone who already had a completed report — its visibility check (`!anyProgress || results`) hid every saved draft once a report existed, making a saved check-in unreachable. It now shows whenever a draft is in progress and hides only the just-finished state (draft complete AND report generated). Saved check-ins are resumable again from the home screen, per partner.
+- The "Progress saved" toast no longer squishes: the green check circle is fixed-size (flexShrink 0 — same flexbox compression as the "?" icon in 4.54.0), and the pill caps at phone width instead of clipping.
+- Verified: 41/41 tests; all bundles build. (The 4.54.0 Mac binaries were superseded before publishing; this release carries everything from 4.54.0 plus these two fixes.)
+
 ## 4.54.0
 - iOS UI feedback round 2:
   - **Answer scale fully visible on phones**: the 0–4 / 6–10 halves now stack as two rows on narrow screens (CSS media query at ≤600px) instead of one 10-chip row that ran off the right edge — chips 6–10 were unreachable since 4.49.1 clipped horizontal overflow. Wide screens keep the side-by-side layout.
