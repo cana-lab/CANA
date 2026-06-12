@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.55.2
+- **The real root cause of every dead native feature on iOS, found and proven at runtime.** "ShareFile plugin is not implemented on ios" survived 4.54.2 (JS registerPlugin) and 4.54.3 (CAPBridgedPlugin) because neither actually registers an app-local plugin with the bridge: Capacitor 6 instantiates plugins only from the npm-generated packageClassList — classes living inside the app target must be registered explicitly. New MainViewController (CAPBridgeViewController subclass) does exactly that in capacitorDidLoad via registerPluginInstance; Main.storyboard now instantiates it. This makes ALL THREE native plugins live for the first time on device: PDF/share sheet, Keychain "remember password", and Apple-Intelligence detection.
+- Why three rounds compiled green and still failed on the phone: registration is pure runtime behavior. This release was therefore verified at RUNTIME in the simulator before shipping — the new local console diagnostic prints `[CANA] native plugins: ShareFile=true Credentials=true FoundationAI=true` at startup (device-local console only, no telemetry; readable via Safari web inspector).
+- Verified: 41/41 tests; all bundles build; simulator runtime check green.
+
 ## 4.55.1
 - **iOS "Save as PDF", second attempt — with a fallback and visible errors this time.** On current iOS versions WebKit prints out-of-process; the synchronous `UIPrintPageRenderer` path from 4.55.0 silently got zero pages from the web view, rejected — and the error toast was invisible because the report screens never mounted the Toast component. Now: the fast renderer path is attempted but never trusted; when it yields no pages, the system print sheet (`UIPrintInteractionController`, Apple's own async pipeline — the one Safari uses) is presented instead, where the print-CSS pages can be previewed, shared, and saved as PDF. Either way the button visibly reacts.
 - Results and conversation screens now mount the Toast, and a failed PDF render shows the actual native error message — a silent failure here already cost one TestFlight round.

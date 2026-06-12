@@ -26,3 +26,14 @@ export function isNativeIOS() {
     return false;
   }
 }
+
+// Local console diagnostic (never leaves the device): whether the native
+// bridge actually registered each plugin. Two TestFlight rounds were lost to
+// registration failing silently — this line makes it visible in one glance,
+// both in the simulator console and via Safari web inspector on device.
+if (isNativeIOS()) {
+  try {
+    const names = ["ShareFile", "Credentials", "FoundationAI"];
+    console.log("[CANA] native plugins: " + names.map((n) => `${n}=${window.Capacitor.isPluginAvailable(n)}`).join(" "));
+  } catch (e) {}
+}
