@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.55.1
+- **iOS "Save as PDF", second attempt — with a fallback and visible errors this time.** On current iOS versions WebKit prints out-of-process; the synchronous `UIPrintPageRenderer` path from 4.55.0 silently got zero pages from the web view, rejected — and the error toast was invisible because the report screens never mounted the Toast component. Now: the fast renderer path is attempted but never trusted; when it yields no pages, the system print sheet (`UIPrintInteractionController`, Apple's own async pipeline — the one Safari uses) is presented instead, where the print-CSS pages can be previewed, shared, and saved as PDF. Either way the button visibly reacts.
+- Results and conversation screens now mount the Toast, and a failed PDF render shows the actual native error message — a silent failure here already cost one TestFlight round.
+- Oxygen science panel rewritten in short, plain sentences (explicit feedback). Content unchanged: Finkel's suffocation model, the six source items, the cutoffs labeled editorial.
+- Verified: 41/41 tests; all bundles build; Xcode simulator build green.
+
 ## 4.55.0
 - **iOS: "Save as PDF" actually works now.** `window.print()` is a silent no-op inside WKWebView, so every PDF button on iPhone did nothing. The ShareFile plugin gained a native `sharePdf` method: it renders the app's print CSS (the designed `.print-only` report pages) through `UIPrintPageRenderer` into a paginated A4 PDF and opens the share sheet — Save to Files, AirDrop, or Mail with the PDF already attached. Same precise filename as on the Mac.
 - iOS: the separate "Email report" button is gone on iPhone — it relied on `mailto:` (which can't attach files) plus the print dialog. The share sheet from "Save as PDF" covers it with the PDF attached; the caption under the buttons explains the flow.

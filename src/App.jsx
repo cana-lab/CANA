@@ -409,32 +409,28 @@ function OxygenInfoModal({ onClose }) {
         </div>
         <p style={sec}>Where this comes from</p>
         <p style={body}>
-          Psychologist Eli Finkel and colleagues describe modern marriage with a mountain picture: couples increasingly ask
-          marriage to serve their highest needs — mutual growth, self-expression, a shared sense of purpose — which is like
-          climbing higher up the mountain. The altitude itself is not the problem; climbing it without enough oxygen is.
-          In their "suffocation model," high expectations are associated with the strongest marriages when couples invest
-          the time and energy those expectations require — and with strain when they don't
-          (Finkel, Hui, Carswell &amp; Larson, 2014, <em>Psychological Inquiry</em>; Finkel, <em>The All-or-Nothing Marriage</em>, 2017).
+          Psychologist Eli Finkel studies modern marriage. His team found a pattern: couples expect more from marriage
+          than ever — growth, purpose, deep friendship. At the same time, they invest less time and energy in it.
+          He calls this the "suffocation model." The image is a mountain climb. The height is not the problem.
+          Climbing without enough oxygen is. (Finkel, Hui, Carswell &amp; Larson, 2014; <em>The All-or-Nothing Marriage</em>, 2017.)
         </p>
         <p style={sec}>How CANA computes it</p>
         <p style={body}>
-          <strong>Demand</strong> is the average — across both of you — of three expectation items: a shared vision for your
-          marriage, actively helping each other grow, and a sense of significant family calling.
-          <strong> Supply</strong> is the average of three resource items: satisfaction with your time together, work–life
-          balance, and Sabbath rest. The dashed line on the tank marks Demand — where the oxygen level needs to be.
-          Margin is simply Supply minus Demand.
+          <strong>Demand</strong> is the average of three of your answers: a clear shared vision, helping each other grow,
+          and a sense of family calling. <strong>Supply</strong> is the average of three more: time together, work–life
+          balance, and rest. Both partners count equally. The dashed line on the tank marks Demand.
+          Margin is Supply minus Demand.
         </p>
         <p style={sec}>What the states mean</p>
         <p style={body}>
-          <strong>Thin air</strong>: high callings (Demand ≥ 8) on low reserves (Supply ≤ 4).
-          <strong> Narrow margin</strong>: Demand exceeds Supply by 3 points or more.
-          <strong> Breathable</strong>: your supply reaches the altitude your callings ask for.
-          These thresholds are editorial judgments chosen for reflection, not clinically validated cutoffs.
+          <strong>Thin air</strong>: Demand is 8 or higher while Supply is 4 or lower.
+          <strong> Narrow margin</strong>: Demand is at least 3 points above Supply.
+          <strong> Breathable</strong>: everything else.
+          These cutoffs are our editorial choice. They are not clinical values.
         </p>
         <p style={{ ...body, margin: 0 }}>
-          Like everything in CANA, this reads your <em>perception</em> of time, energy, and calling — not a stopwatch audit.
-          When the margin is negative, the research points away from lowering the calling and toward deliberately budgeting
-          unhurried time together: more oxygen, not less mountain.
+          CANA measures how you both <em>perceive</em> your time, energy, and calling. It is not a stopwatch.
+          If the margin is negative, don't lower the calling. Add oxygen: protected, unhurried time together.
         </p>
       </div>
     </div>
@@ -1128,8 +1124,10 @@ export default function App() {
   const printWithTitle = (label) => {
     const safe = String(label || "CANA").replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ").trim();
     if (isIOS) {
-      NativeShareFile.sharePdf({ filename: `${safe}.pdf` }).catch(() => {
-        setToast("Could not create the PDF — please try again.");
+      NativeShareFile.sharePdf({ filename: `${safe}.pdf` }).catch((e) => {
+        // Surface the native error — a silent failure here cost a TestFlight
+        // round once already.
+        setToast(`PDF failed: ${(e && e.message) || "unknown error"}`);
       });
       return;
     }
@@ -2668,6 +2666,7 @@ export default function App() {
     };
     return (
       <div>
+        <Toast message={toast} />
         <ConvoPrint />
         <Chrome title="CANA — Start the Conversation" right={
           <div style={{ display: "flex", gap: 8 }} className="no-print">
@@ -2936,6 +2935,7 @@ export default function App() {
 
     return (
       <div>
+        <Toast message={toast} />
         <PrintReport />
         <Chrome title={reviewing ? `CANA — Report · ${new Date(archiveReport.ts || Date.now()).toLocaleDateString()}` : "CANA — Your Plan"} right={<div style={{ display: "flex", gap: 8 }}>{reviewing ? <Btn kind="ghost" onClick={() => { setArchiveReport(null); setScreen("dashboard"); window.scrollTo({ top: 0 }); }}>Done reviewing</Btn> : <>{hasHistory ? <Btn kind="ghost" onClick={() => setScreen("dashboard")}>Dashboard</Btn> : null}<Btn kind="ghost" onClick={() => setScreen("welcome")}>Home</Btn></>}</div>} />
         <Wrap>

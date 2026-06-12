@@ -76,8 +76,10 @@ public class ShareFilePlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("No web view available")
                 return
             }
-            // The print formatter applies the app's @media print CSS, so the
-            // PDF shows the designed .print-only pages, not the screen UI.
+            // Path 1: render the print formatter into a paginated A4 PDF and
+            // hand it to the share sheet. On recent iOS versions WebKit prints
+            // out-of-process and this synchronous renderer can yield ZERO
+            // pages — so it is attempted, never trusted.
             let renderer = UIPrintPageRenderer()
             renderer.addPrintFormatter(webView.viewPrintFormatter(), startingAtPageAt: 0)
             // A4 in points; insets mirror the @page margins in styles.css.
@@ -85,35 +87,54 @@ public class ShareFilePlugin: CAPPlugin, CAPBridgedPlugin {
             renderer.setValue(paper, forKey: "paperRect")
             renderer.setValue(paper.insetBy(dx: 40, dy: 45), forKey: "printableRect")
             let pageCount = renderer.numberOfPages
-            guard pageCount > 0 else {
-                call.reject("Nothing to render")
-                return
+            if pageCount > 0 {
+                let data = NSMutableData()
+                UIGraphicsBeginPDFContextToData(data, paper, nil)
+                renderer.prepare(forDrawingPages: NSRange(location: 0, length: pageCount))
+                for i in 0..<pageCount {
+                    UIGraphicsBeginPDFPage()
+                    renderer.drawPage(at: i, in: UIGraphicsGetPDFContextBounds())
+                }
+                UIGraphicsEndPDFContext()
+                let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+                if data.length > 1024, (try? (data as Data).write(to: url)) != nil {
+                    let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+                    sheet.completionWithItemsHandler = { _, completed, _, _ in
+                        call.resolve(["ok": true, "completed": completed, "via": "renderer"])
+                    }
+                    if let pop = sheet.popoverPresentationController {
+                        pop.sourceView = vc.view
+                        pop.sourceRect = CGRect(x: vc.view.bounds.midX, y: vc.view.bounds.midY, width: 0, height: 0)
+                        pop.permittedArrowDirections = []
+                    }
+                    vc.present(sheet, animated: true)
+                    return
+                }
             }
-            let data = NSMutableData()
-            UIGraphicsBeginPDFContextToData(data, paper, nil)
-            renderer.prepare(forDrawingPages: NSRange(location: 0, length: pageCount))
-            for i in 0..<pageCount {
-                UIGraphicsBeginPDFPage()
-                renderer.drawPage(at: i, in: UIGraphicsGetPDFContextBounds())
+            // Path 2 (fallback): Apple's own print pipeline. It talks to the
+            // web process asynchronously, so it works where the synchronous
+            // renderer cannot. The system sheet previews the print CSS pages;
+            // sharing/saving the PDF is available from the preview.
+            let info = UIPrintInfo(dictionary: nil)
+            info.outputType = .general
+            info.jobName = filename
+            let printer = UIPrintInteractionController.shared
+            printer.printInfo = info
+            printer.printFormatter = webView.viewPrintFormatter()
+            let done: UIPrintInteractionController.CompletionHandler = { _, completed, error in
+                if let error = error {
+                    call.reject("Print failed: \(error.localizedDescription)")
+                } else {
+                    call.resolve(["ok": true, "completed": completed, "via": "printsheet"])
+                }
             }
-            UIGraphicsEndPDFContext()
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-            do {
-                try (data as Data).write(to: url)
-            } catch {
-                call.reject("Could not write the PDF file: \(error.localizedDescription)")
-                return
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                // iPad requires an anchored popover presentation.
+                printer.present(from: CGRect(x: vc.view.bounds.midX, y: vc.view.bounds.midY, width: 0, height: 0),
+                                in: vc.view, animated: true, completionHandler: done)
+            } else {
+                printer.present(animated: true, completionHandler: done)
             }
-            let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-            sheet.completionWithItemsHandler = { _, completed, _, _ in
-                call.resolve(["ok": true, "completed": completed])
-            }
-            if let pop = sheet.popoverPresentationController {
-                pop.sourceView = vc.view
-                pop.sourceRect = CGRect(x: vc.view.bounds.midX, y: vc.view.bounds.midY, width: 0, height: 0)
-                pop.permittedArrowDirections = []
-            }
-            vc.present(sheet, animated: true)
         }
     }
 }
