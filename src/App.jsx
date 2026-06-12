@@ -391,7 +391,58 @@ function RichText({ text, style }) {
    Fill = Supply (couple-mean of time/rest/balance items). The dashed marker
    is the LINE THE OXYGEN NEEDS TO REACH: Demand (couple-mean of the calling/
    vision/growth items). State colors only on the fill and the pill. */
+// Science background shown when the oxygen card is tapped. Kept honest:
+// named source, named items, thresholds labeled editorial.
+function OxygenInfoModal({ onClose }) {
+  const sec = { fontSize: 11.5, color: "var(--gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", margin: "0 0 6px" };
+  const body = { fontSize: 14, color: "var(--ink2)", lineHeight: 1.6, margin: "0 0 16px" };
+  return (
+    <div onClick={onClose} className="no-print"
+      style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)",
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label="About the Oxygen check"
+        style={{ background: "var(--panel-solid)", borderRadius: 16, maxWidth: 540, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.35)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <h2 style={{ fontSize: 21, fontWeight: 700, color: "var(--ink)", margin: 0, letterSpacing: "-.01em" }}>The Oxygen check</h2>
+          <button onClick={onClose} aria-label="Close"
+            style={{ border: "none", background: "var(--bg2)", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", color: "var(--ink2)", fontSize: 16, lineHeight: 1 }}>✕</button>
+        </div>
+        <p style={sec}>Where this comes from</p>
+        <p style={body}>
+          Psychologist Eli Finkel and colleagues describe modern marriage with a mountain picture: couples increasingly ask
+          marriage to serve their highest needs — mutual growth, self-expression, a shared sense of purpose — which is like
+          climbing higher up the mountain. The altitude itself is not the problem; climbing it without enough oxygen is.
+          In their "suffocation model," high expectations are associated with the strongest marriages when couples invest
+          the time and energy those expectations require — and with strain when they don't
+          (Finkel, Hui, Carswell &amp; Larson, 2014, <em>Psychological Inquiry</em>; Finkel, <em>The All-or-Nothing Marriage</em>, 2017).
+        </p>
+        <p style={sec}>How CANA computes it</p>
+        <p style={body}>
+          <strong>Demand</strong> is the average — across both of you — of three expectation items: a shared vision for your
+          marriage, actively helping each other grow, and a sense of significant family calling.
+          <strong> Supply</strong> is the average of three resource items: satisfaction with your time together, work–life
+          balance, and Sabbath rest. The dashed line on the tank marks Demand — where the oxygen level needs to be.
+          Margin is simply Supply minus Demand.
+        </p>
+        <p style={sec}>What the states mean</p>
+        <p style={body}>
+          <strong>Thin air</strong>: high callings (Demand ≥ 8) on low reserves (Supply ≤ 4).
+          <strong> Narrow margin</strong>: Demand exceeds Supply by 3 points or more.
+          <strong> Breathable</strong>: your supply reaches the altitude your callings ask for.
+          These thresholds are editorial judgments chosen for reflection, not clinically validated cutoffs.
+        </p>
+        <p style={{ ...body, margin: 0 }}>
+          Like everything in CANA, this reads your <em>perception</em> of time, energy, and calling — not a stopwatch audit.
+          When the margin is negative, the research points away from lowering the calling and toward deliberately budgeting
+          unhurried time together: more oxygen, not less mountain.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function OxygenTank({ oxygen }) {
+  const [info, setInfo] = useState(false);
   if (!oxygen || !oxygen.complete) return null;
   const { supply, demand, margin, state } = oxygen;
   const stateColor = state === "thinair" ? "var(--red)" : state === "narrow" ? "var(--amber)" : "var(--green)";
@@ -407,8 +458,18 @@ function OxygenTank({ oxygen }) {
   const demandY = H - Math.max(0, Math.min(H, (demand / 10) * H));
   const fmt = (v) => v.toFixed(1);
   return (
+    <>
+    {info ? <OxygenInfoModal onClose={() => setInfo(false)} /> : null}
+    <button type="button" onClick={() => setInfo(true)} aria-label="About the Oxygen check"
+      style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer",
+        font: "inherit", color: "inherit", background: "none", border: "none",
+        padding: 0, margin: 0, appearance: "none", WebkitAppearance: "none",
+        WebkitTapHighlightColor: "transparent", outline: "none" }}>
     <Card style={{ marginTop: 28, padding: 22 }}>
-      <p style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 600, margin: "0 0 14px" }}>Oxygen check</p>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", margin: "0 0 14px" }}>
+        <p style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 600, margin: 0 }}>Oxygen check</p>
+        <span style={{ fontSize: 15, color: "var(--ink3)", lineHeight: 1, flexShrink: 0 }}>ⓘ</span>
+      </div>
       <div style={{ display: "flex", gap: 28, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: H, padding: "2px 0", textAlign: "right" }}>
@@ -441,11 +502,13 @@ function OxygenTank({ oxygen }) {
           <div>
             <span style={{ display: "inline-block", fontSize: 12.5, fontWeight: 600, padding: "5px 13px", borderRadius: 999, background: stateTint, color: stateColor }}>{stateLabel}</span>
             <p style={{ fontSize: 13, color: "var(--ink2)", lineHeight: 1.55, margin: "8px 0 0" }}>{stateText}</p>
-            <p style={{ fontSize: 11.5, color: "var(--ink3)", lineHeight: 1.5, margin: "6px 0 0" }}>Supply: your shared time, rest, and balance. Demand: what your shared vision, growth, and sense of calling ask of you. The dashed line marks where the oxygen needs to be.</p>
+            <p style={{ fontSize: 11.5, color: "var(--ink3)", lineHeight: 1.5, margin: "6px 0 0" }}>Supply: your shared time, rest, and balance. Demand: what your shared vision, growth, and sense of calling ask of you. The dashed line marks where the oxygen needs to be. Tap for the science behind this.</p>
           </div>
         </div>
       </div>
     </Card>
+    </button>
+    </>
   );
 }
 
@@ -1060,8 +1123,16 @@ export default function App() {
   // Print helper: macOS uses the document title as the default PDF filename, so
   // we set a precise label (e.g. "Report Summary 05062026 David Abby") for the
   // duration of the print, then restore it. Sanitized to filename-safe text.
+  // On iOS window.print() is a no-op inside WKWebView, so the native plugin
+  // renders the print CSS to a paginated PDF and opens the share sheet.
   const printWithTitle = (label) => {
     const safe = String(label || "CANA").replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ").trim();
+    if (isIOS) {
+      NativeShareFile.sharePdf({ filename: `${safe}.pdf` }).catch(() => {
+        setToast("Could not create the PDF — please try again.");
+      });
+      return;
+    }
     const prev = document.title;
     document.title = safe;
     // Restore after the print dialog returns (and as a fallback timer).
@@ -1631,6 +1702,10 @@ export default function App() {
             <Btn onClick={() => { setMode("full"); setScreen("prepare"); window.scrollTo({ top: 0 }); }}>Begin Full Assessment</Btn>
             <Btn kind="secondary" onClick={() => startAssessment("checkin")} disabled={!names.A && !hasHistory}>Quick Check-In</Btn>
             {results ? <Btn kind="subtle" onClick={() => { setScreen("results"); window.scrollTo({ top: 0 }); }}>View latest results</Btn> : null}
+            {/* The conversation screen renders on convo.open, but the welcome
+                gate is checked first — switch to "results" so the guide shows
+                and its "Back to report" lands somewhere sensible. */}
+            {results ? <Btn kind="subtle" onClick={() => { setScreen("results"); startConversation(results); }}>Start the conversation →</Btn> : null}
             {hasHistory ? <Btn kind="subtle" onClick={() => setScreen("dashboard")}>Dashboard · {sessions.length}</Btn> : null}
           </div>
           <div className="rise-4" style={{ marginTop: 12, display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -3097,11 +3172,13 @@ export default function App() {
             <div style={{ display: "flex", gap: 12, marginTop: 28, flexWrap: "wrap" }} className="no-print">
               <Btn kind="secondary" onClick={() => setScreen(reviewing ? "dashboard" : "welcome")}>{reviewing ? "Back" : "Home"}</Btn>
               <Btn onClick={() => printWithTitle(`Report Summary ${dateStamp(reviewing ? archiveReport.ts : undefined)} ${R.nameA || ""} ${R.nameB || ""}`)}>Save as PDF</Btn>
-              <Btn kind="secondary" onClick={() => emailReport(R, profile ? profile.email : "")}>Email report</Btn>
+              {!isIOS ? <Btn kind="secondary" onClick={() => emailReport(R, profile ? profile.email : "")}>Email report</Btn> : null}
               <Btn onClick={() => startConversation(R)}>Start the conversation →</Btn>
             </div>
             <p style={{ fontSize: 12, color: "var(--ink3)", marginTop: 10, lineHeight: 1.5 }} className="no-print">
-              "Email report" opens your mail app with the report prefilled{profile ? ` to ${profile.email}` : ""} — you review and send it yourself, so nothing is transmitted by the app. If your mail app shortens a long report, use "Save as PDF" and attach it instead.
+              {isIOS
+                ? '"Save as PDF" renders the report and opens the share sheet — save it to Files, AirDrop it, or attach it to an email from there. Nothing is transmitted by the app itself.'
+                : `"Email report" opens your mail app with the report prefilled${profile ? ` to ${profile.email}` : ""} — you review and send it yourself, so nothing is transmitted by the app. If your mail app shortens a long report, use "Save as PDF" and attach it instead.`}
             </p>
           </div>
         </Wrap>

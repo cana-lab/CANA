@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.55.0
+- **iOS: "Save as PDF" actually works now.** `window.print()` is a silent no-op inside WKWebView, so every PDF button on iPhone did nothing. The ShareFile plugin gained a native `sharePdf` method: it renders the app's print CSS (the designed `.print-only` report pages) through `UIPrintPageRenderer` into a paginated A4 PDF and opens the share sheet — Save to Files, AirDrop, or Mail with the PDF already attached. Same precise filename as on the Mac.
+- iOS: the separate "Email report" button is gone on iPhone — it relied on `mailto:` (which can't attach files) plus the print dialog. The share sheet from "Save as PDF" covers it with the PDF attached; the caption under the buttons explains the flow.
+- **The oxygen tank is now tappable** (report card): a clean press target with no button chrome opens a science panel — Finkel's suffocation model as the source (Finkel, Hui, Carswell & Larson 2014; *The All-or-Nothing Marriage* 2017), which six items feed Supply and Demand, what the three states mean, and a plain statement that the thresholds are editorial, not clinical.
+- **"Start the conversation →" is available directly from the home screen** whenever a report exists — no detour through the results page. Reuses the saved guide, so it opens instantly.
+- Verified: 41/41 tests; web, electron, and iOS bundles build; Xcode simulator build green.
+
 ## 4.54.3
 - The second half of the Capacitor-6 plugin trap: 4.54.2 fixed the JS side (registerPlugin), but the NATIVE side still used the legacy CAP_PLUGIN Objective-C macro — which Capacitor 6 no longer reads, so the bridge reported "plugin is not implemented on iOS" (exactly the message after the export passphrase). All three plugins (ShareFile, Credentials, FoundationAI) now conform to CAPBridgedPlugin (identifier, jsName, pluginMethods) — Capacitor 6's actual registration mechanism. The obsolete .m macro files are removed from the project.
 - iOS-only change; the Mac binary stays at 4.54.2 (identical behavior there).
