@@ -1,9 +1,11 @@
 #!/usr/bin/env node
-// CANA — minimal App Store Connect API client (read-only usage).
+// CANA — minimal App Store Connect API client.
 // -----------------------------------------------------------------------------
-// Mints a short-lived ES256 JWT and GETs an App Store Connect API path, e.g.:
+// Mints a short-lived ES256 JWT and calls an App Store Connect API path, e.g.:
 //   node scripts/asc-api.cjs /v1/apps
 //   node scripts/asc-api.cjs "/v1/builds?filter[app]=APPID&limit=5"
+//   node scripts/asc-api.cjs POST /v1/ciBuildRuns '{"data":{...}}'
+// (POST exists to restart Xcode Cloud builds; everything else stays read-only.)
 //
 // Credentials (never in the repo):
 //   - Key ID + Issuer ID: macOS Keychain, service "cana-asc-api",
@@ -50,17 +52,27 @@ function mintJWT() {
   return `${signingInput}.${b64url(sig)}`;
 }
 
-const apiPath = process.argv[2];
+let method = "GET";
+let argIdx = 2;
+if (["GET", "POST"].includes(String(process.argv[2]).toUpperCase())) {
+  method = process.argv[2].toUpperCase();
+  argIdx = 3;
+}
+const apiPath = process.argv[argIdx];
+const reqBody = process.argv[argIdx + 1] || null;
 if (!apiPath || !apiPath.startsWith("/")) {
-  console.error('Usage: node scripts/asc-api.cjs "/v1/apps"');
+  console.error('Usage: node scripts/asc-api.cjs [GET|POST] "/v1/apps" [json-body]');
   process.exit(1);
 }
+
+const headers = { Authorization: `Bearer ${mintJWT()}` };
+if (reqBody) headers["Content-Type"] = "application/json";
 
 const req = https.request({
   hostname: "api.appstoreconnect.apple.com",
   path: apiPath,
-  method: "GET",
-  headers: { Authorization: `Bearer ${mintJWT()}` },
+  method,
+  headers,
 }, (res) => {
   let body = "";
   res.on("data", (c) => (body += c));
@@ -74,4 +86,5 @@ const req = https.request({
   });
 });
 req.on("error", (e) => { console.error(e.message); process.exit(1); });
+if (reqBody) req.write(reqBody);
 req.end();
