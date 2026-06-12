@@ -321,6 +321,25 @@ function DashboardPreview({ trends, onOpen }) {
             <div style={{ marginTop: 6 }}>{dchip(it.delta, it.invert)}</div>
           </div>
         ))}
+        {(() => {
+          const ox = (trends.oxygenSeries && trends.oxygenSeries.length) ? trends.oxygenSeries[trends.oxygenSeries.length - 1] : null;
+          if (!ox) return null;
+          const c = ox.state === "thinair" ? "var(--red)" : ox.state === "narrow" ? "var(--amber)" : "var(--green)";
+          const lbl = ox.state === "thinair" ? "Thin air" : ox.state === "narrow" ? "Narrow margin" : "Breathable";
+          return (
+            <div style={{ flex: 1, minWidth: 150, padding: "12px 14px", border: "1px solid var(--hair)", borderRadius: 12, background: "var(--panel-solid)" }}>
+              <div style={{ fontSize: 11, color: "var(--ink3)", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600, marginBottom: 4 }}>Oxygen</div>
+              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 6 }}>
+                <span style={{ fontSize: 26, fontWeight: 700, color: c, letterSpacing: "-.02em", lineHeight: 1 }}>{ox.supply.toFixed(1)}<span style={{ fontSize: 12, color: "var(--ink3)" }}>/10</span></span>
+                <div style={{ position: "relative", width: 16, height: 40, border: "1px solid var(--hair)", borderRadius: 8, overflow: "hidden", background: "var(--bg2)" }}>
+                  <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: `${Math.min(100, ox.supply * 10)}%`, background: c, opacity: 0.8 }} />
+                  <div style={{ position: "absolute", left: 1, right: 1, top: `${Math.max(0, 100 - ox.demand * 10)}%`, borderTop: "1.5px dashed var(--ink)", opacity: 0.7 }} />
+                </div>
+              </div>
+              <div style={{ marginTop: 6 }}><span style={{ fontSize: 11.5, color: c, fontWeight: 700 }}>{lbl}</span></div>
+            </div>
+          );
+        })()}
       </div>
     </Card>
   );
@@ -522,6 +541,31 @@ function LineChart({ series, color, yMax = 10 }) {
       <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {pts.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.value)} r={p.kind === "full" ? 4.5 : 3.5}
         fill="#fff" stroke={color} strokeWidth="2.5" />)}
+    </svg>
+  );
+}
+
+/* Oxygen over time — supply (solid, state-colored dots) vs demand (dashed).
+   Same geometry as LineChart; two series from trends.oxygenSeries. */
+function OxygenTrendChart({ series }) {
+  const W = 700, H = 130, padL = 28, padR = 12, padT = 14, padB = 24;
+  const pts = (series || []).filter((p) => p.supply != null && p.demand != null);
+  if (!pts.length) return null;
+  const n = pts.length;
+  const x = (i) => padL + (n === 1 ? (W - padL - padR) / 2 : (i * (W - padL - padR)) / (n - 1));
+  const y = (v) => padT + (1 - v / 10) * (H - padT - padB);
+  const path = (key) => pts.map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(" ");
+  const dotColor = (st) => st === "thinair" ? "var(--red)" : st === "narrow" ? "var(--amber)" : "var(--green)";
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }}>
+      {[0, 5, 10].map((g, i) => (
+        <g key={i}><line x1={padL} y1={y(g)} x2={W - padR} y2={y(g)} stroke="rgba(0,0,0,0.07)" strokeWidth="1" />
+          <text x={2} y={y(g) + 3} fill="#8E8E93" fontSize="10">{g}</text></g>
+      ))}
+      <path d={path("demand")} fill="none" stroke="var(--ink3)" strokeWidth="2" strokeDasharray="6 5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={path("supply")} fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      {pts.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.supply)} r={p.kind === "full" ? 4.5 : 3.5}
+        fill="#fff" stroke={dotColor(p.state)} strokeWidth="2.5" />)}
     </svg>
   );
 }
@@ -3146,6 +3190,20 @@ export default function App() {
             <ChartBlock label="Mission Drift" desc="Distance from your first assessment. Flat = on mission; rising = drifting." series={trends.driftSeries} color="#FF9F0A" />
             <ChartBlock label="Value Alignment" desc="Higher = you experience your shared life more similarly." series={trends.alignmentSeries.map((p) => ({ ts: p.ts, kind: p.kind, value: p.score }))} color="var(--accent)" />
             <ChartBlock label="Overall Health" series={trends.overallSeries} color="#34C759" />
+            {trends.oxygenSeries && trends.oxygenSeries.length ? (
+              <div style={{ marginBottom: 26 }}>
+                <p style={eyebrow}>Oxygen</p>
+                <p style={{ ...body, fontSize: 13 }}>Solid line: your supply of time, rest, and balance. Dashed line: what your shared callings ask. Breathing room is the space between them.</p>
+                <Card style={{ padding: 16 }}>
+                  <OxygenTrendChart series={trends.oxygenSeries} />
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>{trends.oxygenSeries.map((p, i) => <span key={i} style={{ fontSize: 10, color: "var(--ink3)" }}>{fmtDate(p.ts)}</span>)}</div>
+                  <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+                    <span style={{ fontSize: 11.5, color: "var(--ink2)" }}><span style={{ display: "inline-block", width: 16, height: 0, borderTop: "2.5px solid var(--green)", verticalAlign: "middle", marginRight: 5 }} />Supply</span>
+                    <span style={{ fontSize: 11.5, color: "var(--ink2)" }}><span style={{ display: "inline-block", width: 16, height: 0, borderTop: "2px dashed var(--ink3)", verticalAlign: "middle", marginRight: 5 }} />Demand</span>
+                  </div>
+                </Card>
+              </div>
+            ) : null}
             <div style={{ height: 1, background: "var(--hair2)", margin: "26px 0" }} />
             <p style={eyebrow}>Domain Movement</p>
             <Card style={{ marginBottom: 26 }}>{trends.domainTrends.map((d) => {

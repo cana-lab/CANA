@@ -1180,6 +1180,16 @@ export function buildSnapshot(analytics, kind, ts) {
     alignmentGap: round1(
       analytics.domainScores.reduce((s, d) => s + d.domainGap, 0) / analytics.domainScores.length
     ),
+    // Oxygen telemetry (v4.53): stored per session so the dashboard can chart
+    // supply vs demand over time. null when the six items weren't all answered
+    // (and for pre-4.53 sessions, which simply lack the field).
+    oxygen: analytics.oxygen && analytics.oxygen.complete ? {
+      complete: true,
+      supply: round1(analytics.oxygen.supply),
+      demand: round1(analytics.oxygen.demand),
+      margin: round1(analytics.oxygen.margin),
+      state: analytics.oxygen.state,
+    } : null,
   };
 }
 
@@ -1276,7 +1286,13 @@ export function computeTrends(sessions) {
     trendFlags.push({ type: "STRENGTH", label: `Growing — ${headline.topImprover.label}`,
       text: `${headline.topImprover.label} has risen ${headline.topImprover.delta} points since baseline — the strongest area of growth.` });
 
-  return { ordered, baseline, latest, driftSeries, alignmentSeries, domainTrends, overallSeries, headline, trendFlags };
+  // 7. OXYGEN SERIES (v4.53) — supply vs demand over time, from sessions
+  // that carried complete telemetry. Older sessions are skipped, not faked.
+  const oxygenSeries = ordered
+    .filter((s) => s.oxygen && s.oxygen.complete)
+    .map((s) => ({ ts: s.ts, kind: s.kind, supply: s.oxygen.supply, demand: s.oxygen.demand, margin: s.oxygen.margin, state: s.oxygen.state }));
+
+  return { ordered, baseline, latest, driftSeries, alignmentSeries, domainTrends, overallSeries, oxygenSeries, headline, trendFlags };
 }
 
 // ============================================================================

@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.53.0
+- **Oxygen over time.** The trend dashboard now charts the oxygen telemetry across sessions: a solid green Supply line (time, rest, balance) against a dashed Demand line (vision, growth, calling) — breathing room is visibly the space between them. Data points are colored by that session's state (green/amber/red). Sessions store the telemetry from now on; older sessions are skipped on the chart, never faked.
+- **Oxygen on the home screen.** The dashboard preview's tile row gains an Oxygen tile: current supply value, a miniature tank with the dashed demand mark, and the state label — the freshest reading from your latest session, visible the moment you open the app.
+- Verified: 41/41 tests (new: snapshots carry rounded telemetry; trends chart exactly the sessions that have it, legacy sessions skipped); all three bundles build clean.
+
 ## 4.52.0
 - Quick Check-In now includes the six Oxygen-check items (f12 family calling, m16 mutual growth, m5 shared vision · v3 work-life balance, b7 rest/sabbath, m4 time together) alongside the 11 per-domain anchors — 17 questions total, still a five-minute format. Every check-in report therefore carries a **fresh Oxygen-check card**: the supply side (time, rest, balance) is exactly what shifts week to week, while demand moves slowly — which makes the check-in the natural place to read the tank.
 - Implementation: the six items carry a `checkin` flag in the engine; the check-in filter is `core || checkin`. Anchor logic (CORE_QUESTIONS) untouched; full assessment unchanged.

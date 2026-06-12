@@ -12,6 +12,8 @@ import {
   computeAnalytics,
   computeOxygen,
   generateLocalPlan,
+  buildSnapshot,
+  computeTrends,
 } from "./engine.js";
 
 function emptyAnswers() {
@@ -242,5 +244,19 @@ describe("computeOxygen (tank-card telemetry)", () => {
     const ans = {};
     for (const q of qs) ans[q.id] = q.rev ? 2 : 7;
     expect(computeOxygen(ans, ans).complete).toBe(true);
+  });
+
+  it("sessions carry oxygen telemetry and trends chart it (v4.53)", () => {
+    const a = { ...uniformAnswers(6), ...six(9, 2) };
+    const snap = buildSnapshot(computeAnalytics(a, a, "A", "B"), "checkin", "2026-06-01T00:00:00Z");
+    expect(snap.oxygen).toMatchObject({ complete: true, demand: 9, supply: 2, state: "thinair" });
+
+    const b = { ...uniformAnswers(6), ...six(6, 6) };
+    const snap2 = buildSnapshot(computeAnalytics(b, b, "A", "B"), "checkin", "2026-06-08T00:00:00Z");
+    const legacy = { ts: "2026-05-01T00:00:00Z", kind: "full", overall: 6, domains: snap.domains, alignmentGap: 0 }; // pre-4.53, no oxygen
+    const trends = computeTrends([legacy, snap, snap2]);
+    expect(trends.oxygenSeries.length).toBe(2); // legacy session skipped, not faked
+    expect(trends.oxygenSeries[0].state).toBe("thinair");
+    expect(trends.oxygenSeries[1].state).toBe("nominal");
   });
 });
