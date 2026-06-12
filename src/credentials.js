@@ -13,6 +13,8 @@
 // rather than throwing, because remembering a password is a convenience that
 // must never block signing in.
 
+import { Credentials as NativeCredentials, isNativeIOS } from "./nativePlugins.js";
+
 function macBridge() {
   try {
     const c = typeof window !== "undefined" && window.cana && window.cana.credentials;
@@ -21,11 +23,10 @@ function macBridge() {
 }
 
 function iosPlugin() {
-  try {
-    const cap = typeof window !== "undefined" && window.Capacitor;
-    if (!cap || typeof cap.getPlatform !== "function" || cap.getPlatform() !== "ios") return null;
-    return (cap.Plugins && cap.Plugins.Credentials) || null;
-  } catch (e) { return null; }
+  // registerPlugin-backed proxy (Capacitor 3+ stopped exposing custom
+  // plugins under Capacitor.Plugins — looking them up there yields
+  // undefined and silently killed the iOS Keychain path).
+  return isNativeIOS() ? NativeCredentials : null;
 }
 
 export async function credAvailable() {

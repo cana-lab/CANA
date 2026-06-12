@@ -12,6 +12,8 @@
 // IMPORTANT: like all AI here, output is treated as optional polish. Every caller
 // must fall back to the deterministic text if this returns null.
 
+import { FoundationAI as NativeFoundationAI, isNativeIOS } from "./nativePlugins.js";
+
 let _plugin = null;
 let _checked = false;
 let _available = false;
@@ -21,11 +23,12 @@ let _available = false;
 function getPlugin() {
   if (_plugin) return _plugin;
   try {
-    const cap = window.Capacitor;
-    if (!cap || !cap.Plugins || !cap.Plugins.FoundationAI) return null;
-    // Only use it on a native iOS platform.
-    if (typeof cap.getPlatform === "function" && cap.getPlatform() !== "ios") return null;
-    _plugin = cap.Plugins.FoundationAI;
+    // registerPlugin-backed proxy from nativePlugins.js — Capacitor 3+ does
+    // not expose custom plugins under Capacitor.Plugins, so the previous
+    // lookup there returned undefined on device and the Apple model was
+    // never reachable.
+    if (!isNativeIOS()) return null;
+    _plugin = NativeFoundationAI;
     return _plugin;
   } catch (e) {
     return null;

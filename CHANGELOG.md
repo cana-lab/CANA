@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.54.2
+- **All three native iOS plugins were unreachable from JS — fixed at the root.** Since Capacitor 3, custom native plugins are no longer exposed under `window.Capacitor.Plugins`; they must be registered JS-side via `registerPlugin()`. Our lookups silently got `undefined` and every guard fell back without an error — which is why the share sheet never opened after the passphrase (and why the iOS Keychain "remember password" and the Apple-Intelligence detection would have been silently dead too). New src/nativePlugins.js registers ShareFile, Credentials, and FoundationAI properly; all call sites switched.
+- iOS: the home-screen header now has a **Settings** button (the Settings screen existed but had no entry point on iPhone — only the AI badge opened it, and that badge is hidden on devices without Apple Intelligence).
+- Note: @capacitor/core now ships in the main bundle (+~20 KB gzip) — the price of doing plugin registration correctly.
+- Verified: 41/41 tests; all bundles build. On-device verification in TestFlight build 21: export → share sheet/AirDrop, Keychain autofill after app restart, and (on supported devices) the on-device AI badge.
+
 ## 4.54.1
 - The "Continue where you left off" card was invisible for anyone who already had a completed report — its visibility check (`!anyProgress || results`) hid every saved draft once a report existed, making a saved check-in unreachable. It now shows whenever a draft is in progress and hides only the just-finished state (draft complete AND report generated). Saved check-ins are resumable again from the home screen, per partner.
 - The "Progress saved" toast no longer squishes: the green check circle is fixed-size (flexShrink 0 — same flexbox compression as the "?" icon in 4.54.0), and the pill caps at phone width instead of clipping.

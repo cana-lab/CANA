@@ -20,6 +20,7 @@ import { createProfile, signIn, listProfiles, registerProfileRecord } from "./au
 import { encryptPayload, decryptPayload, buildTransferPayload, validateTransfer } from "./transfer.js";
 import { exportCrashLog, readCrashLog, clearCrashLog } from "./crashLog.js";
 import { credAvailable as credStoreAvailable, credSave, credGet, credRemove } from "./credentials.js";
+import { ShareFile as NativeShareFile } from "./nativePlugins.js";
 import { METRIC_INFO, scaleText, SCORE_BANDS, bandFor } from "./metrics.js";
 import { QUESTION_HELP } from "./questionHelp.js";
 
@@ -1357,7 +1358,7 @@ export default function App() {
       const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
       const fname = `CANA-data-${(profile && profile.nameA) || "export"}-${stamp}.cana`;
       const n = payload.counts;
-      const shareFile = isIOS && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ShareFile;
+      const shareFile = isIOS ? NativeShareFile : null;
       if (shareFile) {
         // Native iOS share sheet: AirDrop to the other iPhone, save to Files,
         // or send via Mail/Messages. The file is already encrypted here.
@@ -1609,6 +1610,7 @@ export default function App() {
         isIOS ? (
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {llmBadge}
+            <Btn kind="ghost" onClick={() => { setScreen("settings"); window.scrollTo({ top: 0 }); }} style={{ padding: "6px 10px", fontSize: 13 }}>Settings</Btn>
             <Btn kind="ghost" onClick={logout} style={{ padding: "6px 10px", fontSize: 13 }}>Sign out</Btn>
           </div>
         ) : llmBadge
