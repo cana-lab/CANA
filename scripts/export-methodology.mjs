@@ -80,11 +80,12 @@ for (const d of eng.DOMAINS) {
     if (d.about.science) P(`Research basis: ${d.about.science}`);
   }
   P();
-  P(`| # | id | Question | Scale | Reversed | Core | Weight |`);
-  P(`|---|----|----------|-------|----------|------|--------|`);
+  P(`| # | id | Question | Scale | Reversed | Check-in | Weight |`);
+  P(`|---|----|----------|-------|----------|----------|--------|`);
   d.questions.forEach((q, i) => {
     const typeName = q.type && q.type.name ? q.type.name : "Agreement";
-    P(`| ${i + 1} | ${q.id} | ${q.text.replace(/\|/g, "\\|")} | ${typeName} | ${q.rev ? "yes" : ""} | ${q.core ? "yes" : ""} | ${q.w || 1} |`);
+    const ci = q.core ? "anchor" : q.checkin ? "oxygen" : "";
+    P(`| ${i + 1} | ${q.id} | ${q.text.replace(/\|/g, "\\|")} | ${typeName} | ${q.rev ? "yes" : ""} | ${ci} | ${q.w || 1} |`);
   });
   P();
 }

@@ -602,8 +602,12 @@ export default function App() {
   const [update, setUpdate] = useState({ checking: false, result: null });
   const topRef = useRef(null);
 
+  // Check-in = the 11 per-domain anchors PLUS the six oxygen items
+  // (f12/m16/m5/v3/b7/m4, flagged `checkin` in the engine) — so every
+  // check-in report carries a fresh Oxygen-check reading. Supply-side
+  // answers (time, rest, balance) are exactly what shifts week to week.
   const activeDomains = mode === "full" ? DOMAINS
-    : DOMAINS.map((d) => ({ ...d, questions: d.questions.filter((q) => q.core) }));
+    : DOMAINS.map((d) => ({ ...d, questions: d.questions.filter((q) => q.core || q.checkin) }));
 
   useEffect(() => { setQPage(0); }, [dIdx, person]);
 

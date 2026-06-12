@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.52.0
+- Quick Check-In now includes the six Oxygen-check items (f12 family calling, m16 mutual growth, m5 shared vision · v3 work-life balance, b7 rest/sabbath, m4 time together) alongside the 11 per-domain anchors — 17 questions total, still a five-minute format. Every check-in report therefore carries a **fresh Oxygen-check card**: the supply side (time, rest, balance) is exactly what shifts week to week, while demand moves slowly — which makes the check-in the natural place to read the tank.
+- Implementation: the six items carry a `checkin` flag in the engine; the check-in filter is `core || checkin`. Anchor logic (CORE_QUESTIONS) untouched; full assessment unchanged.
+- Docs updated (TREND_ANALYSIS: 17 questions; methodology export now marks each question's check-in role as "anchor" / "oxygen").
+- Verified: 40/40 tests (new: check-in set is exactly 11+6, and answering only those 17 yields a complete oxygen reading); all three bundles build clean.
+
 ## 4.51.0
 - New "Oxygen check" card on the report (Apple/SpaceX-instrument style): a vertical tank whose fill level is the couple's **Supply** (couple-mean of time together m4, rest/sabbath b7, work-life balance v3) with a **dashed marker line showing where the oxygen level needs to be** — the **Demand** (couple-mean of shared vision m5, mutual growth m16, family calling f12). Telemetry row shows Supply / Demand / signed Margin plus a state pill: Breathable (green), Narrow margin (amber, demand exceeds supply by ≥ 3), Thin air (red — exactly the 4.50 imbalance-flag threshold). State color appears only in the fill and the pill; the rest of the instrument stays quiet.
 - Engine: new exported `computeOxygen(answersA, answersB)` — ONE source of truth for both the card and the "Resource/Expectation Imbalance" flag (the flag's previous inline computation was refactored onto it; thresholds unchanged and covered by the existing tests). The oxygen telemetry is part of analytics and of the saved report, so archived reports render their own historical state; pre-4.51 archives simply omit the card.

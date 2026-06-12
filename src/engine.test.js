@@ -231,4 +231,16 @@ describe("computeOxygen (tank-card telemetry)", () => {
     const plan = generateLocalPlan(analytics);
     expect(plan.oxygen).toEqual(analytics.oxygen);
   });
+
+  it("check-in question set = 11 anchors + the 6 oxygen items (v4.52)", () => {
+    const qs = DOMAINS.flatMap((d) => d.questions).filter((q) => q.core || q.checkin);
+    expect(qs.length).toBe(17);
+    for (const id of ["f12", "m16", "m5", "v3", "b7", "m4"]) {
+      expect(qs.some((q) => q.id === id)).toBe(true);
+    }
+    // A check-in answering only those 17 produces a COMPLETE oxygen reading.
+    const ans = {};
+    for (const q of qs) ans[q.id] = q.rev ? 2 : 7;
+    expect(computeOxygen(ans, ans).complete).toBe(true);
+  });
 });
