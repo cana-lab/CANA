@@ -14,7 +14,15 @@ import UIKit
 // is dismissed (regardless of which activity, or none, was chosen).
 
 @objc(ShareFilePlugin)
-public class ShareFilePlugin: CAPPlugin {
+public class ShareFilePlugin: CAPPlugin, CAPBridgedPlugin {
+    // Capacitor 6 registration: the bridge discovers plugins via the
+    // CAPBridgedPlugin protocol — the old CAP_PLUGIN ObjC macro no longer
+    // registers anything.
+    public let identifier = "ShareFilePlugin"
+    public let jsName = "ShareFile"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "share", returnType: CAPPluginReturnPromise),
+    ]
 
     @objc func share(_ call: CAPPluginCall) {
         guard let filename = call.getString("filename")?

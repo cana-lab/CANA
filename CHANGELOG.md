@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.54.3
+- The second half of the Capacitor-6 plugin trap: 4.54.2 fixed the JS side (registerPlugin), but the NATIVE side still used the legacy CAP_PLUGIN Objective-C macro — which Capacitor 6 no longer reads, so the bridge reported "plugin is not implemented on iOS" (exactly the message after the export passphrase). All three plugins (ShareFile, Credentials, FoundationAI) now conform to CAPBridgedPlugin (identifier, jsName, pluginMethods) — Capacitor 6's actual registration mechanism. The obsolete .m macro files are removed from the project.
+- iOS-only change; the Mac binary stays at 4.54.2 (identical behavior there).
+- Verified: full Xcode simulator build SUCCEEDS with the converted plugins; 41/41 tests. On-device proof in TestFlight build 22: export → share sheet must now appear.
+
 ## 4.54.2
 - **All three native iOS plugins were unreachable from JS — fixed at the root.** Since Capacitor 3, custom native plugins are no longer exposed under `window.Capacitor.Plugins`; they must be registered JS-side via `registerPlugin()`. Our lookups silently got `undefined` and every guard fell back without an error — which is why the share sheet never opened after the passphrase (and why the iOS Keychain "remember password" and the Apple-Intelligence detection would have been silently dead too). New src/nativePlugins.js registers ShareFile, Credentials, and FoundationAI properly; all call sites switched.
 - iOS: the home-screen header now has a **Settings** button (the Settings screen existed but had no entry point on iPhone — only the AI badge opened it, and that badge is hidden on devices without Apple Intelligence).

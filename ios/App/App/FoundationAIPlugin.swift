@@ -32,7 +32,13 @@ import FoundationModels
 #endif
 
 @objc(FoundationAIPlugin)
-public class FoundationAIPlugin: CAPPlugin {
+public class FoundationAIPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "FoundationAIPlugin"
+    public let jsName = "FoundationAI"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "isAvailable", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "generate", returnType: CAPPluginReturnPromise),
+    ]
 
     @objc func isAvailable(_ call: CAPPluginCall) {
         #if compiler(>=6.2) && canImport(FoundationModels)

@@ -19,7 +19,15 @@ import Security
 // / get({email}) -> {ok, password?} / remove({email}).
 
 @objc(CredentialsPlugin)
-public class CredentialsPlugin: CAPPlugin {
+public class CredentialsPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "CredentialsPlugin"
+    public let jsName = "Credentials"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "available", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "save", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "get", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "remove", returnType: CAPPluginReturnPromise),
+    ]
     private let service = "com.cana.covenantlife.profile-passwords"
 
     private func baseQuery(_ email: String) -> [String: Any] {
