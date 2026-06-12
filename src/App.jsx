@@ -196,10 +196,10 @@ function ScaleInput({ question, value, onChange }) {
           <span style={{ fontSize: 11, color: "var(--ink3)" }}>tap to answer</span>
         </div>
       ) : null}
-      <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-        <div style={{ display: "flex", gap: 5, flex: 1 }}>{type.low.map((o) => <ScaleChip key={o.v} value={value} opt={o} onClick={onChange} />)}</div>
-        <div style={{ width: 1, background: "var(--hair)", margin: "2px 2px" }} aria-hidden="true" />
-        <div style={{ display: "flex", gap: 5, flex: 1 }}>{type.high.map((o) => <ScaleChip key={o.v} value={value} opt={o} onClick={onChange} />)}</div>
+      <div className="scale-row">
+        <div className="scale-half">{type.low.map((o) => <ScaleChip key={o.v} value={value} opt={o} onClick={onChange} />)}</div>
+        <div className="scale-div" aria-hidden="true" />
+        <div className="scale-half">{type.high.map((o) => <ScaleChip key={o.v} value={value} opt={o} onClick={onChange} />)}</div>
       </div>
     </div>
   );
@@ -788,6 +788,21 @@ export default function App() {
     setShowAbout(false); setOpenInfo(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [dIdx, domain.id, person, N, mode]);
+  // Skip an entire chapter: marks every question in the current domain as
+  // Not applicable for the current partner, then advances. N/A questions are
+  // excluded from all scoring (engine treats them as unscorable), so a
+  // skipped chapter never distorts a score — it is simply absent.
+  const skipDomain = useCallback(() => {
+    const who = person === "A" ? (names.A || "Partner A") : (names.B || "Partner B");
+    if (!confirm(`Skip "${domain.label}" for ${who}? All its questions will be marked Not applicable — the chapter won't count toward any score. You can come back later via the chapter pills.`)) return;
+    setAnswers((p) => {
+      const mine = { ...p[person] };
+      for (const q of domain.questions) mine[q.id] = "NA";
+      return { ...p, [person]: mine };
+    });
+    finishDomain();
+  }, [domain, person, names, finishDomain]);
+
   // Clears only the in-progress draft answers — NEVER the saved results report
   // or the session archive. Starting or finishing an assessment must not erase
   // a previously completed report.
@@ -1342,7 +1357,14 @@ export default function App() {
       const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
       const fname = `CANA-data-${(profile && profile.nameA) || "export"}-${stamp}.cana`;
       const n = payload.counts;
-      if (isDesktop && window.cana && window.cana.saveFile) {
+      const shareFile = isIOS && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ShareFile;
+      if (shareFile) {
+        // Native iOS share sheet: AirDrop to the other iPhone, save to Files,
+        // or send via Mail/Messages. The file is already encrypted here.
+        const r = await shareFile.share({ filename: fname, text: fileText });
+        if (r && r.ok) setToast(`Exported ${n.reports} report${n.reports === 1 ? "" : "s"} — keep your passphrase safe`);
+        else setToast("Export failed");
+      } else if (isDesktop && window.cana && window.cana.saveFile) {
         // Packaged Mac app: the <a download> blob trick silently does nothing
         // in a file://-loaded window — use the native save panel instead.
         const res = await window.cana.saveFile(fname, fileText);
@@ -2243,7 +2265,7 @@ export default function App() {
                   style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid var(--hair)", background: "var(--panel-solid)",
                     borderRadius: 10, padding: "9px 14px", fontSize: 13.5, fontWeight: 500, color: "var(--ink2)", cursor: "pointer", width: "100%", justifyContent: "space-between" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--accent)", color: "#fff", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>?</span>
+                    <span style={{ width: 20, height: 20, minWidth: 20, flexShrink: 0, borderRadius: "50%", background: "var(--accent)", color: "#fff", fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>?</span>
                     About this Chapter — why these questions, and the research behind them
                   </span>
                   <span style={{ color: "var(--ink3)", transform: showAbout ? "rotate(90deg)" : "none", transition: "transform .2s" }}>›</span>
@@ -2335,6 +2357,9 @@ export default function App() {
                   <Btn disabled={!pageDone} onClick={() => { setQPage(page + 1); setOpenInfo(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Continue</Btn>
                 ) : (
                   <Btn disabled={!allDone} onClick={finishDomain}>{dIdx < N - 1 ? `Next — ${activeDomains[dIdx + 1].label}` : "Complete"}</Btn>
+                )}
+                {!allDone && (
+                  <Btn kind="subtle" onClick={skipDomain}>Skip chapter</Btn>
                 )}
                 {page > 0 ? (
                   <Btn kind="subtle" onClick={() => { setQPage(page - 1); setOpenInfo(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Previous</Btn>

@@ -14,6 +14,16 @@
 /* No horizontal panning, ever: any element peeking past the viewport
    otherwise lets iOS (and trackpads) drag the whole app sideways. */
 html,body{margin:0;padding:0;max-width:100vw;overflow-x:hidden;overscroll-behavior-x:none;}
+
+/* Answer scale: two halves side by side on wide screens, stacked on phones —
+   so chips 6–10 are always visible instead of being clipped off-screen. */
+.scale-row{display:flex;gap:6px;align-items:stretch;}
+.scale-half{display:flex;gap:5px;flex:1;}
+.scale-div{width:1px;background:var(--hair);margin:2px 2px;}
+@media (max-width:600px){
+  .scale-row{flex-direction:column;gap:8px;}
+  .scale-div{width:auto;height:1px;margin:1px 10px;}
+}
 body{
   font-family:var(--font); color:var(--ink); background:var(--bg);
   background-image:

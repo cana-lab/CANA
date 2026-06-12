@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.54.0
+- iOS UI feedback round 2:
+  - **Answer scale fully visible on phones**: the 0–4 / 6–10 halves now stack as two rows on narrow screens (CSS media query at ≤600px) instead of one 10-chip row that ran off the right edge — chips 6–10 were unreachable since 4.49.1 clipped horizontal overflow. Wide screens keep the side-by-side layout.
+  - **"?" icon un-squeezed** on the About-this-Chapter button (fixed 20px circle, flexShrink 0 — long label text was compressing it).
+- **Skip chapter**: a new subtle button in every assessment chapter marks all of that chapter's questions Not applicable for the current partner (with confirmation) and advances. N/A answers are excluded from scoring by the engine, so a skipped chapter never distorts results — it is simply absent. Works in full assessments and check-ins, per partner; the chapter pills allow returning later.
+- **Native iOS share sheet for the encrypted transfer**: new ShareFilePlugin (UIActivityViewController). "Export to share" on iPhone now opens the system sheet — **AirDrop directly to the other iPhone**, save to Files, or send via Mail/Messages. The file is passphrase-encrypted before it reaches the plugin. This replaces the blob-anchor path that WKWebView silently swallowed, and completes the same-account-on-two-iPhones flow: export on phone 1 → AirDrop → import on phone 2 → sign in with the same credentials (the encrypted file carries the account).
+- Architecture note (SwiftData/CoreData question): local persistence frameworks don't sync across devices by themselves; cross-device sync would mean CloudKit, which (a) only spans ONE Apple ID's devices — not two partners' iPhones — and (b) would put couple data in Apple's cloud, breaking CANA's core "no cloud" promise (privacy label, review notes, README). The encrypted device-to-device transfer IS the designed mechanism for this use case and is now genuinely usable on iOS.
+- Verified: 41/41 tests; web/electron bundles build; Capacitor sync clean; full Xcode simulator build with the new Swift plugin SUCCEEDS. On-device: test export → AirDrop → import in TestFlight build 19.
+
 ## 4.53.0
 - **Oxygen over time.** The trend dashboard now charts the oxygen telemetry across sessions: a solid green Supply line (time, rest, balance) against a dashed Demand line (vision, growth, calling) — breathing room is visibly the space between them. Data points are colored by that session's state (green/amber/red). Sessions store the telemetry from now on; older sessions are skipped on the chart, never faked.
 - **Oxygen on the home screen.** The dashboard preview's tile row gains an Oxygen tile: current supply value, a miniature tank with the dashed demand mark, and the state label — the freshest reading from your latest session, visible the moment you open the app.
